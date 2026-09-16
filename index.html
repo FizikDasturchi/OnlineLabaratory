@@ -214,7 +214,7 @@ img{max-width:100%}
 <div class="topbar">
   <div class="topbar-inner">
     <div class="topbar-icons">
-      <img src="assets/logo.png" alt="Fakultet logotipi">
+      <img src="logo.png" alt="Fakultet logotipi" onerror="this.style.display='none'">
     </div>
     <div class="topbar-title">
       <h1>Fizika Fakulteti Kutubxonasi</h1>
@@ -355,7 +355,13 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   isAdmin = !!(user && ADMIN_EMAILS.includes(user.email));
   renderAuthBox();
-  await ensureDefaultSections();
+  try{
+    await ensureDefaultSections();
+  }catch(e){
+    // Anonim (tizimga kirmagan) foydalanuvchi standart bo'limlarni yoza olmaydi —
+    // bu kutilgan holat, xato bo'lsa ham sahifa render bo'lishda davom etishi kerak.
+    console.warn('ensureDefaultSections o\\'tkazib yuborildi:', e.message);
+  }
   route();
 });
 
