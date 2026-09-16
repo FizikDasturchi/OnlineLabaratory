@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fizika Fakulteti — Onlayn Kutubxona</title>
+<link rel="icon" href="favicon.ico">
+
+<!-- ======================================================================
+     FIREBASE SDK (compat, CDN orqali — build kerak emas)
+====================================================================== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<style>
+:root{
+  --bg:#eef3fb; --card:#fff; --border:#dbe4f3;
+  --accent:#1d4ed8; --accent-l:#eff6ff; --accent-ring:#93c5fd;
+  --text:#0f172a; --sub:#64748b;
+  --green:#16a34a; --green-bg:#f0fdf4;
+  --red:#dc2626; --red-bg:#fff1f2;
+  --amber:#d97706; --amber-bg:#fffbeb;
+  --gold:#e7a83b;
+  --r:14px; --shadow:0 2px 16px rgba(15,40,90,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;
+  color:var(--text);font-size:15px;line-height:1.6;min-height:100vh;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(231,168,59,.10), transparent 40%),
+    radial-gradient(circle at 85% 0%, rgba(29,78,216,.10), transparent 45%),
+    var(--bg);
+}
+button{font-family:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+
+/* ── ATOM DECORATION (CSS/SVG, logotipdagi uslubga mos) ───────────── */
+.atom-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.atom-bg svg{position:absolute;opacity:.07}
+.atom-bg .a1{width:520px;top:-80px;left:-120px}
+.atom-bg .a2{width:420px;bottom:-100px;right:-100px}
+
+/* ── TOP BAR ────────────────────────────────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--border);
+}
+.topbar-inner{
+  max-width:1180px;margin:0 auto;padding:10px 20px;
+  display:flex;align-items:center;gap:14px;
+}
+.topbar-icons{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.topbar-icons img{height:42px;width:42px;object-fit:contain;border-radius:8px}
+.topbar-title{flex:1;min-width:0}
+.topbar-title h1{font-size:16px;font-weight:800;color:var(--text)}
+.topbar-title p{font-size:12px;color:var(--sub)}
+.topbar-title h1,.topbar-title p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.auth-box{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--accent-l);border-radius:99px;padding:5px 12px 5px 5px}
+.user-chip img{width:26px;height:26px;border-radius:50%}
+.user-chip span{font-size:13px;font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-badge{background:var(--gold);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;margin-left:2px}
+.btn{border:none;border-radius:9px;font-weight:700;font-size:13px;padding:9px 15px;transition:.15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#1e40af}
+.btn-outline{background:#fff;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:var(--red-bg);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-ghost{background:transparent;color:var(--sub)}
+.btn-sm{padding:6px 11px;font-size:12px;border-radius:7px}
+
+/* ── LAYOUT ─────────────────────────────────────────────────────── */
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+.crumbs{font-size:13px;color:var(--sub);margin-bottom:18px;display:flex;align-items:center;gap:6px}
+.crumbs a{color:var(--accent);font-weight:600}
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.page-head h2{font-size:22px;font-weight:800}
+
+/* ── SECTIONS GRID ──────────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.sec-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;
+  display:flex;flex-direction:column;gap:8px;min-height:120px;
+}
+.sec-card:hover{transform:translateY(-3px);border-color:var(--accent-ring);box-shadow:0 10px 28px rgba(29,78,216,.14)}
+.sec-icon{width:38px;height:38px;border-radius:10px;background:var(--accent-l);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800}
+.sec-card h3{font-size:15px;font-weight:700;line-height:1.3}
+.sec-card .cnt{font-size:12px;color:var(--sub);margin-top:auto}
+.sec-card.add-card{
+  border:2px dashed var(--border);box-shadow:none;background:transparent;
+  align-items:center;justify-content:center;text-align:center;color:var(--sub);
+}
+.sec-card.add-card:hover{border-color:var(--accent);color:var(--accent)}
+.sec-card.add-card .plus{font-size:26px;font-weight:300;line-height:1}
+
+/* ── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:5px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:9px 15px;border-radius:8px;font-size:13px;font-weight:700;color:var(--sub);background:transparent;border:none;display:flex;align-items:center;gap:6px}
+.tab.active{background:var(--accent);color:#fff}
+.tab .n{font-size:11px;opacity:.85}
+
+/* ── BOOK LIST ──────────────────────────────────────────────────── */
+.book-list{display:flex;flex-direction:column;gap:10px}
+.book-row{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);
+}
+.book-ic{width:42px;height:42px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
+.book-ic.word{background:#e8f1ff;color:#1d4ed8}
+.book-ic.pdf{background:#fee2e2;color:#dc2626}
+.book-ic.pptx{background:#ffedd5;color:#d97706}
+.book-ic.link{background:#fee2e2;color:#dc2626}
+.book-meta{flex:1;min-width:0}
+.book-meta .t{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.book-meta .s{font-size:12px;color:var(--sub);margin-top:2px}
+.book-actions{display:flex;gap:6px;flex-shrink:0}
+.empty{
+  text-align:center;padding:48px 20px;color:var(--sub);
+  border:2px dashed var(--border);border-radius:14px;
+}
+.empty .plus-btn{margin-top:14px}
+
+/* ── MODALS ─────────────────────────────────────────────────────── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);
+  z-index:100;align-items:center;justify-content:center;padding:16px;
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:#fff;border-radius:16px;padding:26px;width:100%;max-width:460px;
+  max-height:90vh;overflow-y:auto;
+}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:16px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--sub);margin-bottom:6px}
+.field input[type=text],.field input[type=url],.field select,.field textarea{
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;
+  font-size:14px;outline:none;font-family:inherit;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field input[type=file]{width:100%;font-size:13px}
+.type-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.type-choice button{
+  border:1.5px solid var(--border);background:#fff;border-radius:9px;padding:11px 8px;
+  font-size:12.5px;font-weight:700;color:var(--text);
+}
+.type-choice button.active{border-color:var(--accent);background:var(--accent-l);color:var(--accent)}
+.checkline{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--sub);margin:14px 0}
+.checkline input{margin-top:3px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+.hint{font-size:12px;color:var(--sub);margin-top:4px}
+.upload-progress{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:8px;display:none}
+.upload-progress .fill{height:100%;background:var(--accent);width:0%;transition:width .2s}
+
+/* ── SIGN-IN SCREEN ─────────────────────────────────────────────── */
+.signin-card{
+  max-width:420px;margin:80px auto;background:#fff;border-radius:18px;
+  box-shadow:var(--shadow);padding:36px 30px;text-align:center;
+}
+.signin-card img{height:64px;margin-bottom:14px}
+.signin-card h2{font-size:19px;font-weight:800;margin-bottom:6px}
+.signin-card p{font-size:13.5px;color:var(--sub);margin-bottom:20px}
+
+/* ── TOAST ──────────────────────────────────────────────────────── */
+.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{background:#0f172a;color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast.err{background:var(--red)}
+.toast.ok{background:var(--green)}
+
+/* ── FOOTER ─────────────────────────────────────────────────────── */
+.site-footer{background:#0f172a;color:#cbd5e1;padding:30px 20px 20px;margin-top:50px}
+.footer-inner{max-width:1180px;margin:0 auto;text-align:center}
+.footer-inner h4{color:#fff;font-size:14px;margin-bottom:6px}
+.footer-inner p{font-size:12.5px;color:#94a3b8;max-width:560px;margin:0 auto 14px}
+.footer-copy{font-size:11px;color:#334155;margin-top:14px}
+
+@media (max-width:600px){
+  .topbar-title p{display:none}
+  .user-chip span{max-width:70px}
+}
+</style>
+</head>
+<body>
+
+<div class="atom-bg">
+  <svg class="a1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="#1d4ed8" stroke-width="2">
+      <ellipse cx="100" cy="100" rx="90" ry="34"/>
+      <ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(60 100 100)"/>
+      <ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(120 100 100)"/>
+    </g>
+    <circle cx="100" cy="100" r="14" fill="#e7a83b"/>
+  </svg>
+  <svg class="a2" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="#e7a83b" stroke-width="2">
+      <ellipse cx="100" cy="100" rx="90" ry="34"/>
+      <ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(60 100 100)"/>
+      <ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(120 100 100)"/>
+    </g>
+    <circle cx="100" cy="100" r="14" fill="#1d4ed8"/>
+  </svg>
+</div>
+
+<!-- ======================= TOP BAR ======================= -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-icons">
+      <img src="assets/logo.png" alt="Fakultet logotipi">
+    </div>
+    <div class="topbar-title">
+      <h1>Fizika Fakulteti Kutubxonasi</h1>
+      <p>P.Q.Habibullayev nomidagi Fizika fakulteti — onlayn resurslar</p>
+    </div>
+    <div class="auth-box" id="authBox"></div>
+  </div>
+</div>
+
+<!-- ======================= MAIN ======================= -->
+<div class="wrap" id="mainWrap">
+  <!-- JS bilan to'ldiriladi -->
+</div>
+
+<div class="site-footer">
+  <div class="footer-inner">
+    <h4>Fizika Fakulteti Onlayn Kutubxonasi</h4>
+    <p>Ushbu kutubxona fakultet talabalari va o'qituvchilari tomonidan birgalikda to'ldirilib boriladi. Har bir foydalanuvchi o'zi qo'shgan materialni tahrirlashi yoki o'chirishi mumkin.</p>
+    <div class="footer-copy">© 2026 Fizika Fakulteti</div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ======================= MODAL: Bo'lim qo'shish ======================= -->
+<div class="modal-overlay" id="modalSection">
+  <div class="modal">
+    <h3>Yangi bo'lim qo'shish</h3>
+    <div class="field">
+      <label>Bo'lim nomi</label>
+      <input type="text" id="newSectionName" placeholder="Masalan: Astrofizika">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalSection')">Bekor qilish</button>
+      <button class="btn btn-primary" onclick="submitNewSection()">Qo'shish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= MODAL: Kitob qo'shish ======================= -->
+<div class="modal-overlay" id="modalBook">
+  <div class="modal">
+    <h3>Material qo'shish</h3>
+    <div class="field">
+      <label>Turi</label>
+      <div class="type-choice" id="typeChoice">
+        <button data-type="word" onclick="selectType('word')">📄 Word fayl</button>
+        <button data-type="pdf" onclick="selectType('pdf')">📕 PDF kitob</button>
+        <button data-type="pptx" onclick="selectType('pptx')">📊 Taqdimot</button>
+        <button data-type="link" onclick="selectType('link')">🎬 Video havola</button>
+      </div>
+    </div>
+
+    <div id="fileFields" style="display:none">
+      <div class="field">
+        <label>Sarlavha</label>
+        <input type="text" id="bookTitle" placeholder="Material nomi">
+      </div>
+      <div class="field">
+        <label>Fayl</label>
+        <input type="file" id="bookFile">
+        <div class="hint" id="fileHint"></div>
+        <div class="upload-progress" id="uploadProgress"><div class="fill" id="uploadFill"></div></div>
+      </div>
+    </div>
+
+    <div id="linkFields" style="display:none">
+      <div class="field">
+        <label>YouTube havolasi</label>
+        <input type="url" id="linkUrl" placeholder="https://youtube.com/watch?v=..." oninput="tryFetchYtTitle()">
+        <div class="hint" id="ytHint"></div>
+      </div>
+      <div class="field" id="linkTitleField">
+        <label>Sarlavha</label>
+        <input type="text" id="linkTitle" placeholder="Video nomi">
+      </div>
+    </div>
+
+    <div class="checkline">
+      <input type="checkbox" id="confirmCheck">
+      <span>Ushbu material fizika (yoki tanlangan bo'limga oid) fanga tegishli, mualliflik huquqini buzmaydi va nomaqbul kontent emasligini tasdiqlayman.</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalBook')">Bekor qilish</button>
+      <button class="btn btn-primary" id="submitBookBtn" onclick="submitNewBook()">Qo'shish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     FIREBASE KONFIGURATSIYASI
+     Diqqat: pastdagi qiymatlarni o'zingizning Firebase loyihangizdan oling.
+     Qo'llanma uchun README.md faylini o'qing.
+====================================================================== -->
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA3fw5xo5mYWV6RJ7KZpvhOJFsuT1BdJO8",
+  authDomain: "onlinelibrary-d1a08.firebaseapp.com",
+  projectId: "onlinelibrary-d1a08",
+  storageBucket: "onlinelibrary-d1a08.firebasestorage.app",
+  messagingSenderId: "609432879673",
+  appId: "1:609432879673:web:5c6ec5fe7bf03cbba403e8"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com"];
+
+const DEFAULT_SECTIONS = [
+  "Mexanika","Molekulyar Fizika","Elektromagnetizm","Optika","Atom Fizikasi",
+  "Yadro Fizikasi","Kvant Mexanikasi","Nazariy Mexanika","Elektrodinamika",
+  "Radio Fizikasi (Elektronika va signallarni qayta ishlash)",
+  "Fizik Jarayonlarni Kompyuterda Modellashtirish",
+  "Umumiy nisbiylik nazariyasi","Maxsus nisbiylik nazariyasi",
+  "Matematik Fizika usullari","Matematik Analiz",
+  "Chiziqli Algebra va Analitik Geometriya","Metodika","Kimyo",
+  "Psixologiya","Falsafa","Dinshunoslik","Pedagogika"
+];
+
+const TYPE_LABELS = {word:"Word fayllar", pdf:"PDF kitoblar", pptx:"Taqdimot fayllari", link:"Havolalar (video darslar)"};
+const TYPE_EXT = {word:[".doc",".docx"], pdf:[".pdf"], pptx:[".ppt",".pptx"]};
+const BANNED_WORDS = ["porno","xxx","seks video","banned_placeholder"]; // oddiy kalit-so'z filtri
+
+let currentUser = null;
+let isAdmin = false;
+let sections = [];
+let currentSectionId = null;
+let currentTab = "word";
+let selectedType = null;
+
+/* ---------------------------------------------------------------------
+   AUTH
+--------------------------------------------------------------------- */
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  isAdmin = !!(user && ADMIN_EMAILS.includes(user.email));
+  renderAuthBox();
+  await ensureDefaultSections();
+  route();
+});
+
+function signIn(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e=>toast(e.message,"err"));
+}
+function signOutUser(){ auth.signOut(); }
+
+function renderAuthBox(){
+  const el = document.getElementById('authBox');
+  if(!currentUser){
+    el.innerHTML = `<button class="btn btn-primary" onclick="signIn()">Google orqali kirish</button>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="user-chip">
+      <img src="${currentUser.photoURL || ''}" onerror="this.style.display='none'">
+      <span>${escapeHtml(currentUser.displayName || currentUser.email)}</span>
+      ${isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="signOutUser()">Chiqish</button>
+  `;
+}
+
+/* ---------------------------------------------------------------------
+   ROUTER (oddiy hash-based)
+--------------------------------------------------------------------- */
+window.addEventListener('hashchange', route);
+function route(){
+  const hash = location.hash.replace('#','');
+  if(hash.startsWith('section/')){
+    currentSectionId = hash.split('/')[1];
+    currentTab = 'word';
+    renderSectionPage();
+  } else {
+    currentSectionId = null;
+    renderHome();
+  }
+}
+
+/* ---------------------------------------------------------------------
+   SECTIONS (Firestore)
+--------------------------------------------------------------------- */
+async function ensureDefaultSections(){
+  const snap = await db.collection('sections').limit(1).get();
+  if(snap.empty){
+    const batch = db.batch();
+    DEFAULT_SECTIONS.forEach((name, i) => {
+      const ref = db.collection('sections').doc();
+      batch.set(ref, {name, order:i, createdBy:'system', createdByName:'Tizim', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    await batch.commit();
+  }
+}
+
+async function loadSections(){
+  const snap = await db.collection('sections').orderBy('order','asc').get();
+  sections = snap.docs.map(d => ({id:d.id, ...d.data()}));
+}
+
+async function renderHome(){
+  const wrap = document.getElementById('mainWrap');
+  wrap.innerHTML = `<div class="page-head"><h2>Bo'limlar</h2></div><div class="grid" id="sectionsGrid"><div class="empty">Yuklanmoqda...</div></div>`;
+  await loadSections();
+  const counts = await getBookCountsBySection();
+  const grid = document.getElementById('sectionsGrid');
+  grid.innerHTML = sections.map(s => `
+    <div class="sec-card" onclick="location.hash='section/${s.id}'">
+      <div class="sec-icon">${(s.name||'?').charAt(0)}</div>
+      <h3>${escapeHtml(s.name)}</h3>
+      <div class="cnt">${counts[s.id]||0} ta material</div>
+    </div>
+  `).join('') + `
+    <div class="sec-card add-card" onclick="openModal('modalSection')">
+      <div class="plus">+</div>
+      <div>Bo'lim qo'shish</div>
+    </div>
+  `;
+}
+
+async function getBookCountsBySection(){
+  const snap = await db.collection('books').get();
+  const counts = {};
+  snap.forEach(d => {
+    const sid = d.data().sectionId;
+    counts[sid] = (counts[sid]||0) + 1;
+  });
+  return counts;
+}
+
+/* ---------------------------------------------------------------------
+   SECTION PAGE (tabs + book list)
+--------------------------------------------------------------------- */
+async function renderSectionPage(){
+  if(!sections.length) await loadSections();
+  const sec = sections.find(s => s.id === currentSectionId);
+  const wrap = document.getElementById('mainWrap');
+  if(!sec){
+    wrap.innerHTML = `<div class="empty">Bo'lim topilmadi. <a href="#" onclick="location.hash=''">Bosh sahifaga qaytish</a></div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="crumbs"><a href="#">Bo'limlar</a> / <span>${escapeHtml(sec.name)}</span></div>
+    <div class="page-head">
+      <h2>${escapeHtml(sec.name)}</h2>
+      <button class="btn btn-primary" onclick="openAddBook()">+ Kitob qo'shish</button>
+    </div>
+    <div class="tabs" id="tabsRow"></div>
+    <div class="book-list" id="bookList"><div class="empty">Yuklanmoqda...</div></div>
+  `;
+  renderTabs();
+  await renderBookList();
+}
+
+function renderTabs(){
+  const row = document.getElementById('tabsRow');
+  row.innerHTML = Object.keys(TYPE_LABELS).map(t => `
+    <button class="tab ${t===currentTab?'active':''}" onclick="switchTab('${t}')">${TYPE_LABELS[t]}</button>
+  `).join('');
+}
+
+async function switchTab(t){
+  currentTab = t;
+  renderTabs();
+  await renderBookList();
+}
+
+async function renderBookList(){
+  const listEl = document.getElementById('bookList');
+  const snap = await db.collection('books')
+    .where('sectionId','==', currentSectionId)
+    .where('type','==', currentTab)
+    .orderBy('createdAt','desc').get();
+
+  if(snap.empty){
+    listEl.innerHTML = `
+      <div class="empty">
+        Bu bo'limda hali ${TYPE_LABELS[currentTab].toLowerCase()} yo'q.
+        <div><button class="btn btn-primary plus-btn" onclick="openAddBook()">+ Kitob qo'shish</button></div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = snap.docs.map(d => {
+    const b = d.data();
+    const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
+    const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
+    return `
+      <div class="book-row">
+        <div class="book-ic ${currentTab}">${icon}</div>
+        <a class="book-meta" href="${b.url}" target="_blank" rel="noopener">
+          <div class="t">${escapeHtml(b.title)}</div>
+          <div class="s">Qo'shdi: ${escapeHtml(b.addedByName||'Noma\\'lum')}</div>
+        </a>
+        <div class="book-actions">
+          ${canEdit ? `
+            <button class="btn btn-outline btn-sm" onclick="editBookTitle('${d.id}','${escapeAttr(b.title)}')">Tahrirlash</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteBook('${d.id}')">O'chirish</button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ---------------------------------------------------------------------
+   ADD SECTION
+--------------------------------------------------------------------- */
+function submitNewSection(){
+  if(!requireAuth()) return;
+  const name = document.getElementById('newSectionName').value.trim();
+  if(!name){ toast('Bo\\'lim nomini kiriting','err'); return; }
+  db.collection('sections').add({
+    name, order: sections.length + Date.now()%1000,
+    createdBy: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(()=>{
+    closeModal('modalSection');
+    document.getElementById('newSectionName').value = '';
+    toast('Bo\\'lim qo\\'shildi','ok');
+    renderHome();
+  }).catch(e=>toast(e.message,'err'));
+}
+
+/* ---------------------------------------------------------------------
+   ADD BOOK
+--------------------------------------------------------------------- */
+function openAddBook(){
+  if(!requireAuth()) return;
+  selectedType = null;
+  document.getElementById('typeChoice').querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('fileFields').style.display = 'none';
+  document.getElementById('linkFields').style.display = 'none';
+  document.getElementById('bookTitle').value = '';
+  document.getElementById('linkUrl').value = '';
+  document.getElementById('linkTitle').value = '';
+  document.getElementById('confirmCheck').checked = false;
+  document.getElementById('ytHint').textContent = '';
+  document.getElementById('linkTitleField').style.display = 'block';
+  selectType(currentTab === 'link' ? 'link' : (currentTab === 'word' || currentTab==='pdf' || currentTab==='pptx' ? currentTab : null));
+  openModal('modalBook');
+}
+
+function selectType(t){
+  selectedType = t;
+  document.getElementById('typeChoice').querySelectorAll('button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.type === t);
+  });
+  document.getElementById('fileFields').style.display = (t && t!=='link') ? 'block' : 'none';
+  document.getElementById('linkFields').style.display = (t === 'link') ? 'block' : 'none';
+  if(t && t!=='link'){
+    document.getElementById('fileHint').textContent = 'Ruxsat etilgan formatlar: ' + TYPE_EXT[t].join(', ');
+  }
+}
+
+async function tryFetchYtTitle(){
+  const url = document.getElementById('linkUrl').value.trim();
+  const hintEl = document.getElementById('ytHint');
+  if(!url){ hintEl.textContent=''; return; }
+  hintEl.textContent = 'Video nomi aniqlanmoqda...';
+  try{
+    const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    if(!res.ok) throw new Error('topilmadi');
+    const data = await res.json();
+    document.getElementById('linkTitle').value = data.title;
+    document.getElementById('linkTitleField').style.display = 'none';
+    hintEl.textContent = '✓ Video nomi avtomatik aniqlandi: ' + data.title;
+  }catch(e){
+    document.getElementById('linkTitleField').style.display = 'block';
+    hintEl.textContent = 'Video nomini avtomatik aniqlab bo\\'lmadi — qo\\'lda kiriting.';
+  }
+}
+
+function hasBannedWords(text){
+  const low = (text||'').toLowerCase();
+  return BANNED_WORDS.some(w => low.includes(w));
+}
+
+async function submitNewBook(){
+  if(!requireAuth()) return;
+  if(!selectedType){ toast('Material turini tanlang','err'); return; }
+  if(!document.getElementById('confirmCheck').checked){
+    toast('Tasdiqlash katagini belgilang','err'); return;
+  }
+
+  const base = {
+    sectionId: currentSectionId,
+    type: selectedType,
+    addedBy: currentUser.uid,
+    addedByName: currentUser.displayName || currentUser.email,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  if(selectedType === 'link'){
+    const url = document.getElementById('linkUrl').value.trim();
+    const title = document.getElementById('linkTitle').value.trim();
+    if(!url || !title){ toast('Havola va sarlavhani to\\'ldiring','err'); return; }
+    if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\\'z ehtimoli bilan rad etildi','err'); return; }
+    await db.collection('books').add({...base, title, url});
+    finishAddBook();
+    return;
+  }
+
+  const title = document.getElementById('bookTitle').value.trim();
+  const fileInput = document.getElementById('bookFile');
+  const file = fileInput.files[0];
+  if(!title || !file){ toast('Sarlavha va faylni tanlang','err'); return; }
+  if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\\'z ehtimoli bilan rad etildi','err'); return; }
+
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if(!TYPE_EXT[selectedType].includes(ext)){
+    toast('Fayl formati mos emas: ' + TYPE_EXT[selectedType].join(', ') + ' bo\\'lishi kerak','err');
+    return;
+  }
+
+  const path = `books/${currentSectionId}/${selectedType}/${Date.now()}_${file.name}`;
+  const ref = storage.ref().child(path);
+  const task = ref.put(file);
+  const progWrap = document.getElementById('uploadProgress');
+  const progFill = document.getElementById('uploadFill');
+  progWrap.style.display = 'block';
+  document.getElementById('submitBookBtn').disabled = true;
+
+  task.on('state_changed', snap=>{
+    const pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
+    progFill.style.width = pct + '%';
+  }, err=>{
+    toast('Yuklashda xatolik: ' + err.message, 'err');
+    document.getElementById('submitBookBtn').disabled = false;
+  }, async ()=>{
+    const url = await ref.getDownloadURL();
+    await db.collection('books').add({...base, title, url, storagePath: path});
+    document.getElementById('submitBookBtn').disabled = false;
+    finishAddBook();
+  });
+}
+
+function finishAddBook(){
+  closeModal('modalBook');
+  toast('Material qo\\'shildi','ok');
+  if(currentTab !== selectedType) switchTab(selectedType);
+  else renderBookList();
+}
+
+async function editBookTitle(id, oldTitle){
+  const t = prompt('Yangi sarlavha:', decodeAttr(oldTitle));
+  if(t === null) return;
+  const trimmed = t.trim();
+  if(!trimmed) return;
+  if(hasBannedWords(trimmed)){ toast('Nomaqbul so\\'z aniqlandi','err'); return; }
+  try{
+    await db.collection('books').doc(id).update({title: trimmed});
+    toast('Yangilandi','ok');
+    renderBookList();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+async function deleteBook(id){
+  if(!confirm('Ushbu materialni o\\'chirmoqchimisiz?')) return;
+  try{
+    const doc = await db.collection('books').doc(id).get();
+    const data = doc.data();
+    await db.collection('books').doc(id).delete();
+    if(data && data.storagePath){
+      storage.ref().child(data.storagePath).delete().catch(()=>{});
+    }
+    toast('O\\'chirildi','ok');
+    renderBookList();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+/* ---------------------------------------------------------------------
+   HELPERS
+--------------------------------------------------------------------- */
+function requireAuth(){
+  if(!currentUser){ toast('Avval tizimga kiring','err'); return false; }
+  return true;
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function toast(msg, kind){
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind==='err'?' err':kind==='ok'?' ok':'');
+  el.textContent = msg;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return encodeURIComponent(String(s||'')); }
+function decodeAttr(s){ return decodeURIComponent(s); }
+</script>
+</body>
+</html>
