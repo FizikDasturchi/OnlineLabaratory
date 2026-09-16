@@ -556,10 +556,15 @@ async function renderBookList(){
   const listEl = document.getElementById('bookList');
   listEl.innerHTML = `<div class="empty">Yuklanmoqda...</div>`;
   try{
+    // Diqqat: bu yerda ataylab orderBy ishlatilmaydi — ikkita teng (==) filtr
+    // (sectionId + type) va boshqa maydon bo'yicha tartiblash birga kelsa,
+    // Firestore alohida composite index talab qiladi. Buning o'rniga
+    // natijalarni shu yerda, brauzerda createdAt bo'yicha saralaymiz —
+    // shunda hech qanday qo'shimcha index sozlash kerak bo'lmaydi.
     const snap = await db.collection('books')
       .where('sectionId','==', currentSectionId)
       .where('type','==', currentTab)
-      .orderBy('createdAt','desc').get();
+      .get();
 
     if(snap.empty){
       listEl.innerHTML = `
@@ -570,7 +575,13 @@ async function renderBookList(){
       return;
     }
 
-    listEl.innerHTML = snap.docs.map(d => {
+    const docs = snap.docs.slice().sort((a,b) => {
+      const ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
+      const tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+      return tb - ta; // eng yangisi birinchi
+    });
+
+    listEl.innerHTML = docs.map(d => {
       const b = d.data();
       const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
       const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
