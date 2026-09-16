@@ -339,8 +339,8 @@ img{max-width:100%}
        service firebase.storage {
          match /b/{bucket}/o {
            match /books/{sectionId}/{type}/{fileName} {
-             allow read: if true;
-             allow write: if request.auth != null;
+             allow read: true;
+             allow write: request.auth != null;
            }
          }
        }
