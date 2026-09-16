@@ -261,23 +261,21 @@ img{max-width:100%}
     <div class="field">
       <label>Turi</label>
       <div class="type-choice" id="typeChoice">
-        <button data-type="word" onclick="selectType('word')">📄 Word fayl</button>
-        <button data-type="pdf" onclick="selectType('pdf')">📕 PDF kitob</button>
-        <button data-type="pptx" onclick="selectType('pptx')">📊 Taqdimot</button>
+        <button data-type="file" onclick="selectType('file')">📎 Fayl yuklash</button>
         <button data-type="link" onclick="selectType('link')">🎬 Video havola</button>
       </div>
     </div>
 
     <div id="fileFields" style="display:none">
       <div class="field">
-        <label>Sarlavha</label>
-        <input type="text" id="bookTitle" placeholder="Material nomi">
+        <label>Fayl</label>
+        <input type="file" id="bookFile" accept=".doc,.docx,.pdf,.ppt,.pptx" onchange="onFileChosen()">
+        <div class="hint" id="fileHint">Ruxsat etilgan formatlar: .doc, .docx, .pdf, .ppt, .pptx — tur avtomatik aniqlanadi</div>
+        <div class="upload-progress" id="uploadProgress"><div class="fill" id="uploadFill"></div></div>
       </div>
       <div class="field">
-        <label>Fayl</label>
-        <input type="file" id="bookFile">
-        <div class="hint" id="fileHint"></div>
-        <div class="upload-progress" id="uploadProgress"><div class="fill" id="uploadFill"></div></div>
+        <label>Sarlavha (ixtiyoriy)</label>
+        <input type="text" id="bookTitle" placeholder="Bo'sh qoldirsangiz, fayl nomi ishlatiladi">
       </div>
     </div>
 
@@ -309,6 +307,42 @@ img{max-width:100%}
      FIREBASE KONFIGURATSIYASI
      Diqqat: pastdagi qiymatlarni o'zingizning Firebase loyihangizdan oling.
      Qo'llanma uchun README.md faylini o'qing.
+
+     MUHIM — Firestore va Storage xavfsizlik qoidalari:
+     Sahifa endi tizimga kirmagan foydalanuvchilarga ham bo'limlar va
+     materiallar ro'yxatini ko'rsatishga harakat qiladi (public READ),
+     lekin buni Firebase loyihangiz tomonida ham ruxsat berish kerak,
+     aks holda o'qish so'rovi "permission-denied" xatosi bilan
+     rad etiladi va sahifa bo'sh ko'rinadi. Firebase konsolida quyidagi
+     qoidalarni qo'ying:
+
+     Firestore Rules:
+       rules_version = '2';
+       service cloud.firestore {
+         match /databases/{database}/documents {
+           match /sections/{sectionId} {
+             allow read: if true;
+             allow create: if request.auth != null;
+             allow update, delete: if request.auth != null;
+           }
+           match /books/{bookId} {
+             allow read: if true;
+             allow create: if request.auth != null;
+             allow update, delete: if request.auth != null;
+           }
+         }
+       }
+
+     Storage Rules:
+       rules_version = '2';
+       service firebase.storage {
+         match /b/{bucket}/o {
+           match /books/{sectionId}/{type}/{fileName} {
+             allow read: if true;
+             allow write: if request.auth != null;
+           }
+         }
+       }
 ====================================================================== -->
 <script>
 const firebaseConfig = {
@@ -338,7 +372,13 @@ const DEFAULT_SECTIONS = [
 ];
 
 const TYPE_LABELS = {word:"Word fayllar", pdf:"PDF kitoblar", pptx:"Taqdimot fayllari", link:"Havolalar (video darslar)"};
-const TYPE_EXT = {word:[".doc",".docx"], pdf:[".pdf"], pptx:[".ppt",".pptx"]};
+// Fayl kengaytmasidan bo'lim turi avtomatik aniqlanadi
+const EXT_TYPE = {
+  '.doc':'word', '.docx':'word',
+  '.pdf':'pdf',
+  '.ppt':'pptx', '.pptx':'pptx'
+};
+const ALLOWED_EXT_HINT = '.doc, .docx, .pdf, .ppt, .pptx';
 const BANNED_WORDS = ["porno","xxx","seks video","banned_placeholder"]; // oddiy kalit-so'z filtri
 
 let currentUser = null;
@@ -346,7 +386,8 @@ let isAdmin = false;
 let sections = [];
 let currentSectionId = null;
 let currentTab = "word";
-let selectedType = null;
+let selectedType = null;      // 'file' | 'link' — modaldagi tanlov
+let detectedFileType = null;  // 'word' | 'pdf' | 'pptx' — fayldan avtomatik aniqlangan tur
 
 /* ---------------------------------------------------------------------
    AUTH
@@ -423,41 +464,62 @@ async function loadSections(){
   sections = snap.docs.map(d => ({id:d.id, ...d.data()}));
 }
 
+async function getBookCountsBySection(){
+  try{
+    const snap = await db.collection('books').get();
+    const counts = {};
+    snap.forEach(d => {
+      const sid = d.data().sectionId;
+      counts[sid] = (counts[sid]||0) + 1;
+    });
+    return counts;
+  }catch(e){
+    // Hisoblarni ololmasak ham bo'limlar ro'yxati ko'rinishda davom etsin
+    console.warn('getBookCountsBySection xatolik:', e.message);
+    return {};
+  }
+}
+
 async function renderHome(){
   const wrap = document.getElementById('mainWrap');
   wrap.innerHTML = `<div class="page-head"><h2>Bo'limlar</h2></div><div class="grid" id="sectionsGrid"><div class="empty">Yuklanmoqda...</div></div>`;
-  await loadSections();
-  const counts = await getBookCountsBySection();
-  const grid = document.getElementById('sectionsGrid');
-  grid.innerHTML = sections.map(s => `
-    <div class="sec-card" onclick="location.hash='section/${s.id}'">
-      <div class="sec-icon">${(s.name||'?').charAt(0)}</div>
-      <h3>${escapeHtml(s.name)}</h3>
-      <div class="cnt">${counts[s.id]||0} ta material</div>
-    </div>
-  `).join('') + `
-    <div class="sec-card add-card" onclick="openModal('modalSection')">
-      <div class="plus">+</div>
-      <div>Bo'lim qo'shish</div>
-    </div>
-  `;
-}
-
-async function getBookCountsBySection(){
-  const snap = await db.collection('books').get();
-  const counts = {};
-  snap.forEach(d => {
-    const sid = d.data().sectionId;
-    counts[sid] = (counts[sid]||0) + 1;
-  });
-  return counts;
+  try{
+    await loadSections();
+    const counts = await getBookCountsBySection();
+    const grid = document.getElementById('sectionsGrid');
+    grid.innerHTML = sections.map(s => `
+      <div class="sec-card" onclick="location.hash='section/${s.id}'">
+        <div class="sec-icon">${(s.name||'?').charAt(0)}</div>
+        <h3>${escapeHtml(s.name)}</h3>
+        <div class="cnt">${counts[s.id]||0} ta material</div>
+      </div>
+    `).join('') + `
+      <div class="sec-card add-card" onclick="openModal('modalSection')">
+        <div class="plus">+</div>
+        <div>Bo'lim qo'shish</div>
+      </div>
+    `;
+  }catch(e){
+    console.error('renderHome xatolik:', e);
+    document.getElementById('sectionsGrid').innerHTML = `
+      <div class="empty" style="grid-column:1/-1">
+        Bo'limlarni yuklab bo'lmadi.<br>
+        <span style="font-size:11px">${escapeHtml(e.message)}</span>
+        <div><button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="renderHome()">Qayta urinish</button></div>
+      </div>`;
+  }
 }
 
 /* ---------------------------------------------------------------------
    SECTION PAGE (tabs + book list)
 --------------------------------------------------------------------- */
 async function renderSectionPage(){
-  if(!sections.length) await loadSections();
+  try{
+    if(!sections.length) await loadSections();
+  }catch(e){
+    document.getElementById('mainWrap').innerHTML = `<div class="empty">Bo'limni yuklab bo'lmadi.<br><span style="font-size:11px">${escapeHtml(e.message)}</span><div><a href="#" onclick="location.hash=''">Bosh sahifaga qaytish</a></div></div>`;
+    return;
+  }
   const sec = sections.find(s => s.id === currentSectionId);
   const wrap = document.getElementById('mainWrap');
   if(!sec){
@@ -492,40 +554,46 @@ async function switchTab(t){
 
 async function renderBookList(){
   const listEl = document.getElementById('bookList');
-  const snap = await db.collection('books')
-    .where('sectionId','==', currentSectionId)
-    .where('type','==', currentTab)
-    .orderBy('createdAt','desc').get();
+  listEl.innerHTML = `<div class="empty">Yuklanmoqda...</div>`;
+  try{
+    const snap = await db.collection('books')
+      .where('sectionId','==', currentSectionId)
+      .where('type','==', currentTab)
+      .orderBy('createdAt','desc').get();
 
-  if(snap.empty){
-    listEl.innerHTML = `
-      <div class="empty">
-        Bu bo'limda hali ${TYPE_LABELS[currentTab].toLowerCase()} yo'q.
-        <div><button class="btn btn-primary plus-btn" onclick="openAddBook()">+ Kitob qo'shish</button></div>
-      </div>`;
-    return;
-  }
+    if(snap.empty){
+      listEl.innerHTML = `
+        <div class="empty">
+          Bu bo'limda hali ${TYPE_LABELS[currentTab].toLowerCase()} yo'q.
+          <div><button class="btn btn-primary plus-btn" onclick="openAddBook()">+ Kitob qo'shish</button></div>
+        </div>`;
+      return;
+    }
 
-  listEl.innerHTML = snap.docs.map(d => {
-    const b = d.data();
-    const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
-    const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
-    return `
-      <div class="book-row">
-        <div class="book-ic ${currentTab}">${icon}</div>
-        <a class="book-meta" href="${b.url}" target="_blank" rel="noopener">
-          <div class="t">${escapeHtml(b.title)}</div>
-          <div class="s">Qo'shdi: ${escapeHtml(b.addedByName||'Noma\'lum')}</div>
-        </a>
-        <div class="book-actions">
-          ${canEdit ? `
-            <button class="btn btn-outline btn-sm" onclick="editBookTitle('${d.id}','${escapeAttr(b.title)}')">Tahrirlash</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteBook('${d.id}')">O'chirish</button>
-          ` : ''}
+    listEl.innerHTML = snap.docs.map(d => {
+      const b = d.data();
+      const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
+      const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
+      return `
+        <div class="book-row">
+          <div class="book-ic ${currentTab}">${icon}</div>
+          <a class="book-meta" href="${b.url}" target="_blank" rel="noopener">
+            <div class="t">${escapeHtml(b.title)}</div>
+            <div class="s">Qo'shdi: ${escapeHtml(b.addedByName||'Noma\'lum')}</div>
+          </a>
+          <div class="book-actions">
+            ${canEdit ? `
+              <button class="btn btn-outline btn-sm" onclick="editBookTitle('${d.id}','${escapeAttr(b.title)}')">Tahrirlash</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteBook('${d.id}')">O'chirish</button>
+            ` : ''}
+          </div>
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  }catch(e){
+    console.error('renderBookList xatolik:', e);
+    listEl.innerHTML = `<div class="empty">Ro'yxatni yuklab bo'lmadi.<br><span style="font-size:11px">${escapeHtml(e.message)}</span></div>`;
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -553,16 +621,23 @@ function submitNewSection(){
 function openAddBook(){
   if(!requireAuth()) return;
   selectedType = null;
+  detectedFileType = null;
   document.getElementById('typeChoice').querySelectorAll('button').forEach(b=>b.classList.remove('active'));
   document.getElementById('fileFields').style.display = 'none';
   document.getElementById('linkFields').style.display = 'none';
   document.getElementById('bookTitle').value = '';
+  document.getElementById('bookFile').value = '';
   document.getElementById('linkUrl').value = '';
   document.getElementById('linkTitle').value = '';
   document.getElementById('confirmCheck').checked = false;
   document.getElementById('ytHint').textContent = '';
+  document.getElementById('fileHint').textContent = 'Ruxsat etilgan formatlar: ' + ALLOWED_EXT_HINT + ' — tur avtomatik aniqlanadi';
   document.getElementById('linkTitleField').style.display = 'block';
-  selectType(currentTab === 'link' ? 'link' : (currentTab === 'word' || currentTab==='pdf' || currentTab==='pptx' ? currentTab : null));
+  const uw = document.getElementById('uploadProgress');
+  uw.style.display = 'none';
+  document.getElementById('uploadFill').style.width = '0%';
+  // Video havolalar bo'limida bo'lsak ham, standart holat — fayl yuklash
+  selectType(currentTab === 'link' ? 'link' : 'file');
   openModal('modalBook');
 }
 
@@ -571,10 +646,25 @@ function selectType(t){
   document.getElementById('typeChoice').querySelectorAll('button').forEach(b=>{
     b.classList.toggle('active', b.dataset.type === t);
   });
-  document.getElementById('fileFields').style.display = (t && t!=='link') ? 'block' : 'none';
+  document.getElementById('fileFields').style.display = (t === 'file') ? 'block' : 'none';
   document.getElementById('linkFields').style.display = (t === 'link') ? 'block' : 'none';
-  if(t && t!=='link'){
-    document.getElementById('fileHint').textContent = 'Ruxsat etilgan formatlar: ' + TYPE_EXT[t].join(', ');
+}
+
+function onFileChosen(){
+  const fileInput = document.getElementById('bookFile');
+  const file = fileInput.files[0];
+  const hintEl = document.getElementById('fileHint');
+  if(!file){
+    detectedFileType = null;
+    hintEl.textContent = 'Ruxsat etilgan formatlar: ' + ALLOWED_EXT_HINT + ' — tur avtomatik aniqlanadi';
+    return;
+  }
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  detectedFileType = EXT_TYPE[ext] || null;
+  if(!detectedFileType){
+    hintEl.textContent = '⚠️ Bu fayl formati qo\'llab-quvvatlanmaydi. Ruxsat etilgan: ' + ALLOWED_EXT_HINT;
+  } else {
+    hintEl.textContent = '✓ Aniqlandi: ' + TYPE_LABELS[detectedFileType];
   }
 }
 
@@ -610,7 +700,6 @@ async function submitNewBook(){
 
   const base = {
     sectionId: currentSectionId,
-    type: selectedType,
     addedBy: currentUser.uid,
     addedByName: currentUser.displayName || currentUser.email,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -621,29 +710,39 @@ async function submitNewBook(){
     const title = document.getElementById('linkTitle').value.trim();
     if(!url || !title){ toast('Havola va sarlavhani to\'ldiring','err'); return; }
     if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
-    await db.collection('books').add({...base, title, url});
-    finishAddBook();
+    try{
+      await db.collection('books').add({...base, type:'link', title, url});
+      finishAddBook('link');
+    }catch(e){
+      toast('Saqlashda xatolik: ' + e.message, 'err');
+    }
     return;
   }
 
-  const title = document.getElementById('bookTitle').value.trim();
+  // ---- Fayl yuklash (Word / PDF / Taqdimot) — tur fayldan avtomatik aniqlanadi ----
   const fileInput = document.getElementById('bookFile');
   const file = fileInput.files[0];
-  if(!title || !file){ toast('Sarlavha va faylni tanlang','err'); return; }
-  if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
-
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  if(!TYPE_EXT[selectedType].includes(ext)){
-    toast('Fayl formati mos emas: ' + TYPE_EXT[selectedType].join(', ') + ' bo\'lishi kerak','err');
+  if(!file){ toast('Faylni tanlang','err'); return; }
+  if(!detectedFileType){
+    toast('Fayl formati qo\'llab-quvvatlanmaydi. Ruxsat etilgan: ' + ALLOWED_EXT_HINT, 'err');
     return;
   }
 
-  const path = `books/${currentSectionId}/${selectedType}/${Date.now()}_${file.name}`;
+  let title = document.getElementById('bookTitle').value.trim();
+  if(!title){
+    title = file.name.replace(/\.[^/.]+$/, ''); // kengaytmasiz fayl nomi
+  }
+  if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
+
+  const type = detectedFileType;
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const path = `books/${currentSectionId}/${type}/${Date.now()}_${safeName}`;
   const ref = storage.ref().child(path);
   const task = ref.put(file);
   const progWrap = document.getElementById('uploadProgress');
   const progFill = document.getElementById('uploadFill');
   progWrap.style.display = 'block';
+  progFill.style.width = '0%';
   document.getElementById('submitBookBtn').disabled = true;
 
   task.on('state_changed', snap=>{
@@ -652,18 +751,24 @@ async function submitNewBook(){
   }, err=>{
     toast('Yuklashda xatolik: ' + err.message, 'err');
     document.getElementById('submitBookBtn').disabled = false;
+    progWrap.style.display = 'none';
   }, async ()=>{
-    const url = await ref.getDownloadURL();
-    await db.collection('books').add({...base, title, url, storagePath: path});
-    document.getElementById('submitBookBtn').disabled = false;
-    finishAddBook();
+    try{
+      const url = await ref.getDownloadURL();
+      await db.collection('books').add({...base, type, title, url, storagePath: path});
+      document.getElementById('submitBookBtn').disabled = false;
+      finishAddBook(type);
+    }catch(e){
+      toast('Ma\'lumotlar bazasiga yozishda xatolik: ' + e.message, 'err');
+      document.getElementById('submitBookBtn').disabled = false;
+    }
   });
 }
 
-function finishAddBook(){
+function finishAddBook(type){
   closeModal('modalBook');
   toast('Material qo\'shildi','ok');
-  if(currentTab !== selectedType) switchTab(selectedType);
+  if(currentTab !== type) switchTab(type);
   else renderBookList();
 }
 
