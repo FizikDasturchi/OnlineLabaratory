@@ -360,7 +360,7 @@ auth.onAuthStateChanged(async user => {
   }catch(e){
     // Anonim (tizimga kirmagan) foydalanuvchi standart bo'limlarni yoza olmaydi —
     // bu kutilgan holat, xato bo'lsa ham sahifa render bo'lishda davom etishi kerak.
-    console.warn('ensureDefaultSections o\\'tkazib yuborildi:', e.message);
+    console.warn('ensureDefaultSections otkazib yuborildi:', e.message);
   }
   route();
 });
@@ -515,7 +515,7 @@ async function renderBookList(){
         <div class="book-ic ${currentTab}">${icon}</div>
         <a class="book-meta" href="${b.url}" target="_blank" rel="noopener">
           <div class="t">${escapeHtml(b.title)}</div>
-          <div class="s">Qo'shdi: ${escapeHtml(b.addedByName||'Noma\\'lum')}</div>
+          <div class="s">Qo'shdi: ${escapeHtml(b.addedByName||'Noma\'lum')}</div>
         </a>
         <div class="book-actions">
           ${canEdit ? `
@@ -534,7 +534,7 @@ async function renderBookList(){
 function submitNewSection(){
   if(!requireAuth()) return;
   const name = document.getElementById('newSectionName').value.trim();
-  if(!name){ toast('Bo\\'lim nomini kiriting','err'); return; }
+  if(!name){ toast('Bo\'lim nomini kiriting','err'); return; }
   db.collection('sections').add({
     name, order: sections.length + Date.now()%1000,
     createdBy: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
@@ -542,7 +542,7 @@ function submitNewSection(){
   }).then(()=>{
     closeModal('modalSection');
     document.getElementById('newSectionName').value = '';
-    toast('Bo\\'lim qo\\'shildi','ok');
+    toast('Bo\'lim qo\'shildi','ok');
     renderHome();
   }).catch(e=>toast(e.message,'err'));
 }
@@ -592,7 +592,7 @@ async function tryFetchYtTitle(){
     hintEl.textContent = '✓ Video nomi avtomatik aniqlandi: ' + data.title;
   }catch(e){
     document.getElementById('linkTitleField').style.display = 'block';
-    hintEl.textContent = 'Video nomini avtomatik aniqlab bo\\'lmadi — qo\\'lda kiriting.';
+    hintEl.textContent = 'Video nomini avtomatik aniqlab bo\'lmadi — qo\'lda kiriting.';
   }
 }
 
@@ -619,8 +619,8 @@ async function submitNewBook(){
   if(selectedType === 'link'){
     const url = document.getElementById('linkUrl').value.trim();
     const title = document.getElementById('linkTitle').value.trim();
-    if(!url || !title){ toast('Havola va sarlavhani to\\'ldiring','err'); return; }
-    if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\\'z ehtimoli bilan rad etildi','err'); return; }
+    if(!url || !title){ toast('Havola va sarlavhani to\'ldiring','err'); return; }
+    if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
     await db.collection('books').add({...base, title, url});
     finishAddBook();
     return;
@@ -630,11 +630,11 @@ async function submitNewBook(){
   const fileInput = document.getElementById('bookFile');
   const file = fileInput.files[0];
   if(!title || !file){ toast('Sarlavha va faylni tanlang','err'); return; }
-  if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\\'z ehtimoli bilan rad etildi','err'); return; }
+  if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
 
   const ext = '.' + file.name.split('.').pop().toLowerCase();
   if(!TYPE_EXT[selectedType].includes(ext)){
-    toast('Fayl formati mos emas: ' + TYPE_EXT[selectedType].join(', ') + ' bo\\'lishi kerak','err');
+    toast('Fayl formati mos emas: ' + TYPE_EXT[selectedType].join(', ') + ' bo\'lishi kerak','err');
     return;
   }
 
@@ -662,7 +662,7 @@ async function submitNewBook(){
 
 function finishAddBook(){
   closeModal('modalBook');
-  toast('Material qo\\'shildi','ok');
+  toast('Material qo\'shildi','ok');
   if(currentTab !== selectedType) switchTab(selectedType);
   else renderBookList();
 }
@@ -672,7 +672,7 @@ async function editBookTitle(id, oldTitle){
   if(t === null) return;
   const trimmed = t.trim();
   if(!trimmed) return;
-  if(hasBannedWords(trimmed)){ toast('Nomaqbul so\\'z aniqlandi','err'); return; }
+  if(hasBannedWords(trimmed)){ toast('Nomaqbul so\'z aniqlandi','err'); return; }
   try{
     await db.collection('books').doc(id).update({title: trimmed});
     toast('Yangilandi','ok');
@@ -681,7 +681,7 @@ async function editBookTitle(id, oldTitle){
 }
 
 async function deleteBook(id){
-  if(!confirm('Ushbu materialni o\\'chirmoqchimisiz?')) return;
+  if(!confirm('Ushbu materialni o\'chirmoqchimisiz?')) return;
   try{
     const doc = await db.collection('books').doc(id).get();
     const data = doc.data();
@@ -689,7 +689,7 @@ async function deleteBook(id){
     if(data && data.storagePath){
       storage.ref().child(data.storagePath).delete().catch(()=>{});
     }
-    toast('O\\'chirildi','ok');
+    toast('O\'chirildi','ok');
     renderBookList();
   }catch(e){ toast(e.message,'err'); }
 }
