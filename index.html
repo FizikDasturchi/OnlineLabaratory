@@ -257,7 +257,7 @@ img{max-width:100%}
 <!-- ======================= MODAL: Kitob qo'shish ======================= -->
 <div class="modal-overlay" id="modalBook">
   <div class="modal">
-    <h3>Material qo'shish</h3>
+    <h3>Adabiyot qo'shish</h3>
     <div class="field">
       <label>Turi</label>
       <div class="type-choice" id="typeChoice">
@@ -272,6 +272,7 @@ img{max-width:100%}
         <input type="file" id="bookFile" accept=".doc,.docx,.pdf,.ppt,.pptx" onchange="onFileChosen()">
         <div class="hint" id="fileHint">Ruxsat etilgan formatlar: .doc, .docx, .pdf, .ppt, .pptx — tur avtomatik aniqlanadi</div>
         <div class="upload-progress" id="uploadProgress"><div class="fill" id="uploadFill"></div></div>
+        <div class="hint" id="uploadErrorMsg" style="display:none;color:var(--red);font-weight:600"></div>
       </div>
       <div class="field">
         <label>Sarlavha (ixtiyoriy)</label>
@@ -530,7 +531,7 @@ async function renderSectionPage(){
     <div class="crumbs"><a href="#">Bo'limlar</a> / <span>${escapeHtml(sec.name)}</span></div>
     <div class="page-head">
       <h2>${escapeHtml(sec.name)}</h2>
-      <button class="btn btn-primary" onclick="openAddBook()">+ Kitob qo'shish</button>
+      <button class="btn btn-primary" onclick="openAddBook()">+ Adabiyot qo'shish</button>
     </div>
     <div class="tabs" id="tabsRow"></div>
     <div class="book-list" id="bookList"><div class="empty">Yuklanmoqda...</div></div>
@@ -570,7 +571,7 @@ async function renderBookList(){
       listEl.innerHTML = `
         <div class="empty">
           Bu bo'limda hali ${TYPE_LABELS[currentTab].toLowerCase()} yo'q.
-          <div><button class="btn btn-primary plus-btn" onclick="openAddBook()">+ Kitob qo'shish</button></div>
+          <div><button class="btn btn-primary plus-btn" onclick="openAddBook()">+ Adabiyot qo'shish</button></div>
         </div>`;
       return;
     }
@@ -647,6 +648,9 @@ function openAddBook(){
   const uw = document.getElementById('uploadProgress');
   uw.style.display = 'none';
   document.getElementById('uploadFill').style.width = '0%';
+  const uem = document.getElementById('uploadErrorMsg');
+  uem.style.display = 'none';
+  uem.textContent = '';
   // Video havolalar bo'limida bo'lsak ham, standart holat — fayl yuklash
   selectType(currentTab === 'link' ? 'link' : 'file');
   openModal('modalBook');
@@ -748,37 +752,81 @@ async function submitNewBook(){
   const type = detectedFileType;
   const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   const path = `books/${currentSectionId}/${type}/${Date.now()}_${safeName}`;
-  const ref = storage.ref().child(path);
-  const task = ref.put(file);
   const progWrap = document.getElementById('uploadProgress');
   const progFill = document.getElementById('uploadFill');
+  const errEl = document.getElementById('uploadErrorMsg');
   progWrap.style.display = 'block';
   progFill.style.width = '0%';
+  errEl.style.display = 'none';
+  errEl.textContent = '';
   document.getElementById('submitBookBtn').disabled = true;
 
+  // Agar yuklash juda uzoq (15 soniyadan ko'p) hech qanday o'zgarishsiz
+  // qotib qolsa, buning odatiy sababi haqida maslahat ko'rsatamiz —
+  // ko'pincha bu Firebase Storage'ning "Blaze" (pullik) tarifga
+  // o'tkazilmaganligi bilan bog'liq bo'ladi.
+  let sawProgress = false;
+  const stuckTimer = setTimeout(()=>{
+    if(!sawProgress){
+      showUploadError('Yuklash boshlanmayapti. Ko\'pincha buning sababi — Firebase loyihangizda Storage "Blaze" (pullik, lekin bepul limitli) tarifga o\'tkazilmagan bo\'lishi mumkin. Firebase konsolida Storage bo\'limini tekshiring.');
+    }
+  }, 15000);
+
+  function showUploadError(msg){
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+    toast(msg, 'err');
+    document.getElementById('submitBookBtn').disabled = false;
+  }
+
+  function friendlyError(err){
+    const code = err && err.code ? err.code : '';
+    if(code === 'storage/unauthorized') return 'Yuklashga ruxsat yo\'q. Storage xavfsizlik qoidalarini (Rules) tekshiring.';
+    if(code === 'storage/canceled') return 'Yuklash bekor qilindi.';
+    if(code === 'storage/quota-exceeded') return 'Saqlash joyi limiti tugagan.';
+    if(code === 'storage/unknown' || code === 'storage/retry-limit-exceeded' || !code){
+      return 'Yuklab bo\'lmadi (tarmoq yoki Firebase Storage sozlamasi xatosi). Loyihangizda Storage yoqilganini va "Blaze" tarifga o\'tkazilganini tekshiring. Texnik xabar: ' + (err && err.message ? err.message : 'noma\'lum xato');
+    }
+    return (err && err.message) ? err.message : 'Noma\'lum xatolik';
+  }
+
+  let ref, task;
+  try{
+    ref = storage.ref().child(path);
+    task = ref.put(file);
+  }catch(e){
+    clearTimeout(stuckTimer);
+    showUploadError(friendlyError(e));
+    progWrap.style.display = 'none';
+    return;
+  }
+
   task.on('state_changed', snap=>{
+    sawProgress = true;
     const pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
     progFill.style.width = pct + '%';
   }, err=>{
-    toast('Yuklashda xatolik: ' + err.message, 'err');
-    document.getElementById('submitBookBtn').disabled = false;
+    clearTimeout(stuckTimer);
+    console.error('Storage upload xatosi:', err);
+    showUploadError(friendlyError(err));
     progWrap.style.display = 'none';
   }, async ()=>{
+    clearTimeout(stuckTimer);
     try{
       const url = await ref.getDownloadURL();
       await db.collection('books').add({...base, type, title, url, storagePath: path});
       document.getElementById('submitBookBtn').disabled = false;
       finishAddBook(type);
     }catch(e){
-      toast('Ma\'lumotlar bazasiga yozishda xatolik: ' + e.message, 'err');
-      document.getElementById('submitBookBtn').disabled = false;
+      console.error('Firestore yozish xatosi:', e);
+      showUploadError('Ma\'lumotlar bazasiga yozib bo\'lmadi: ' + e.message);
     }
   });
 }
 
 function finishAddBook(type){
   closeModal('modalBook');
-  toast('Material qo\'shildi','ok');
+  toast('Adabiyot qo\'shildi','ok');
   if(currentTab !== type) switchTab(type);
   else renderBookList();
 }
@@ -824,7 +872,7 @@ function toast(msg, kind){
   el.className = 'toast' + (kind==='err'?' err':kind==='ok'?' ok':'');
   el.textContent = msg;
   document.getElementById('toastWrap').appendChild(el);
-  setTimeout(()=>el.remove(), 3200);
+  setTimeout(()=>el.remove(), kind==='err' ? 7000 : 3200);
 }
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
