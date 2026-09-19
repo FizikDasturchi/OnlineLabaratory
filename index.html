@@ -66,8 +66,10 @@ img{max-width:100%}
 .user-chip span{font-size:13px;font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .admin-badge{background:var(--gold);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;margin-left:2px}
 .btn{border:none;border-radius:9px;font-weight:700;font-size:13px;padding:9px 15px;transition:.15s}
+a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{background:#1e40af}
+.btn-primary:disabled{background:#93a9e6;cursor:not-allowed}
 .btn-outline{background:#fff;border:1.5px solid var(--border);color:var(--text)}
 .btn-outline:hover{border-color:var(--accent);color:var(--accent)}
 .btn-danger{background:var(--red-bg);color:var(--red)}
@@ -120,8 +122,9 @@ img{max-width:100%}
 .book-ic.link{background:#fee2e2;color:#dc2626}
 .book-meta{flex:1;min-width:0}
 .book-meta .t{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.book-meta:hover .t{color:var(--accent)}
 .book-meta .s{font-size:12px;color:var(--sub);margin-top:2px}
-.book-actions{display:flex;gap:6px;flex-shrink:0}
+.book-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
 .empty{
   text-align:center;padding:48px 20px;color:var(--sub);
   border:2px dashed var(--border);border-radius:14px;
@@ -157,8 +160,10 @@ img{max-width:100%}
 .checkline input{margin-top:3px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
 .hint{font-size:12px;color:var(--sub);margin-top:4px}
-.upload-progress{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:8px;display:none}
-.upload-progress .fill{height:100%;background:var(--accent);width:0%;transition:width .4s}
+
+/* Yuklash jarayoni (foiz) */
+.upload-progress{height:10px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:10px;display:none}
+.upload-progress .fill{height:100%;background:var(--accent);width:0%;transition:width .35s ease;border-radius:99px}
 .upload-progress.indeterminate .fill{
   width:40% !important;animation:indet 1.1s ease-in-out infinite;
 }
@@ -166,6 +171,7 @@ img{max-width:100%}
   0%{margin-left:-40%}
   100%{margin-left:100%}
 }
+.upload-status{display:none;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--accent)}
 
 /* ── SIGN-IN SCREEN ─────────────────────────────────────────────── */
 .signin-card{
@@ -177,7 +183,7 @@ img{max-width:100%}
 .signin-card p{font-size:13.5px;color:var(--sub);margin-bottom:20px}
 
 /* ── TOAST ──────────────────────────────────────────────────────── */
-.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;max-width:calc(100vw - 24px)}
 .toast{background:#0f172a;color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 .toast.err{background:var(--red)}
 .toast.ok{background:var(--green)}
@@ -192,6 +198,8 @@ img{max-width:100%}
 @media (max-width:600px){
   .topbar-title p{display:none}
   .user-chip span{max-width:70px}
+  .book-row{flex-wrap:wrap}
+  .book-actions{width:100%;justify-content:flex-start}
 }
 </style>
 </head>
@@ -245,9 +253,6 @@ img{max-width:100%}
 
 <div class="toast-wrap" id="toastWrap"></div>
 
-<!-- Google Drive'ga fayl yuklash/o'chirish uchun yashirin iframe (CORS'dan qochish uchun) -->
-<iframe name="driveFrame" id="driveFrame" style="display:none" title="drive-upload-frame"></iframe>
-
 <!-- ======================= MODAL: Bo'lim qo'shish ======================= -->
 <div class="modal-overlay" id="modalSection">
   <div class="modal">
@@ -281,6 +286,7 @@ img{max-width:100%}
         <input type="file" id="bookFile" accept=".doc,.docx,.pdf,.ppt,.pptx" onchange="onFileChosen()">
         <div class="hint" id="fileHint">Ruxsat etilgan formatlar: .doc, .docx, .pdf, .ppt, .pptx — tur avtomatik aniqlanadi</div>
         <div class="upload-progress" id="uploadProgress"><div class="fill" id="uploadFill"></div></div>
+        <div class="upload-status" id="uploadStatus"></div>
         <div class="hint" id="uploadErrorMsg" style="display:none;color:var(--red);font-weight:600"></div>
       </div>
       <div class="field">
@@ -307,7 +313,7 @@ img{max-width:100%}
     </div>
 
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalBook')">Bekor qilish</button>
+      <button class="btn btn-ghost" onclick="cancelBookModal()">Bekor qilish</button>
       <button class="btn btn-primary" id="submitBookBtn" onclick="submitNewBook()">Qo'shish</button>
     </div>
   </div>
@@ -329,9 +335,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Google Apps Script "Web app" manzili — fayllarni Google Drive'ga
-// yuklovchi va o'chiruvchi proxy.
-const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxVqCdXTKAk5ADiWsUteDosPLvmGnE4PYNi9Z2yZb-ivuyzvusyj6NNlF3UbzArarwJ/exec";
+// Google Apps Script "Web app" manzili — Manage deployments oynasidagi
+// hozirgi (Version 5) deployment URL'i. Code.gs ni yangilaganda
+// "Manage deployments -> qalam -> New version" qilsangiz, URL o'zgarmaydi.
+const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbym1V_1of_mXhQkpgdZUz7rFhoVDkS2-oJUv-Z2PxJeBW-NOTgr72Xc5gmbjUljv9Sq/exec";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com"];
 
@@ -355,6 +362,11 @@ const EXT_TYPE = {
 const ALLOWED_EXT_HINT = '.doc, .docx, .pdf, .ppt, .pptx';
 const BANNED_WORDS = ["porno","xxx","seks video","banned_placeholder"];
 
+// Bir bo'lak hajmi: 256 KB ga karrali bo'lishi SHART (Drive talabi). 8 × 256 KB = 2 MB
+const CHUNK_SIZE = 8 * 256 * 1024;
+// Bo'lakli yuklash ishlamay qolsa, zaxira usul faqat shu hajmgacha ishlaydi
+const FALLBACK_MAX_BYTES = 25 * 1024 * 1024;
+
 let currentUser = null;
 let isAdmin = false;
 let sections = [];
@@ -362,6 +374,9 @@ let currentSectionId = null;
 let currentTab = "word";
 let selectedType = null;
 let detectedFileType = null;
+let currentJob = null;   // hozirgi yuklash jarayoni {cancelled, done}
+
+const $ = id => document.getElementById(id);
 
 /* ---------------------------------------------------------------------
    AUTH
@@ -385,14 +400,14 @@ function signIn(){
 function signOutUser(){ auth.signOut(); }
 
 function renderAuthBox(){
-  const el = document.getElementById('authBox');
+  const el = $('authBox');
   if(!currentUser){
     el.innerHTML = `<button class="btn btn-primary" onclick="signIn()">Google orqali kirish</button>`;
     return;
   }
   el.innerHTML = `
     <div class="user-chip">
-      <img src="${currentUser.photoURL || ''}" onerror="this.style.display='none'">
+      <img src="${escapeHtml(currentUser.photoURL || '')}" onerror="this.style.display='none'">
       <span>${escapeHtml(currentUser.displayName || currentUser.email)}</span>
       ${isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
     </div>
@@ -452,15 +467,15 @@ async function getBookCountsBySection(){
 }
 
 async function renderHome(){
-  const wrap = document.getElementById('mainWrap');
+  const wrap = $('mainWrap');
   wrap.innerHTML = `<div class="page-head"><h2>Bo'limlar</h2></div><div class="grid" id="sectionsGrid"><div class="empty">Yuklanmoqda...</div></div>`;
   try{
     await loadSections();
     const counts = await getBookCountsBySection();
-    const grid = document.getElementById('sectionsGrid');
+    const grid = $('sectionsGrid');
     grid.innerHTML = sections.map(s => `
-      <div class="sec-card" onclick="location.hash='section/${s.id}'">
-        <div class="sec-icon">${(s.name||'?').charAt(0)}</div>
+      <div class="sec-card" onclick="location.hash='section/${escapeHtml(s.id)}'">
+        <div class="sec-icon">${escapeHtml((s.name||'?').charAt(0))}</div>
         <h3>${escapeHtml(s.name)}</h3>
         <div class="cnt">${counts[s.id]||0} ta material</div>
       </div>
@@ -472,7 +487,7 @@ async function renderHome(){
     `;
   }catch(e){
     console.error('renderHome xatolik:', e);
-    document.getElementById('sectionsGrid').innerHTML = `
+    $('sectionsGrid').innerHTML = `
       <div class="empty" style="grid-column:1/-1">
         Bo'limlarni yuklab bo'lmadi.<br>
         <span style="font-size:11px">${escapeHtml(e.message)}</span>
@@ -488,11 +503,11 @@ async function renderSectionPage(){
   try{
     if(!sections.length) await loadSections();
   }catch(e){
-    document.getElementById('mainWrap').innerHTML = `<div class="empty">Bo'limni yuklab bo'lmadi.<br><span style="font-size:11px">${escapeHtml(e.message)}</span><div><a href="#" onclick="location.hash=''">Bosh sahifaga qaytish</a></div></div>`;
+    $('mainWrap').innerHTML = `<div class="empty">Bo'limni yuklab bo'lmadi.<br><span style="font-size:11px">${escapeHtml(e.message)}</span><div><a href="#" onclick="location.hash=''">Bosh sahifaga qaytish</a></div></div>`;
     return;
   }
   const sec = sections.find(s => s.id === currentSectionId);
-  const wrap = document.getElementById('mainWrap');
+  const wrap = $('mainWrap');
   if(!sec){
     wrap.innerHTML = `<div class="empty">Bo'lim topilmadi. <a href="#" onclick="location.hash=''">Bosh sahifaga qaytish</a></div>`;
     return;
@@ -511,7 +526,7 @@ async function renderSectionPage(){
 }
 
 function renderTabs(){
-  const row = document.getElementById('tabsRow');
+  const row = $('tabsRow');
   row.innerHTML = Object.keys(TYPE_LABELS).map(t => `
     <button class="tab ${t===currentTab?'active':''}" onclick="switchTab('${t}')">${TYPE_LABELS[t]}</button>
   `).join('');
@@ -523,8 +538,15 @@ async function switchTab(t){
   await renderBookList();
 }
 
+// Saytda ochiladigan havola: Drive fayllari uchun "ko'rish" sahifasi
+function bookViewUrl(b){
+  return b.driveFileId
+    ? 'https://drive.google.com/file/d/' + encodeURIComponent(b.driveFileId) + '/view'
+    : b.url;
+}
+
 async function renderBookList(){
-  const listEl = document.getElementById('bookList');
+  const listEl = $('bookList');
   listEl.innerHTML = `<div class="empty">Yuklanmoqda...</div>`;
   try{
     const snap = await db.collection('books')
@@ -551,14 +573,17 @@ async function renderBookList(){
       const b = d.data();
       const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
       const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
+      const openHref = safeUrl(bookViewUrl(b));
+      const dlHref = (b.driveFileId && b.url) ? safeUrl(b.url) : '';
       return `
         <div class="book-row">
           <div class="book-ic ${currentTab}">${icon}</div>
-          <a class="book-meta" href="${b.url}" target="_blank" rel="noopener">
+          <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
             <div class="t">${escapeHtml(b.title)}</div>
             <div class="s">Qo'shdi: ${escapeHtml(b.addedByName||'Noma\'lum')}</div>
           </a>
           <div class="book-actions">
+            ${dlHref !== '#' && dlHref ? `<a class="btn btn-outline btn-sm" href="${escapeHtml(dlHref)}" target="_blank" rel="noopener">⬇ Yuklab olish</a>` : ''}
             ${canEdit ? `
               <button class="btn btn-outline btn-sm" onclick="editBookTitle('${d.id}','${escapeAttr(b.title)}')">Tahrirlash</button>
               <button class="btn btn-danger btn-sm" onclick="deleteBook('${d.id}')">O'chirish</button>
@@ -578,7 +603,7 @@ async function renderBookList(){
 --------------------------------------------------------------------- */
 function submitNewSection(){
   if(!requireAuth()) return;
-  const name = document.getElementById('newSectionName').value.trim();
+  const name = $('newSectionName').value.trim();
   if(!name){ toast('Bo\'lim nomini kiriting','err'); return; }
   db.collection('sections').add({
     name, order: sections.length + Date.now()%1000,
@@ -586,7 +611,7 @@ function submitNewSection(){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(()=>{
     closeModal('modalSection');
-    document.getElementById('newSectionName').value = '';
+    $('newSectionName').value = '';
     toast('Bo\'lim qo\'shildi','ok');
     renderHome();
   }).catch(e=>toast(e.message,'err'));
@@ -599,41 +624,46 @@ function openAddBook(){
   if(!requireAuth()) return;
   selectedType = null;
   detectedFileType = null;
-  document.getElementById('typeChoice').querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-  document.getElementById('fileFields').style.display = 'none';
-  document.getElementById('linkFields').style.display = 'none';
-  document.getElementById('bookTitle').value = '';
-  document.getElementById('bookFile').value = '';
-  document.getElementById('linkUrl').value = '';
-  document.getElementById('linkTitle').value = '';
-  document.getElementById('confirmCheck').checked = false;
-  document.getElementById('ytHint').textContent = '';
-  document.getElementById('fileHint').textContent = 'Ruxsat etilgan formatlar: ' + ALLOWED_EXT_HINT + ' — tur avtomatik aniqlanadi';
-  document.getElementById('linkTitleField').style.display = 'block';
-  const uw = document.getElementById('uploadProgress');
-  uw.style.display = 'none';
-  uw.classList.remove('indeterminate');
-  document.getElementById('uploadFill').style.width = '0%';
-  const uem = document.getElementById('uploadErrorMsg');
+  $('typeChoice').querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  $('fileFields').style.display = 'none';
+  $('linkFields').style.display = 'none';
+  $('bookTitle').value = '';
+  $('bookFile').value = '';
+  $('linkUrl').value = '';
+  $('linkTitle').value = '';
+  $('confirmCheck').checked = false;
+  $('ytHint').textContent = '';
+  $('fileHint').textContent = 'Ruxsat etilgan formatlar: ' + ALLOWED_EXT_HINT + ' — tur avtomatik aniqlanadi';
+  $('linkTitleField').style.display = 'block';
+  hideProgress();
+  const uem = $('uploadErrorMsg');
   uem.style.display = 'none';
   uem.textContent = '';
+  $('submitBookBtn').disabled = false;
   selectType(currentTab === 'link' ? 'link' : 'file');
   openModal('modalBook');
 }
 
+function cancelBookModal(){
+  if(currentJob && !currentJob.done){
+    if(!confirm('Yuklash jarayoni to\'xtatilsinmi?')) return;
+    currentJob.cancelled = true;
+  }
+  closeModal('modalBook');
+}
+
 function selectType(t){
   selectedType = t;
-  document.getElementById('typeChoice').querySelectorAll('button').forEach(b=>{
+  $('typeChoice').querySelectorAll('button').forEach(b=>{
     b.classList.toggle('active', b.dataset.type === t);
   });
-  document.getElementById('fileFields').style.display = (t === 'file') ? 'block' : 'none';
-  document.getElementById('linkFields').style.display = (t === 'link') ? 'block' : 'none';
+  $('fileFields').style.display = (t === 'file') ? 'block' : 'none';
+  $('linkFields').style.display = (t === 'link') ? 'block' : 'none';
 }
 
 function onFileChosen(){
-  const fileInput = document.getElementById('bookFile');
-  const file = fileInput.files[0];
-  const hintEl = document.getElementById('fileHint');
+  const file = $('bookFile').files[0];
+  const hintEl = $('fileHint');
   if(!file){
     detectedFileType = null;
     hintEl.textContent = 'Ruxsat etilgan formatlar: ' + ALLOWED_EXT_HINT + ' — tur avtomatik aniqlanadi';
@@ -644,24 +674,24 @@ function onFileChosen(){
   if(!detectedFileType){
     hintEl.textContent = '⚠️ Bu fayl formati qo\'llab-quvvatlanmaydi. Ruxsat etilgan: ' + ALLOWED_EXT_HINT;
   } else {
-    hintEl.textContent = '✓ Aniqlandi: ' + TYPE_LABELS[detectedFileType];
+    hintEl.textContent = '✓ Aniqlandi: ' + TYPE_LABELS[detectedFileType] + ' (' + fmtMB(file.size) + ' MB)';
   }
 }
 
 async function tryFetchYtTitle(){
-  const url = document.getElementById('linkUrl').value.trim();
-  const hintEl = document.getElementById('ytHint');
+  const url = $('linkUrl').value.trim();
+  const hintEl = $('ytHint');
   if(!url){ hintEl.textContent=''; return; }
   hintEl.textContent = 'Video nomi aniqlanmoqda...';
   try{
     const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
     if(!res.ok) throw new Error('topilmadi');
     const data = await res.json();
-    document.getElementById('linkTitle').value = data.title;
-    document.getElementById('linkTitleField').style.display = 'none';
+    $('linkTitle').value = data.title;
+    $('linkTitleField').style.display = 'none';
     hintEl.textContent = '✓ Video nomi avtomatik aniqlandi: ' + data.title;
   }catch(e){
-    document.getElementById('linkTitleField').style.display = 'block';
+    $('linkTitleField').style.display = 'block';
     hintEl.textContent = 'Video nomini avtomatik aniqlab bo\'lmadi — qo\'lda kiriting.';
   }
 }
@@ -672,135 +702,132 @@ function hasBannedWords(text){
 }
 
 /* ---------------------------------------------------------------------
-   GOOGLE DRIVE UPLOAD/DELETE — yashirin <form> + <iframe> orqali
-   (fetch/XHR o'rniga, chunki bu CORS bloklanishidan butunlay qochadi:
-   forma yuborish oddiy sahifa navigatsiyasi hisoblanadi va brauzer
-   uni CORS siyosati bilan cheklamaydi. Natija esa Apps Script'dan
-   window.postMessage orqali qaytariladi.)
+   GOOGLE DRIVE'GA YUKLASH — bevosita fetch() orqali, popup KERAK EMAS.
+
+   Nega ishlaydi: so'rov "Content-Type: text/plain" bilan yuboriladi,
+   bu CORS "preflight" (OPTIONS) so'rovini talab qilmaydi. Apps Script
+   javobni JSON sifatida qaytaradi va brauzer uni o'qiy oladi.
+
+   Fayl CHUNK_SIZE hajmli bo'laklarga bo'linib yuboriladi — har bir
+   bo'lak tasdiqlanganda foiz yangilanadi.
 --------------------------------------------------------------------- */
-const driveMessageQueue = [];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmtMB = bytes => (bytes / 1048576).toFixed(1);
 
-window.addEventListener('message', (event) => {
-  let payload = event.data;
-  if(typeof payload === 'string'){
-    try{ payload = JSON.parse(payload); }catch(e){ return; }
-  }
-  if(!payload || !payload.__driveUploadResult) return;
-  const handler = driveMessageQueue.shift();
-  if(handler) handler(payload);
-});
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error('Faylni o\'qib bo\'lmadi'));
+    r.onload = () => resolve(String(r.result).split(',')[1] || '');
+    r.readAsDataURL(blob);
+  });
+}
 
-/**
- * Fayl yuklashda ATAYLAB kichik POPUP OYNA orqali yuboriladi
- * (yashirin <iframe> emas). Sababi: ko'plab reklama-bloklovchilar
- * (Opera, uBlock va hokazo) aynan "yashirin iframe ichidagi
- * script.google.com so'rovi"ni reklama-yo'naltirish texnikasi deb
- * bloklaydi, lekin oddiy oyna/sahifa navigatsiyasini bunday
- * bloklamaydi. Popup oyna foydalanuvchi tugmani bosgan zahoti,
- * SINXRON tarzda ochiladi — shu sababli brauzerning o'zining
- * popup-bloklovchisiga ham tegmaydi.
- */
-function openUploadPopup(){
-  try{
-    const w = window.open('about:blank', 'driveUploadPopup', 'width=420,height=260');
-    if(w){
-      w.document.write(
-        '<div style="font:14px/1.5 system-ui,sans-serif;padding:24px;color:#334155">' +
-        '<b>Google Drive\'ga yuklanmoqda…</b><br>Katta fayllar uchun bu 1 daqiqagacha vaqt olishi mumkin. Iltimos, bu oynani yopmang — u avtomatik yopiladi.' +
-        '</div>'
-      );
+// Apps Script'ga so'rov. Faqat tarmoq xatosida qayta urinadi.
+async function gasCall(payload, retries){
+  retries = (retries === undefined) ? 2 : retries;
+  let lastErr;
+  for(let i = 0; i <= retries; i++){
+    try{
+      const res = await fetch(DRIVE_UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const txt = await res.text();
+      try{
+        return JSON.parse(txt);
+      }catch(e){
+        throw new Error('Serverdan kutilmagan javob keldi. Code.gs yangi versiyada deploy qilinganini va URL to\'g\'riligini tekshiring.');
+      }
+    }catch(e){
+      lastErr = e;
+      if(String(e.message).startsWith('Serverdan kutilmagan')) throw e;
+      await sleep(1200 * (i + 1));
     }
-    return w;
-  }catch(e){ return null; }
-}
-
-function submitViaPopup(fields, popupWin, onSettled){
-  const winName = 'driveUploadPopup';
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = DRIVE_UPLOAD_URL;
-  form.target = winName;
-  form.style.display = 'none';
-  Object.keys(fields).forEach(k=>{
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = k;
-    input.value = fields[k];
-    form.appendChild(input);
-  });
-  document.body.appendChild(form);
-
-  let settled = false;
-  const timer = setTimeout(()=>{
-    if(settled) return;
-    settled = true;
-    cleanup();
-    // Javob kelmasa ham, fayl Drive'ga yetib borgan bo'lishi mumkin —
-    // shuning uchun "xato" emas, "javob kelmadi" holatini qaytaramiz.
-    onSettled({ success:false, timedOut:true, error: 'Tasdiq 90 soniyada kelmadi.' });
-  }, 90000);
-
-  function handler(payload){
-    if(settled) return;
-    settled = true;
-    clearTimeout(timer);
-    cleanup();
-    onSettled(payload);
   }
-  function cleanup(){
-    const idx = driveMessageQueue.indexOf(handler);
-    if(idx>-1) driveMessageQueue.splice(idx,1);
-    form.remove();
-    try{ if(popupWin && !popupWin.closed) popupWin.close(); }catch(e){}
+  throw new Error('Serverga ulanib bo\'lmadi (' + (lastErr && lastErr.message ? lastErr.message : 'tarmoq xatosi') + ')');
+}
+
+function setProgress(job, pct, text){
+  if(job && job.cancelled) return;
+  const wrap = $('uploadProgress'), fill = $('uploadFill'), st = $('uploadStatus');
+  wrap.style.display = 'block';
+  st.style.display = 'block';
+  if(pct === null){
+    wrap.classList.add('indeterminate');
+  } else {
+    wrap.classList.remove('indeterminate');
+    fill.style.width = pct + '%';
+  }
+  st.textContent = text || '';
+}
+
+function hideProgress(){
+  const wrap = $('uploadProgress');
+  wrap.style.display = 'none';
+  wrap.classList.remove('indeterminate');
+  $('uploadFill').style.width = '0%';
+  const st = $('uploadStatus');
+  st.style.display = 'none';
+  st.textContent = '';
+}
+
+async function uploadFileToDrive(file, job){
+  const mime = file.type || 'application/octet-stream';
+  const total = file.size;
+  if(!total) throw new Error('Fayl bo\'sh');
+
+  setProgress(job, 0, 'Drive bilan ulanmoqda…');
+  const init = await gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total });
+
+  // ---- Asosiy usul: bo'lakli yuklash (foiz bilan) ----
+  if(init && init.success && init.session){
+    let start = 0;
+    while(start < total){
+      if(job.cancelled) throw new Error('__cancelled__');
+      const end = Math.min(start + CHUNK_SIZE, total);
+      const base64 = await blobToBase64(file.slice(start, end));
+      const r = await gasCall({ action:'chunk', session:init.session, mimeType:mime, start, total, base64 });
+      if(!r || !r.success) throw new Error((r && r.error) || 'Bo\'lakni yuborishda xatolik');
+      start = end;
+      const pct = Math.floor(start / total * 100);
+      setProgress(job, pct, pct + '%  —  ' + fmtMB(start) + ' / ' + fmtMB(total) + ' MB');
+      if(r.done) return r;
+    }
+    throw new Error('Yuklash yakunlanmadi — Drive tasdiq bermadi. Qayta urinib ko\'ring.');
   }
 
-  driveMessageQueue.push(handler);
-  form.submit();
+  // ---- Zaxira usul: butun fayl bitta so'rovda (foizsiz) ----
+  console.warn('Bo\'lakli yuklash ishlamadi, oddiy usulga o\'tildi:', init && init.error);
+  if(total > FALLBACK_MAX_BYTES){
+    throw new Error('Bo\'lakli yuklash ishlamadi' + (init && init.error ? ': ' + init.error : '') + '. Katta fayl (' + fmtMB(total) + ' MB) oddiy usulda yuklanmaydi — Code.gs dagi Drive API sozlamasini tekshiring.');
+  }
+  if(job.cancelled) throw new Error('__cancelled__');
+  setProgress(job, null, 'Yuborilmoqda… (bu usulda foiz ko\'rsatilmaydi)');
+  const base64 = await blobToBase64(file);
+  const r = await gasCall({ action:'upload', fileName:file.name, mimeType:mime, base64 });
+  if(!r || !r.success) throw new Error((r && r.error) || 'Drive yuklashda xatolik');
+  return r;
 }
 
-function uploadToDrive(file, popupWin){
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onerror = () => resolve({ success:false, error:'Faylni o\'qib bo\'lmadi' });
-    reader.onload = () => {
-      const base64 = String(reader.result).split(',')[1];
-      submitViaPopup(
-        { action:'upload', fileName:file.name, mimeType:file.type || 'application/octet-stream', base64 },
-        popupWin,
-        (payload)=> resolve(payload || { success:false, error:'Drive yuklashda xatolik' })
-      );
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
+// O'chirish: natijasini kutish shart emas
 function deleteFromDrive(fileId){
-  if(!fileId) return Promise.resolve();
-  return new Promise((resolve)=>{
-    // O'chirish uchun tasdiqni kutish shart emas — fire-and-forget,
-    // shu sababli yashirin iframe orqali yuborsak ham xavfsiz
-    // (natijasi UI'ga bog'liq emas).
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = DRIVE_UPLOAD_URL;
-    form.target = 'driveFrame';
-    form.style.display = 'none';
-    const fields = { action:'delete', fileId };
-    Object.keys(fields).forEach(k=>{
-      const input = document.createElement('input');
-      input.type='hidden'; input.name=k; input.value=fields[k];
-      form.appendChild(input);
-    });
-    document.body.appendChild(form);
-    form.submit();
-    setTimeout(()=>{ form.remove(); resolve(); }, 500);
-  });
+  if(!fileId) return;
+  fetch(DRIVE_UPLOAD_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action:'delete', fileId })
+  }).catch(e => console.warn('Drive\'dan o\'chirishda xatolik:', e.message));
 }
+
+function warnUnload(e){ e.preventDefault(); e.returnValue = ''; }
 
 async function submitNewBook(){
   if(!requireAuth()) return;
+  if(currentJob && !currentJob.done) return;   // ikki marta bosilmasin
   if(!selectedType){ toast('Material turini tanlang','err'); return; }
-  if(!document.getElementById('confirmCheck').checked){
+  if(!$('confirmCheck').checked){
     toast('Tasdiqlash katagini belgilang','err'); return;
   }
 
@@ -811,13 +838,15 @@ async function submitNewBook(){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
+  /* ---- Video havola ---- */
   if(selectedType === 'link'){
-    const url = document.getElementById('linkUrl').value.trim();
-    const title = document.getElementById('linkTitle').value.trim();
+    const url = $('linkUrl').value.trim();
+    const title = $('linkTitle').value.trim();
     if(!url || !title){ toast('Havola va sarlavhani to\'ldiring','err'); return; }
+    if(safeUrl(url) === '#'){ toast('Havola http:// yoki https:// bilan boshlanishi kerak','err'); return; }
     if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
     try{
-      await db.collection('books').add({...base, type:'link', title, url});
+      await db.collection('books').add({...base, type:'link', title, url: safeUrl(url)});
       finishAddBook('link');
     }catch(e){
       toast('Saqlashda xatolik: ' + e.message, 'err');
@@ -825,64 +854,70 @@ async function submitNewBook(){
     return;
   }
 
-  if(!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('BU_YERGA') === 0){
-    toast('Drive yuklash manzili sozlanmagan (DRIVE_UPLOAD_URL). README.md ga qarang.', 'err');
+  /* ---- Fayl ---- */
+  if(!DRIVE_UPLOAD_URL){
+    toast('Drive yuklash manzili sozlanmagan (DRIVE_UPLOAD_URL).', 'err');
     return;
   }
-  const fileInput = document.getElementById('bookFile');
-  const file = fileInput.files[0];
+  const file = $('bookFile').files[0];
   if(!file){ toast('Faylni tanlang','err'); return; }
   if(!detectedFileType){
     toast('Fayl formati qo\'llab-quvvatlanmaydi. Ruxsat etilgan: ' + ALLOWED_EXT_HINT, 'err');
     return;
   }
 
-  let title = document.getElementById('bookTitle').value.trim();
+  let title = $('bookTitle').value.trim();
   if(!title){
     title = file.name.replace(/\.[^/.]+$/, '');
   }
   if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
 
   const type = detectedFileType;
-  const progWrap = document.getElementById('uploadProgress');
-  const progFill = document.getElementById('uploadFill');
-  const errEl = document.getElementById('uploadErrorMsg');
-  progWrap.style.display = 'block';
-  progWrap.classList.add('indeterminate');
+  const btn = $('submitBookBtn');
+  const errEl = $('uploadErrorMsg');
   errEl.style.display = 'none';
   errEl.textContent = '';
-  document.getElementById('submitBookBtn').disabled = true;
+  btn.disabled = true;
 
-  function showUploadError(msg){
-    progWrap.classList.remove('indeterminate');
-    progWrap.style.display = 'none';
-    errEl.textContent = msg;
-    errEl.style.display = 'block';
-    toast(msg, 'err');
-    document.getElementById('submitBookBtn').disabled = false;
-  }
+  const job = { cancelled:false, done:false };
+  currentJob = job;
+  window.addEventListener('beforeunload', warnUnload);
 
-  // Popup oyna SINXRON tarzda, hozir (fayl o'qilishidan oldin) ochiladi —
-  // shunda brauzer buni foydalanuvchi bosgan tugmaga bog'liq haqiqiy
-  // amal deb hisoblaydi va bloklamaydi.
-  const popupWin = openUploadPopup();
-
+  let driveResult = null;
   try{
-    const res = await uploadToDrive(file, popupWin);
-    if(!res.success || !res.url){
-      if(res.timedOut){
-        throw new Error('Tasdiq kelmadi. Drive papkangizni tekshiring — fayl baribir yetib borgan bo\'lishi mumkin, shunday bo\'lsa qayta urinib ko\'ring yoki manual ravishda bo\'limga havola sifatida qo\'shing.');
-      }
-      throw new Error(res.error || 'Drive yuklashda xatolik');
+    driveResult = await uploadFileToDrive(file, job);
+
+    if(job.cancelled){
+      // Foydalanuvchi oxirgi lahzada bekor qilgan — Drive'dagi faylni ham olib tashlaymiz
+      deleteFromDrive(driveResult.fileId);
+      throw new Error('__cancelled__');
     }
-    await db.collection('books').add({...base, type, title, url: res.url, driveFileId: res.fileId});
-    progWrap.classList.remove('indeterminate');
-    document.getElementById('submitBookBtn').disabled = false;
+
+    setProgress(job, 100, '100%  —  Saytga qo\'shilmoqda…');
+    try{
+      await db.collection('books').add({...base, type, title, url: driveResult.url, driveFileId: driveResult.fileId});
+    }catch(dbErr){
+      deleteFromDrive(driveResult.fileId);   // saytda yozuv yo'q — Drive'da yetim fayl qolmasin
+      throw new Error('Fayl Drive\'ga yuklandi, lekin saytga saqlashda xatolik: ' + dbErr.message);
+    }
+
+    hideProgress();
     finishAddBook(type);
   }catch(err){
-    console.error('Drive yuklash xatosi:', err);
-    try{ if(popupWin && !popupWin.closed) popupWin.close(); }catch(e){}
-    showUploadError(err.message);
+    if(err.message === '__cancelled__'){
+      hideProgress();
+      toast('Yuklash bekor qilindi');
+    } else {
+      console.error('Drive yuklash xatosi:', err);
+      hideProgress();
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+      toast(err.message, 'err');
+    }
+  }finally{
+    job.done = true;
+    window.removeEventListener('beforeunload', warnUnload);
+    if(currentJob === job) btn.disabled = false;
   }
 }
 
@@ -927,20 +962,28 @@ function requireAuth(){
   if(!currentUser){ toast('Avval tizimga kiring','err'); return false; }
   return true;
 }
-function openModal(id){ document.getElementById(id).classList.add('show'); }
-function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function openModal(id){ $(id).classList.add('show'); }
+function closeModal(id){ $(id).classList.remove('show'); }
 function toast(msg, kind){
   const el = document.createElement('div');
   el.className = 'toast' + (kind==='err'?' err':kind==='ok'?' ok':'');
   el.textContent = msg;
-  document.getElementById('toastWrap').appendChild(el);
+  $('toastWrap').appendChild(el);
   setTimeout(()=>el.remove(), kind==='err' ? 7000 : 3200);
 }
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function escapeAttr(s){ return encodeURIComponent(String(s||'')); }
+// onclick="..." ichida xavfsiz uzatish uchun (apostrof ham kodlanadi)
+function escapeAttr(s){ return encodeURIComponent(String(s||'')).replace(/'/g, '%27'); }
 function decodeAttr(s){ return decodeURIComponent(s); }
+// Faqat http/https havolalarga ruxsat (javascript: kabilarni bloklaydi)
+function safeUrl(u){
+  try{
+    const x = new URL(String(u||'').trim());
+    return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : '#';
+  }catch(e){ return '#'; }
+}
 </script>
 </body>
 </html>
