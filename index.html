@@ -12,7 +12,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
 <style>
 :root{
@@ -307,17 +306,11 @@ img{max-width:100%}
 <!-- ======================================================================
      FIREBASE KONFIGURATSIYASI
      Diqqat: pastdagi qiymatlarni o'zingizning Firebase loyihangizdan oling.
-     Qo'llanma uchun README.md faylini o'qing.
 
-     MUHIM — Firestore va Storage xavfsizlik qoidalari:
-     Sahifa endi tizimga kirmagan foydalanuvchilarga ham bo'limlar va
-     materiallar ro'yxatini ko'rsatishga harakat qiladi (public READ),
-     lekin buni Firebase loyihangiz tomonida ham ruxsat berish kerak,
-     aks holda o'qish so'rovi "permission-denied" xatosi bilan
-     rad etiladi va sahifa bo'sh ko'rinadi. Firebase konsolida quyidagi
-     qoidalarni qo'ying:
+     FAYLLAR ENDI FIREBASE STORAGE'DA EMAS, GOOGLE DRIVE'DA SAQLANADI
+     (Apps Script proxy orqali) — sozlash uchun README.md faylini o'qing.
 
-     Firestore Rules:
+     Firestore Rules (o'zgarishsiz qoladi):
        rules_version = '2';
        service cloud.firestore {
          match /databases/{database}/documents {
@@ -330,17 +323,6 @@ img{max-width:100%}
              allow read: if true;
              allow create: if request.auth != null;
              allow update, delete: if request.auth != null;
-           }
-         }
-       }
-
-     Storage Rules:
-       rules_version = '2';
-       service firebase.storage {
-         match /b/{bucket}/o {
-           match /books/{sectionId}/{type}/{fileName} {
-             allow read: true;
-             allow write: request.auth != null;
            }
          }
        }
@@ -357,7 +339,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
+
+// Google Apps Script "Web app" manzili — fayllarni Google Drive'ga
+// yuklovchi va o'chiruvchi proxy. README.md dagi ko'rsatmalar bo'yicha
+// o'zingiznikini deploy qilib, shu yerga qo'ying.
+const DRIVE_UPLOAD_URL = "DRIVE_UPLOAD_URLhttps://script.google.com/macros/s/AKfycbxVqCdXTKAk5ADiWsUteDosPLvmGnE4PYNi9Z2yZb-ivuyzvusyj6NNlF3UbzArarwJ/exec";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com"];
 
@@ -706,6 +692,49 @@ function hasBannedWords(text){
   return BANNED_WORDS.some(w => low.includes(w));
 }
 
+/* ---------------------------------------------------------------------
+   GOOGLE DRIVE UPLOAD (Apps Script proxy orqali)
+--------------------------------------------------------------------- */
+function uploadToDrive(file, onProgress){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Faylni o\'qib bo\'lmadi'));
+    reader.onload = () => {
+      const base64 = String(reader.result).split(',')[1];
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', DRIVE_UPLOAD_URL, true);
+      xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+      xhr.upload.onprogress = (evt) => {
+        if(evt.lengthComputable && onProgress) onProgress(Math.round((evt.loaded/evt.total)*100));
+      };
+      xhr.onload = () => {
+        let res;
+        try{ res = JSON.parse(xhr.responseText); }
+        catch(e){ reject(new Error('Server javobini o\'qib bo\'lmadi. Apps Script URL to\'g\'ri deploy qilinganini tekshiring.')); return; }
+        if(res.success) resolve(res);
+        else reject(new Error(res.error || 'Drive yuklashda xatolik'));
+      };
+      xhr.onerror = () => reject(new Error('Tarmoq xatosi — Apps Script manziliga ulanib bo\'lmadi'));
+      xhr.send(JSON.stringify({
+        action: 'upload',
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        base64
+      }));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function deleteFromDrive(fileId){
+  if(!fileId) return Promise.resolve();
+  return fetch(DRIVE_UPLOAD_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({action:'delete', fileId})
+  }).catch(e => console.warn('Drive fayl o\'chirilmadi:', e.message));
+}
+
 async function submitNewBook(){
   if(!requireAuth()) return;
   if(!selectedType){ toast('Material turini tanlang','err'); return; }
@@ -734,7 +763,11 @@ async function submitNewBook(){
     return;
   }
 
-  // ---- Fayl yuklash (Word / PDF / Taqdimot) — tur fayldan avtomatik aniqlanadi ----
+  // ---- Fayl yuklash (Word / PDF / Taqdimot) — Google Drive'ga, tur fayldan avtomatik aniqlanadi ----
+  if(!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('BU_YERGA') === 0){
+    toast('Drive yuklash manzili sozlanmagan (DRIVE_UPLOAD_URL). README.md ga qarang.', 'err');
+    return;
+  }
   const fileInput = document.getElementById('bookFile');
   const file = fileInput.files[0];
   if(!file){ toast('Faylni tanlang','err'); return; }
@@ -750,8 +783,6 @@ async function submitNewBook(){
   if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
 
   const type = detectedFileType;
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  const path = `books/${currentSectionId}/${type}/${Date.now()}_${safeName}`;
   const progWrap = document.getElementById('uploadProgress');
   const progFill = document.getElementById('uploadFill');
   const errEl = document.getElementById('uploadErrorMsg');
@@ -761,14 +792,10 @@ async function submitNewBook(){
   errEl.textContent = '';
   document.getElementById('submitBookBtn').disabled = true;
 
-  // Agar yuklash juda uzoq (15 soniyadan ko'p) hech qanday o'zgarishsiz
-  // qotib qolsa, buning odatiy sababi haqida maslahat ko'rsatamiz —
-  // ko'pincha bu Firebase Storage'ning "Blaze" (pullik) tarifga
-  // o'tkazilmaganligi bilan bog'liq bo'ladi.
   let sawProgress = false;
   const stuckTimer = setTimeout(()=>{
     if(!sawProgress){
-      showUploadError('Yuklash boshlanmayapti. Ko\'pincha buning sababi — Firebase loyihangizda Storage "Blaze" (pullik, lekin bepul limitli) tarifga o\'tkazilmagan bo\'lishi mumkin. Firebase konsolida Storage bo\'limini tekshiring.');
+      showUploadError('Yuklash boshlanmayapti. DRIVE_UPLOAD_URL to\'g\'ri Apps Script manzili ekanini va deploy "Anyone" ruxsati bilan qilinganini tekshiring.');
     }
   }, 15000);
 
@@ -779,49 +806,18 @@ async function submitNewBook(){
     document.getElementById('submitBookBtn').disabled = false;
   }
 
-  function friendlyError(err){
-    const code = err && err.code ? err.code : '';
-    if(code === 'storage/unauthorized') return 'Yuklashga ruxsat yo\'q. Storage xavfsizlik qoidalarini (Rules) tekshiring.';
-    if(code === 'storage/canceled') return 'Yuklash bekor qilindi.';
-    if(code === 'storage/quota-exceeded') return 'Saqlash joyi limiti tugagan.';
-    if(code === 'storage/unknown' || code === 'storage/retry-limit-exceeded' || !code){
-      return 'Yuklab bo\'lmadi (tarmoq yoki Firebase Storage sozlamasi xatosi). Loyihangizda Storage yoqilganini va "Blaze" tarifga o\'tkazilganini tekshiring. Texnik xabar: ' + (err && err.message ? err.message : 'noma\'lum xato');
-    }
-    return (err && err.message) ? err.message : 'Noma\'lum xatolik';
-  }
-
-  let ref, task;
   try{
-    ref = storage.ref().child(path);
-    task = ref.put(file);
-  }catch(e){
+    const res = await uploadToDrive(file, (pct)=>{ sawProgress = true; progFill.style.width = pct + '%'; });
     clearTimeout(stuckTimer);
-    showUploadError(friendlyError(e));
+    await db.collection('books').add({...base, type, title, url: res.url, driveFileId: res.fileId});
+    document.getElementById('submitBookBtn').disabled = false;
+    finishAddBook(type);
+  }catch(err){
+    clearTimeout(stuckTimer);
+    console.error('Drive yuklash xatosi:', err);
+    showUploadError(err.message);
     progWrap.style.display = 'none';
-    return;
   }
-
-  task.on('state_changed', snap=>{
-    sawProgress = true;
-    const pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
-    progFill.style.width = pct + '%';
-  }, err=>{
-    clearTimeout(stuckTimer);
-    console.error('Storage upload xatosi:', err);
-    showUploadError(friendlyError(err));
-    progWrap.style.display = 'none';
-  }, async ()=>{
-    clearTimeout(stuckTimer);
-    try{
-      const url = await ref.getDownloadURL();
-      await db.collection('books').add({...base, type, title, url, storagePath: path});
-      document.getElementById('submitBookBtn').disabled = false;
-      finishAddBook(type);
-    }catch(e){
-      console.error('Firestore yozish xatosi:', e);
-      showUploadError('Ma\'lumotlar bazasiga yozib bo\'lmadi: ' + e.message);
-    }
-  });
 }
 
 function finishAddBook(type){
@@ -850,8 +846,8 @@ async function deleteBook(id){
     const doc = await db.collection('books').doc(id).get();
     const data = doc.data();
     await db.collection('books').doc(id).delete();
-    if(data && data.storagePath){
-      storage.ref().child(data.storagePath).delete().catch(()=>{});
+    if(data && data.driveFileId){
+      deleteFromDrive(data.driveFileId);
     }
     toast('O\'chirildi','ok');
     renderBookList();
