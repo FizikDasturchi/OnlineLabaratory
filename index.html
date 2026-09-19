@@ -365,6 +365,7 @@ const BANNED_WORDS = ["porno","xxx","seks video","banned_placeholder"];
 // Bo'lak hajmlari: 256 KB ga karrali bo'lishi SHART (Drive talabi).
 const DIRECT_CHUNK = 32 * 256 * 1024;   // 8 MB — brauzer -> Drive (to'g'ridan-to'g'ri)
 const CHUNK_SIZE   = 16 * 256 * 1024;   // 4 MB — zaxira usul (Apps Script orqali)
+const SINGLE_CALL_MAX = 3 * 1024 * 1024; // shundan kichik fayl zaxira rejimda bitta so'rovda yuboriladi
 // Bo'lakli yuklash ishlamay qolsa, zaxira usul faqat shu hajmgacha ishlaydi
 const FALLBACK_MAX_BYTES = 25 * 1024 * 1024;
 
@@ -775,6 +776,15 @@ function hideProgress(){
   st.textContent = '';
 }
 
+const secs = ms => (ms / 1000).toFixed(1) + ' s';
+let directBroken = false;   // shu sahifada to'g'ridan-to'g'ri usul ishlamasa, qayta urinib vaqt yo'qotmaymiz
+
+function directFail(reason){
+  const e = new Error('__direct_failed__');
+  e.reason = reason;
+  return e;
+}
+
 // Brauzerdan Drive'ga to'g'ridan-to'g'ri PUT (bir tekis, haqiqiy foiz)
 function putChunkDirect(job, session, blob, start, end, total, onLoaded){
   return new Promise((resolve, reject) => {
@@ -784,7 +794,7 @@ function putChunkDirect(job, session, blob, start, end, total, onLoaded){
     xhr.setRequestHeader('Content-Range', 'bytes ' + start + '-' + (end - 1) + '/' + total);
     xhr.upload.onprogress = e => { if(e.lengthComputable) onLoaded(e.loaded); };
     xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
-    xhr.onerror = () => reject(new Error('__direct_failed__'));
+    xhr.onerror = () => reject(directFail('brauzer so\'rovi bloklandi (CORS yoki tarmoq), status ' + xhr.status));
     xhr.onabort = () => reject(new Error('__cancelled__'));
     xhr.send(blob);
   });
@@ -805,13 +815,13 @@ async function uploadDirect(file, session, job){
     start = end;
     if(res.status === 200 || res.status === 201){
       let meta;
-      try{ meta = JSON.parse(res.text); }catch(e){ throw new Error('__direct_failed__'); }
-      if(!meta || !meta.id) throw new Error('__direct_failed__');
+      try{ meta = JSON.parse(res.text); }catch(e){ throw directFail('Drive javobi o\'qilmadi'); }
+      if(!meta || !meta.id) throw directFail('Drive javobida fayl ID yo\'q');
       return meta.id;
     }
-    if(res.status !== 308) throw new Error('__direct_failed__');
+    if(res.status !== 308) throw directFail('Drive javobi ' + res.status + ': ' + String(res.text).slice(0, 150));
   }
-  throw new Error('__direct_failed__');
+  throw directFail('Drive yuklashni tasdiqlamadi');
 }
 
 async function uploadFileToDrive(file, job){
@@ -819,40 +829,68 @@ async function uploadFileToDrive(file, job){
   const total = file.size;
   if(!total) throw new Error('Fayl bo\'sh');
 
+  const t0 = performance.now();
+  const timings = {};
+  let reason = '';
+  const finish = (r, method) => {
+    r._report = 'usul: ' + method + (reason ? ' | sabab: ' + reason : '') + ' | jami ' + secs(performance.now() - t0);
+    console.info('[Yuklash]', r._report, timings);
+    return r;
+  };
+  const time = async (name, fn) => {
+    const t = performance.now();
+    try{ return await fn(); } finally { timings[name] = secs(performance.now() - t); }
+  };
+
+  // Kichik fayl + to'g'ridan-to'g'ri usul avval ishlamagan: bitta so'rov, ortiqcha kutishsiz
+  if(directBroken && total <= SINGLE_CALL_MAX){
+    setProgress(job, null, 'Yuborilmoqda…');
+    reason = 'to\'g\'ridan-to\'g\'ri usul oldin ishlamagan';
+    const base64 = await blobToBase64(file);
+    const r = await time('upload', () => gasCall({ action:'upload', fileName:file.name, mimeType:mime, base64 }));
+    if(!r || !r.success) throw new Error((r && r.error) || 'Drive yuklashda xatolik');
+    return finish(r, 'Apps Script (bitta so\'rov)');
+  }
+
   setProgress(job, 0, 'Drive bilan ulanmoqda…');
-  let init = await gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total, origin:location.origin });
+  let init = await time('init', () => gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total, origin: directBroken ? undefined : location.origin }));
 
   // ---- 1) Asosiy usul: brauzer -> Drive (to'g'ridan-to'g'ri) ----
   if(init && init.success && init.session && init.direct){
     try{
-      const fileId = await uploadDirect(file, init.session, job);
+      const fileId = await time('yuborish', () => uploadDirect(file, init.session, job));
       setProgress(job, 100, '100%  —  Drive\'da yakunlanmoqda…');
-      const fin = await gasCall({ action:'finalize', fileId });
+      const fin = await time('finalize', () => gasCall({ action:'finalize', fileId }));
       if(!fin || !fin.success) throw new Error((fin && fin.error) || 'Yakunlashda xatolik');
-      console.info('Yuklash usuli: to\'g\'ridan-to\'g\'ri');
-      return fin;
+      return finish(fin, 'to\'g\'ridan-to\'g\'ri');
     }catch(e){
       if(e.message !== '__direct_failed__') throw e;   // bekor qilish yoki boshqa xato
-      console.warn('To\'g\'ridan-to\'g\'ri yuklash ishlamadi, Apps Script orqali usulga o\'tildi');
+      reason = e.reason || 'noma\'lum';
+      directBroken = true;
+      console.warn('To\'g\'ridan-to\'g\'ri yuklash ishlamadi:', reason);
       setProgress(job, 0, 'Muqobil usulga o\'tilmoqda…');
-      init = await gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total });   // origin yo'q -> oddiy sessiya
+      init = await time('init2', () => gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total }));
     }
+  } else if(init && init.success && !directBroken){
+    directBroken = true;
+    reason = (init.direct === undefined)
+      ? 'Code.gs eski versiyada — yangi versiya deploy qilinmagan'
+      : (init.directNote || 'Drive to\'g\'ridan-to\'g\'ri yuklashga ruxsat bermadi');
   }
 
   // ---- 2) Zaxira: Apps Script orqali bo'laklab (foiz bilan) ----
   if(init && init.success && init.session){
-    console.info('Yuklash usuli: Apps Script orqali bo\'laklab');
     let start = 0;
     while(start < total){
       if(job.cancelled) throw new Error('__cancelled__');
       const end = Math.min(start + CHUNK_SIZE, total);
       const base64 = await blobToBase64(file.slice(start, end));
-      const r = await gasCall({ action:'chunk', session:init.session, mimeType:mime, start, total, base64 });
+      const r = await time('chunk' + (start / CHUNK_SIZE), () => gasCall({ action:'chunk', session:init.session, mimeType:mime, start, total, base64 }));
       if(!r || !r.success) throw new Error((r && r.error) || 'Bo\'lakni yuborishda xatolik');
       start = end;
       const pct = Math.floor(start / total * 100);
       setProgress(job, pct, pct + '%  —  ' + fmtMB(start) + ' / ' + fmtMB(total) + ' MB');
-      if(r.done) return r;
+      if(r.done) return finish(r, 'Apps Script orqali bo\'laklab');
     }
     throw new Error('Yuklash yakunlanmadi — Drive tasdiq bermadi. Qayta urinib ko\'ring.');
   }
@@ -864,10 +902,11 @@ async function uploadFileToDrive(file, job){
   }
   if(job.cancelled) throw new Error('__cancelled__');
   setProgress(job, null, 'Yuborilmoqda… (bu usulda foiz ko\'rsatilmaydi)');
+  reason = 'sessiya ochilmadi: ' + ((init && init.error) || '');
   const base64 = await blobToBase64(file);
-  const r = await gasCall({ action:'upload', fileName:file.name, mimeType:mime, base64 });
+  const r = await time('upload', () => gasCall({ action:'upload', fileName:file.name, mimeType:mime, base64 }));
   if(!r || !r.success) throw new Error((r && r.error) || 'Drive yuklashda xatolik');
-  return r;
+  return finish(r, 'Apps Script (bitta so\'rov)');
 }
 
 // O'chirish: natijasini kutish shart emas
@@ -961,7 +1000,7 @@ async function submitNewBook(){
     }
 
     hideProgress();
-    finishAddBook(type);
+    finishAddBook(type, driveResult._report);
   }catch(err){
     if(err.message === '__cancelled__'){
       hideProgress();
@@ -980,9 +1019,9 @@ async function submitNewBook(){
   }
 }
 
-function finishAddBook(type){
+function finishAddBook(type, note){
   closeModal('modalBook');
-  toast('Adabiyot qo\'shildi','ok');
+  toast('Adabiyot qo\'shildi' + (note ? ' — ' + note : ''), 'ok', note ? 15000 : undefined);
   if(currentTab !== type) switchTab(type);
   else renderBookList();
 }
@@ -1023,12 +1062,12 @@ function requireAuth(){
 }
 function openModal(id){ $(id).classList.add('show'); }
 function closeModal(id){ $(id).classList.remove('show'); }
-function toast(msg, kind){
+function toast(msg, kind, ms){
   const el = document.createElement('div');
   el.className = 'toast' + (kind==='err'?' err':kind==='ok'?' ok':'');
   el.textContent = msg;
   $('toastWrap').appendChild(el);
-  setTimeout(()=>el.remove(), kind==='err' ? 7000 : 3200);
+  setTimeout(()=>el.remove(), ms || (kind==='err' ? 7000 : 3200));
 }
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
