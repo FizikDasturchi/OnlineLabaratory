@@ -158,7 +158,14 @@ img{max-width:100%}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
 .hint{font-size:12px;color:var(--sub);margin-top:4px}
 .upload-progress{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:8px;display:none}
-.upload-progress .fill{height:100%;background:var(--accent);width:0%;transition:width .2s}
+.upload-progress .fill{height:100%;background:var(--accent);width:0%;transition:width .4s}
+.upload-progress.indeterminate .fill{
+  width:40% !important;animation:indet 1.1s ease-in-out infinite;
+}
+@keyframes indet{
+  0%{margin-left:-40%}
+  100%{margin-left:100%}
+}
 
 /* ── SIGN-IN SCREEN ─────────────────────────────────────────────── */
 .signin-card{
@@ -238,6 +245,9 @@ img{max-width:100%}
 
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- Google Drive'ga fayl yuklash/o'chirish uchun yashirin iframe (CORS'dan qochish uchun) -->
+<iframe name="driveFrame" id="driveFrame" style="display:none" title="drive-upload-frame"></iframe>
+
 <!-- ======================= MODAL: Bo'lim qo'shish ======================= -->
 <div class="modal-overlay" id="modalSection">
   <div class="modal">
@@ -305,27 +315,6 @@ img{max-width:100%}
 
 <!-- ======================================================================
      FIREBASE KONFIGURATSIYASI
-     Diqqat: pastdagi qiymatlarni o'zingizning Firebase loyihangizdan oling.
-
-     FAYLLAR ENDI FIREBASE STORAGE'DA EMAS, GOOGLE DRIVE'DA SAQLANADI
-     (Apps Script proxy orqali) — sozlash uchun README.md faylini o'qing.
-
-     Firestore Rules (o'zgarishsiz qoladi):
-       rules_version = '2';
-       service cloud.firestore {
-         match /databases/{database}/documents {
-           match /sections/{sectionId} {
-             allow read: if true;
-             allow create: if request.auth != null;
-             allow update, delete: if request.auth != null;
-           }
-           match /books/{bookId} {
-             allow read: if true;
-             allow create: if request.auth != null;
-             allow update, delete: if request.auth != null;
-           }
-         }
-       }
 ====================================================================== -->
 <script>
 const firebaseConfig = {
@@ -341,8 +330,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // Google Apps Script "Web app" manzili — fayllarni Google Drive'ga
-// yuklovchi va o'chiruvchi proxy. README.md dagi ko'rsatmalar bo'yicha
-// o'zingiznikini deploy qilib, shu yerga qo'ying.
+// yuklovchi va o'chiruvchi proxy.
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbzRHyc5f9zGGZIQ1MbtqNKPwh3Bc5hHElxusf2w5Yx8yS_kwaNWeZrChImfvEtZWg-y/exec";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com"];
@@ -359,22 +347,21 @@ const DEFAULT_SECTIONS = [
 ];
 
 const TYPE_LABELS = {word:"Word fayllar", pdf:"PDF kitoblar", pptx:"Taqdimot fayllari", link:"Havolalar (video darslar)"};
-// Fayl kengaytmasidan bo'lim turi avtomatik aniqlanadi
 const EXT_TYPE = {
   '.doc':'word', '.docx':'word',
   '.pdf':'pdf',
   '.ppt':'pptx', '.pptx':'pptx'
 };
 const ALLOWED_EXT_HINT = '.doc, .docx, .pdf, .ppt, .pptx';
-const BANNED_WORDS = ["porno","xxx","seks video","banned_placeholder"]; // oddiy kalit-so'z filtri
+const BANNED_WORDS = ["porno","xxx","seks video","banned_placeholder"];
 
 let currentUser = null;
 let isAdmin = false;
 let sections = [];
 let currentSectionId = null;
 let currentTab = "word";
-let selectedType = null;      // 'file' | 'link' — modaldagi tanlov
-let detectedFileType = null;  // 'word' | 'pdf' | 'pptx' — fayldan avtomatik aniqlangan tur
+let selectedType = null;
+let detectedFileType = null;
 
 /* ---------------------------------------------------------------------
    AUTH
@@ -386,8 +373,6 @@ auth.onAuthStateChanged(async user => {
   try{
     await ensureDefaultSections();
   }catch(e){
-    // Anonim (tizimga kirmagan) foydalanuvchi standart bo'limlarni yoza olmaydi —
-    // bu kutilgan holat, xato bo'lsa ham sahifa render bo'lishda davom etishi kerak.
     console.warn('ensureDefaultSections otkazib yuborildi:', e.message);
   }
   route();
@@ -416,7 +401,7 @@ function renderAuthBox(){
 }
 
 /* ---------------------------------------------------------------------
-   ROUTER (oddiy hash-based)
+   ROUTER
 --------------------------------------------------------------------- */
 window.addEventListener('hashchange', route);
 function route(){
@@ -461,7 +446,6 @@ async function getBookCountsBySection(){
     });
     return counts;
   }catch(e){
-    // Hisoblarni ololmasak ham bo'limlar ro'yxati ko'rinishda davom etsin
     console.warn('getBookCountsBySection xatolik:', e.message);
     return {};
   }
@@ -498,7 +482,7 @@ async function renderHome(){
 }
 
 /* ---------------------------------------------------------------------
-   SECTION PAGE (tabs + book list)
+   SECTION PAGE
 --------------------------------------------------------------------- */
 async function renderSectionPage(){
   try{
@@ -543,11 +527,6 @@ async function renderBookList(){
   const listEl = document.getElementById('bookList');
   listEl.innerHTML = `<div class="empty">Yuklanmoqda...</div>`;
   try{
-    // Diqqat: bu yerda ataylab orderBy ishlatilmaydi — ikkita teng (==) filtr
-    // (sectionId + type) va boshqa maydon bo'yicha tartiblash birga kelsa,
-    // Firestore alohida composite index talab qiladi. Buning o'rniga
-    // natijalarni shu yerda, brauzerda createdAt bo'yicha saralaymiz —
-    // shunda hech qanday qo'shimcha index sozlash kerak bo'lmaydi.
     const snap = await db.collection('books')
       .where('sectionId','==', currentSectionId)
       .where('type','==', currentTab)
@@ -565,7 +544,7 @@ async function renderBookList(){
     const docs = snap.docs.slice().sort((a,b) => {
       const ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
       const tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
-      return tb - ta; // eng yangisi birinchi
+      return tb - ta;
     });
 
     listEl.innerHTML = docs.map(d => {
@@ -633,11 +612,11 @@ function openAddBook(){
   document.getElementById('linkTitleField').style.display = 'block';
   const uw = document.getElementById('uploadProgress');
   uw.style.display = 'none';
+  uw.classList.remove('indeterminate');
   document.getElementById('uploadFill').style.width = '0%';
   const uem = document.getElementById('uploadErrorMsg');
   uem.style.display = 'none';
   uem.textContent = '';
-  // Video havolalar bo'limida bo'lsak ham, standart holat — fayl yuklash
   selectType(currentTab === 'link' ? 'link' : 'file');
   openModal('modalBook');
 }
@@ -693,34 +672,79 @@ function hasBannedWords(text){
 }
 
 /* ---------------------------------------------------------------------
-   GOOGLE DRIVE UPLOAD (Apps Script proxy orqali)
+   GOOGLE DRIVE UPLOAD/DELETE — yashirin <form> + <iframe> orqali
+   (fetch/XHR o'rniga, chunki bu CORS bloklanishidan butunlay qochadi:
+   forma yuborish oddiy sahifa navigatsiyasi hisoblanadi va brauzer
+   uni CORS siyosati bilan cheklamaydi. Natija esa Apps Script'dan
+   window.postMessage orqali qaytariladi.)
 --------------------------------------------------------------------- */
+const driveMessageQueue = [];
+
+window.addEventListener('message', (event) => {
+  let payload = event.data;
+  if(typeof payload === 'string'){
+    try{ payload = JSON.parse(payload); }catch(e){ return; }
+  }
+  if(!payload || !payload.__driveUploadResult) return;
+  const handler = driveMessageQueue.shift();
+  if(handler) handler(payload);
+});
+
+function submitToDriveFrame(fields, onSettled){
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = DRIVE_UPLOAD_URL;
+  form.target = 'driveFrame';
+  form.style.display = 'none';
+  form.enctype = 'application/x-www-form-urlencoded';
+  Object.keys(fields).forEach(k=>{
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = k;
+    input.value = fields[k];
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+
+  let settled = false;
+  const timer = setTimeout(()=>{
+    if(settled) return;
+    settled = true;
+    cleanup();
+    onSettled({ success:false, error: 'Javob 45 soniya ichida kelmadi. Internet aloqasini yoki Apps Script deploy holatini tekshiring.' });
+  }, 45000);
+
+  function handler(payload){
+    if(settled) return;
+    settled = true;
+    clearTimeout(timer);
+    cleanup();
+    onSettled(payload);
+  }
+  function cleanup(){
+    driveMessageQueue.splice(driveMessageQueue.indexOf(handler), 1);
+    form.remove();
+  }
+
+  driveMessageQueue.push(handler);
+  form.submit();
+}
+
 function uploadToDrive(file, onProgress){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Faylni o\'qib bo\'lmadi'));
     reader.onload = () => {
       const base64 = String(reader.result).split(',')[1];
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', DRIVE_UPLOAD_URL, true);
-      xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
-      xhr.upload.onprogress = (evt) => {
-        if(evt.lengthComputable && onProgress) onProgress(Math.round((evt.loaded/evt.total)*100));
-      };
-      xhr.onload = () => {
-        let res;
-        try{ res = JSON.parse(xhr.responseText); }
-        catch(e){ reject(new Error('Server javobini o\'qib bo\'lmadi. Apps Script URL to\'g\'ri deploy qilinganini tekshiring.')); return; }
-        if(res.success) resolve(res);
-        else reject(new Error(res.error || 'Drive yuklashda xatolik'));
-      };
-      xhr.onerror = () => reject(new Error('Tarmoq xatosi — Apps Script manziliga ulanib bo\'lmadi'));
-      xhr.send(JSON.stringify({
-        action: 'upload',
-        fileName: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        base64
-      }));
+      if(onProgress) onProgress('start');
+      submitToDriveFrame(
+        { action:'upload', fileName:file.name, mimeType:file.type || 'application/octet-stream', base64 },
+        (payload)=>{
+          if(onProgress) onProgress('done');
+          if(payload && payload.success) resolve(payload);
+          else reject(new Error((payload && payload.error) || 'Drive yuklashda xatolik'));
+        }
+      );
     };
     reader.readAsDataURL(file);
   });
@@ -728,11 +752,9 @@ function uploadToDrive(file, onProgress){
 
 function deleteFromDrive(fileId){
   if(!fileId) return Promise.resolve();
-  return fetch(DRIVE_UPLOAD_URL, {
-    method: 'POST',
-    headers: {'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({action:'delete', fileId})
-  }).catch(e => console.warn('Drive fayl o\'chirilmadi:', e.message));
+  return new Promise((resolve)=>{
+    submitToDriveFrame({ action:'delete', fileId }, ()=>resolve());
+  });
 }
 
 async function submitNewBook(){
@@ -763,7 +785,6 @@ async function submitNewBook(){
     return;
   }
 
-  // ---- Fayl yuklash (Word / PDF / Taqdimot) — Google Drive'ga, tur fayldan avtomatik aniqlanadi ----
   if(!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('BU_YERGA') === 0){
     toast('Drive yuklash manzili sozlanmagan (DRIVE_UPLOAD_URL). README.md ga qarang.', 'err');
     return;
@@ -778,7 +799,7 @@ async function submitNewBook(){
 
   let title = document.getElementById('bookTitle').value.trim();
   if(!title){
-    title = file.name.replace(/\.[^/.]+$/, ''); // kengaytmasiz fayl nomi
+    title = file.name.replace(/\.[^/.]+$/, '');
   }
   if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
 
@@ -787,19 +808,14 @@ async function submitNewBook(){
   const progFill = document.getElementById('uploadFill');
   const errEl = document.getElementById('uploadErrorMsg');
   progWrap.style.display = 'block';
-  progFill.style.width = '0%';
+  progWrap.classList.add('indeterminate');
   errEl.style.display = 'none';
   errEl.textContent = '';
   document.getElementById('submitBookBtn').disabled = true;
 
-  let sawProgress = false;
-  const stuckTimer = setTimeout(()=>{
-    if(!sawProgress){
-      showUploadError('Yuklash boshlanmayapti. DRIVE_UPLOAD_URL to\'g\'ri Apps Script manzili ekanini va deploy "Anyone" ruxsati bilan qilinganini tekshiring.');
-    }
-  }, 15000);
-
   function showUploadError(msg){
+    progWrap.classList.remove('indeterminate');
+    progWrap.style.display = 'none';
     errEl.textContent = msg;
     errEl.style.display = 'block';
     toast(msg, 'err');
@@ -807,16 +823,14 @@ async function submitNewBook(){
   }
 
   try{
-    const res = await uploadToDrive(file, (pct)=>{ sawProgress = true; progFill.style.width = pct + '%'; });
-    clearTimeout(stuckTimer);
+    const res = await uploadToDrive(file, ()=>{});
     await db.collection('books').add({...base, type, title, url: res.url, driveFileId: res.fileId});
+    progWrap.classList.remove('indeterminate');
     document.getElementById('submitBookBtn').disabled = false;
     finishAddBook(type);
   }catch(err){
-    clearTimeout(stuckTimer);
     console.error('Drive yuklash xatosi:', err);
     showUploadError(err.message);
-    progWrap.style.display = 'none';
   }
 }
 
