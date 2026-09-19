@@ -331,7 +331,7 @@ const db = firebase.firestore();
 
 // Google Apps Script "Web app" manzili — fayllarni Google Drive'ga
 // yuklovchi va o'chiruvchi proxy.
-const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbym1V_1of_mXhQkpgdZUz7rFhoVDkS2-oJUv-Z2PxJeBW-NOTgr72Xc5gmbjUljv9Sq/exec";
+const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbxVqCdXTKAk5ADiWsUteDosPLvmGnE4PYNi9Z2yZb-ivuyzvusyj6NNlF3UbzArarwJ/exec";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com"];
 
@@ -706,7 +706,7 @@ function openUploadPopup(){
     if(w){
       w.document.write(
         '<div style="font:14px/1.5 system-ui,sans-serif;padding:24px;color:#334155">' +
-        '<b>Google Drive\'ga yuklanmoqda…</b><br>Iltimos, bu oynani yopmang — u avtomatik yopiladi.' +
+        '<b>Google Drive\'ga yuklanmoqda…</b><br>Katta fayllar uchun bu 1 daqiqagacha vaqt olishi mumkin. Iltimos, bu oynani yopmang — u avtomatik yopiladi.' +
         '</div>'
       );
     }
@@ -737,8 +737,8 @@ function submitViaPopup(fields, popupWin, onSettled){
     cleanup();
     // Javob kelmasa ham, fayl Drive'ga yetib borgan bo'lishi mumkin —
     // shuning uchun "xato" emas, "javob kelmadi" holatini qaytaramiz.
-    onSettled({ success:false, timedOut:true, error: 'Tasdiq 20 soniyada kelmadi.' });
-  }, 20000);
+    onSettled({ success:false, timedOut:true, error: 'Tasdiq 90 soniyada kelmadi.' });
+  }, 90000);
 
   function handler(payload){
     if(settled) return;
