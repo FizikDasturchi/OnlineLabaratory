@@ -362,8 +362,9 @@ const EXT_TYPE = {
 const ALLOWED_EXT_HINT = '.doc, .docx, .pdf, .ppt, .pptx';
 const BANNED_WORDS = ["porno","xxx","seks video","banned_placeholder"];
 
-// Bir bo'lak hajmi: 256 KB ga karrali bo'lishi SHART (Drive talabi). 8 × 256 KB = 2 MB
-const CHUNK_SIZE = 8 * 256 * 1024;
+// Bo'lak hajmlari: 256 KB ga karrali bo'lishi SHART (Drive talabi).
+const DIRECT_CHUNK = 32 * 256 * 1024;   // 8 MB — brauzer -> Drive (to'g'ridan-to'g'ri)
+const CHUNK_SIZE   = 16 * 256 * 1024;   // 4 MB — zaxira usul (Apps Script orqali)
 // Bo'lakli yuklash ishlamay qolsa, zaxira usul faqat shu hajmgacha ishlaydi
 const FALLBACK_MAX_BYTES = 25 * 1024 * 1024;
 
@@ -648,6 +649,7 @@ function cancelBookModal(){
   if(currentJob && !currentJob.done){
     if(!confirm('Yuklash jarayoni to\'xtatilsinmi?')) return;
     currentJob.cancelled = true;
+    try{ if(currentJob.xhr) currentJob.xhr.abort(); }catch(e){}
   }
   closeModal('modalBook');
 }
@@ -773,16 +775,73 @@ function hideProgress(){
   st.textContent = '';
 }
 
+// Brauzerdan Drive'ga to'g'ridan-to'g'ri PUT (bir tekis, haqiqiy foiz)
+function putChunkDirect(job, session, blob, start, end, total, onLoaded){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    job.xhr = xhr;
+    xhr.open('PUT', session);
+    xhr.setRequestHeader('Content-Range', 'bytes ' + start + '-' + (end - 1) + '/' + total);
+    xhr.upload.onprogress = e => { if(e.lengthComputable) onLoaded(e.loaded); };
+    xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+    xhr.onerror = () => reject(new Error('__direct_failed__'));
+    xhr.onabort = () => reject(new Error('__cancelled__'));
+    xhr.send(blob);
+  });
+}
+
+async function uploadDirect(file, session, job){
+  const total = file.size;
+  let start = 0;
+  while(start < total){
+    if(job.cancelled) throw new Error('__cancelled__');
+    const end = Math.min(start + DIRECT_CHUNK, total);
+    const base = start;
+    const res = await putChunkDirect(job, session, file.slice(start, end), start, end, total, loaded => {
+      const done = base + loaded;
+      const pct = Math.min(100, Math.floor(done / total * 100));
+      setProgress(job, pct, pct + '%  —  ' + fmtMB(done) + ' / ' + fmtMB(total) + ' MB');
+    });
+    start = end;
+    if(res.status === 200 || res.status === 201){
+      let meta;
+      try{ meta = JSON.parse(res.text); }catch(e){ throw new Error('__direct_failed__'); }
+      if(!meta || !meta.id) throw new Error('__direct_failed__');
+      return meta.id;
+    }
+    if(res.status !== 308) throw new Error('__direct_failed__');
+  }
+  throw new Error('__direct_failed__');
+}
+
 async function uploadFileToDrive(file, job){
   const mime = file.type || 'application/octet-stream';
   const total = file.size;
   if(!total) throw new Error('Fayl bo\'sh');
 
   setProgress(job, 0, 'Drive bilan ulanmoqda…');
-  const init = await gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total });
+  let init = await gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total, origin:location.origin });
 
-  // ---- Asosiy usul: bo'lakli yuklash (foiz bilan) ----
+  // ---- 1) Asosiy usul: brauzer -> Drive (to'g'ridan-to'g'ri) ----
+  if(init && init.success && init.session && init.direct){
+    try{
+      const fileId = await uploadDirect(file, init.session, job);
+      setProgress(job, 100, '100%  —  Drive\'da yakunlanmoqda…');
+      const fin = await gasCall({ action:'finalize', fileId });
+      if(!fin || !fin.success) throw new Error((fin && fin.error) || 'Yakunlashda xatolik');
+      console.info('Yuklash usuli: to\'g\'ridan-to\'g\'ri');
+      return fin;
+    }catch(e){
+      if(e.message !== '__direct_failed__') throw e;   // bekor qilish yoki boshqa xato
+      console.warn('To\'g\'ridan-to\'g\'ri yuklash ishlamadi, Apps Script orqali usulga o\'tildi');
+      setProgress(job, 0, 'Muqobil usulga o\'tilmoqda…');
+      init = await gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total });   // origin yo'q -> oddiy sessiya
+    }
+  }
+
+  // ---- 2) Zaxira: Apps Script orqali bo'laklab (foiz bilan) ----
   if(init && init.success && init.session){
+    console.info('Yuklash usuli: Apps Script orqali bo\'laklab');
     let start = 0;
     while(start < total){
       if(job.cancelled) throw new Error('__cancelled__');
@@ -798,10 +857,10 @@ async function uploadFileToDrive(file, job){
     throw new Error('Yuklash yakunlanmadi — Drive tasdiq bermadi. Qayta urinib ko\'ring.');
   }
 
-  // ---- Zaxira usul: butun fayl bitta so'rovda (foizsiz) ----
-  console.warn('Bo\'lakli yuklash ishlamadi, oddiy usulga o\'tildi:', init && init.error);
+  // ---- 3) Zaxira: butun fayl bitta so'rovda (foizsiz) ----
+  console.warn('Sessiya ochilmadi, oddiy usulga o\'tildi:', init && init.error);
   if(total > FALLBACK_MAX_BYTES){
-    throw new Error('Bo\'lakli yuklash ishlamadi' + (init && init.error ? ': ' + init.error : '') + '. Katta fayl (' + fmtMB(total) + ' MB) oddiy usulda yuklanmaydi — Code.gs dagi Drive API sozlamasini tekshiring.');
+    throw new Error('Yuklash sessiyasi ochilmadi' + (init && init.error ? ': ' + init.error : '') + '. Katta fayl (' + fmtMB(total) + ' MB) oddiy usulda yuklanmaydi — Drive API sozlamasini tekshiring.');
   }
   if(job.cancelled) throw new Error('__cancelled__');
   setProgress(job, null, 'Yuborilmoqda… (bu usulda foiz ko\'rsatilmaydi)');
