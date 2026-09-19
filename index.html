@@ -690,13 +690,37 @@ window.addEventListener('message', (event) => {
   if(handler) handler(payload);
 });
 
-function submitToDriveFrame(fields, onSettled){
+/**
+ * Fayl yuklashda ATAYLAB kichik POPUP OYNA orqali yuboriladi
+ * (yashirin <iframe> emas). Sababi: ko'plab reklama-bloklovchilar
+ * (Opera, uBlock va hokazo) aynan "yashirin iframe ichidagi
+ * script.google.com so'rovi"ni reklama-yo'naltirish texnikasi deb
+ * bloklaydi, lekin oddiy oyna/sahifa navigatsiyasini bunday
+ * bloklamaydi. Popup oyna foydalanuvchi tugmani bosgan zahoti,
+ * SINXRON tarzda ochiladi — shu sababli brauzerning o'zining
+ * popup-bloklovchisiga ham tegmaydi.
+ */
+function openUploadPopup(){
+  try{
+    const w = window.open('about:blank', 'driveUploadPopup', 'width=420,height=260');
+    if(w){
+      w.document.write(
+        '<div style="font:14px/1.5 system-ui,sans-serif;padding:24px;color:#334155">' +
+        '<b>Google Drive\'ga yuklanmoqda…</b><br>Iltimos, bu oynani yopmang — u avtomatik yopiladi.' +
+        '</div>'
+      );
+    }
+    return w;
+  }catch(e){ return null; }
+}
+
+function submitViaPopup(fields, popupWin, onSettled){
+  const winName = 'driveUploadPopup';
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = DRIVE_UPLOAD_URL;
-  form.target = 'driveFrame';
+  form.target = winName;
   form.style.display = 'none';
-  form.enctype = 'application/x-www-form-urlencoded';
   Object.keys(fields).forEach(k=>{
     const input = document.createElement('input');
     input.type = 'hidden';
@@ -711,8 +735,10 @@ function submitToDriveFrame(fields, onSettled){
     if(settled) return;
     settled = true;
     cleanup();
-    onSettled({ success:false, error: 'Javob 45 soniya ichida kelmadi. Internet aloqasini yoki Apps Script deploy holatini tekshiring.' });
-  }, 45000);
+    // Javob kelmasa ham, fayl Drive'ga yetib borgan bo'lishi mumkin —
+    // shuning uchun "xato" emas, "javob kelmadi" holatini qaytaramiz.
+    onSettled({ success:false, timedOut:true, error: 'Tasdiq 20 soniyada kelmadi.' });
+  }, 20000);
 
   function handler(payload){
     if(settled) return;
@@ -722,28 +748,26 @@ function submitToDriveFrame(fields, onSettled){
     onSettled(payload);
   }
   function cleanup(){
-    driveMessageQueue.splice(driveMessageQueue.indexOf(handler), 1);
+    const idx = driveMessageQueue.indexOf(handler);
+    if(idx>-1) driveMessageQueue.splice(idx,1);
     form.remove();
+    try{ if(popupWin && !popupWin.closed) popupWin.close(); }catch(e){}
   }
 
   driveMessageQueue.push(handler);
   form.submit();
 }
 
-function uploadToDrive(file, onProgress){
-  return new Promise((resolve, reject) => {
+function uploadToDrive(file, popupWin){
+  return new Promise((resolve) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Faylni o\'qib bo\'lmadi'));
+    reader.onerror = () => resolve({ success:false, error:'Faylni o\'qib bo\'lmadi' });
     reader.onload = () => {
       const base64 = String(reader.result).split(',')[1];
-      if(onProgress) onProgress('start');
-      submitToDriveFrame(
+      submitViaPopup(
         { action:'upload', fileName:file.name, mimeType:file.type || 'application/octet-stream', base64 },
-        (payload)=>{
-          if(onProgress) onProgress('done');
-          if(payload && payload.success) resolve(payload);
-          else reject(new Error((payload && payload.error) || 'Drive yuklashda xatolik'));
-        }
+        popupWin,
+        (payload)=> resolve(payload || { success:false, error:'Drive yuklashda xatolik' })
       );
     };
     reader.readAsDataURL(file);
@@ -753,7 +777,23 @@ function uploadToDrive(file, onProgress){
 function deleteFromDrive(fileId){
   if(!fileId) return Promise.resolve();
   return new Promise((resolve)=>{
-    submitToDriveFrame({ action:'delete', fileId }, ()=>resolve());
+    // O'chirish uchun tasdiqni kutish shart emas — fire-and-forget,
+    // shu sababli yashirin iframe orqali yuborsak ham xavfsiz
+    // (natijasi UI'ga bog'liq emas).
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = DRIVE_UPLOAD_URL;
+    form.target = 'driveFrame';
+    form.style.display = 'none';
+    const fields = { action:'delete', fileId };
+    Object.keys(fields).forEach(k=>{
+      const input = document.createElement('input');
+      input.type='hidden'; input.name=k; input.value=fields[k];
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(()=>{ form.remove(); resolve(); }, 500);
   });
 }
 
@@ -822,14 +862,26 @@ async function submitNewBook(){
     document.getElementById('submitBookBtn').disabled = false;
   }
 
+  // Popup oyna SINXRON tarzda, hozir (fayl o'qilishidan oldin) ochiladi —
+  // shunda brauzer buni foydalanuvchi bosgan tugmaga bog'liq haqiqiy
+  // amal deb hisoblaydi va bloklamaydi.
+  const popupWin = openUploadPopup();
+
   try{
-    const res = await uploadToDrive(file, ()=>{});
+    const res = await uploadToDrive(file, popupWin);
+    if(!res.success || !res.url){
+      if(res.timedOut){
+        throw new Error('Tasdiq kelmadi. Drive papkangizni tekshiring — fayl baribir yetib borgan bo\'lishi mumkin, shunday bo\'lsa qayta urinib ko\'ring yoki manual ravishda bo\'limga havola sifatida qo\'shing.');
+      }
+      throw new Error(res.error || 'Drive yuklashda xatolik');
+    }
     await db.collection('books').add({...base, type, title, url: res.url, driveFileId: res.fileId});
     progWrap.classList.remove('indeterminate');
     document.getElementById('submitBookBtn').disabled = false;
     finishAddBook(type);
   }catch(err){
     console.error('Drive yuklash xatosi:', err);
+    try{ if(popupWin && !popupWin.closed) popupWin.close(); }catch(e){}
     showUploadError(err.message);
   }
 }
