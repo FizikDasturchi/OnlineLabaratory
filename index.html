@@ -275,8 +275,10 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
 .f-link.yt{background:#FF0000;color:#fff}
 .f-link.tg-ilm{background:#1a7fb5;color:#fff}
 .f-link.tg-shax{background:#1565a0;color:#fff}
+.f-link.tg-club{background:#0f7c8f;color:#fff}
 .footer-divider{border:none;border-top:1px solid #1e293b;margin:16px 0 14px}
-.footer-copy{font-size:12.5px;font-weight:600;color:#94a3b8;text-align:center}
+.footer-copy{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;font-size:12.5px;font-weight:600;color:#94a3b8;text-align:center}
+.footer-copy .fc-item + .fc-item::before{content:"·";margin:0 9px;color:#64748b;font-weight:400}
 .footer-copy a{color:#e2e8f0;font-weight:700;border-bottom:1px dashed rgba(226,232,240,.45)}
 .footer-copy a:hover{color:#fff;border-bottom-color:#fff}
 
@@ -299,6 +301,9 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
   .book-row{flex-wrap:wrap}
   .book-actions{width:100%;justify-content:flex-start}
   .site-footer{padding:26px 16px 18px}
+  /* mualliflik qatori telefonda ustma-ust, ajratgich nuqtalarsiz */
+  .footer-copy{flex-direction:column;gap:5px}
+  .footer-copy .fc-item + .fc-item::before{content:none}
   /* telefonda havolalar bir xil kenglikda, tartib bilan ustma-ust */
   .footer-links{display:grid;grid-template-columns:1fr;gap:9px}
   .f-link{width:100%;justify-content:flex-start;font-size:13px;padding:11px 16px;border-radius:12px}
@@ -404,11 +409,17 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
         <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.018 9.51c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 14.215l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.506.371z"/></svg>
         <span data-i="linkTgPers">Telegram — Shaxsiy kanal</span>
       </a>
+      <a class="f-link tg-club" href="https://t.me/tafakkur_sh" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.018 9.51c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 14.215l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.506.371z"/></svg>
+        Tafakkur Ilmiy Klubi
+      </a>
     </div>
 
     <hr class="footer-divider">
     <div class="footer-copy">
-      <span data-i="copy">© 2026 Fizika Fakulteti</span> · <a href="https://t.me/Turkistan_Science" target="_blank" rel="noopener">© Turkistan_Science</a>
+      <span class="fc-item" data-i="copy">© 2026 Fizika Fakulteti</span>
+      <a class="fc-item" href="https://t.me/Turkistan_Science" target="_blank" rel="noopener">© Turkistan_Science</a>
+      <a class="fc-item" href="https://t.me/tafakkur_sh" target="_blank" rel="noopener">Tafakkur Ilmiy Klubi</a>
     </div>
   </div>
 </footer>
