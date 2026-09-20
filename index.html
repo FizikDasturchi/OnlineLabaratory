@@ -6,6 +6,9 @@
 <title>Fizika Fakulteti — Onlayn Kutubxona</title>
 <link rel="icon" href="favicon.ico">
 
+<!-- Telegram Mini App muhitida ishlayotganini aniqlash uchun (bo'lsa) -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <!-- ======================================================================
      FIREBASE SDK (compat, CDN orqali — build kerak emas)
 ====================================================================== -->
@@ -335,6 +338,12 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Agar Telegram mini-ilova ichida ochilgan bo'lsa, Telegram'ga
+// sahifa tayyor ekanini bildiramiz (ixtiyoriy, lekin tavsiya etiladi).
+if(window.Telegram && window.Telegram.WebApp){
+  try{ window.Telegram.WebApp.ready(); }catch(e){}
+}
+
 // Google Apps Script "Web app" manzili — Manage deployments oynasidagi
 // hozirgi (Version 5) deployment URL'i. Code.gs ni yangilaganda
 // "Manage deployments -> qalam -> New version" qilsangiz, URL o'zgarmaydi.
@@ -395,7 +404,24 @@ auth.onAuthStateChanged(async user => {
   route();
 });
 
+function isTelegramMiniApp(){
+  return !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
+}
+
 function signIn(){
+  if(isTelegramMiniApp()){
+    // Telegram'ning ichki mini-ilova oynasi (desktop va mobilda ham)
+    // Google login popup'ini to'g'ri qo'llab-quvvatlamaydi — shuning
+    // uchun shu sahifani tashqi (oddiy) brauzerda ochamiz, u yerda
+    // kirish muammosiz ishlaydi.
+    try{
+      window.Telegram.WebApp.openLink(location.href);
+      toast('Google bilan kirish uchun sayt tashqi brauzerda ochildi','ok');
+    }catch(e){
+      toast('Iltimos, saytni Telegram tashqarisida (oddiy brauzerda) oching','err');
+    }
+    return;
+  }
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch(e=>toast(e.message,"err"));
 }
