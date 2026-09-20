@@ -405,17 +405,25 @@ auth.onAuthStateChanged(async user => {
 });
 
 function isTelegramMiniApp(){
-  return !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
+  const tg = window.Telegram && window.Telegram.WebApp;
+  // Faqat ikkalasi ham to'g'ri bo'lsa haqiqiy Telegram muhiti deb hisoblanadi:
+  // initData bo'sh bo'lmasligi VA platform 'unknown' bo'lmasligi kerak —
+  // ikkinchisi faqat Telegram native ilovasi bilan haqiqiy bog'lanish
+  // bo'lganda o'rnatiladi (URL'da qolib ketgan eski parametrlar bilan
+  // soxta ishga tushmasligi uchun).
+  return !!(tg && tg.initData && tg.platform && tg.platform !== 'unknown');
 }
 
 function signIn(){
   if(isTelegramMiniApp()){
     // Telegram'ning ichki mini-ilova oynasi (desktop va mobilda ham)
     // Google login popup'ini to'g'ri qo'llab-quvvatlamaydi — shuning
-    // uchun shu sahifani tashqi (oddiy) brauzerda ochamiz, u yerda
-    // kirish muammosiz ishlaydi.
+    // uchun shu sahifani tashqi (oddiy) brauzerda ochamiz (Telegram
+    // parametrlarisiz — aks holda tashqi brauzerda ham xato ishlab
+    // ketishi mumkin).
     try{
-      window.Telegram.WebApp.openLink(location.href);
+      const cleanUrl = location.href.split('#')[0].split('?')[0];
+      window.Telegram.WebApp.openLink(cleanUrl);
       toast('Google bilan kirish uchun sayt tashqi brauzerda ochildi','ok');
     }catch(e){
       toast('Iltimos, saytni Telegram tashqarisida (oddiy brauzerda) oching','err');
