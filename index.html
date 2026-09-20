@@ -404,36 +404,23 @@ auth.onAuthStateChanged(async user => {
   route();
 });
 
-function isTelegramMiniApp(){
-  const tg = window.Telegram && window.Telegram.WebApp;
-  // Faqat ikkalasi ham to'g'ri bo'lsa haqiqiy Telegram muhiti deb hisoblanadi:
-  // initData bo'sh bo'lmasligi VA platform 'unknown' bo'lmasligi kerak —
-  // ikkinchisi faqat Telegram native ilovasi bilan haqiqiy bog'lanish
-  // bo'lganda o'rnatiladi (URL'da qolib ketgan eski parametrlar bilan
-  // soxta ishga tushmasligi uchun).
-  return !!(tg && tg.initData && tg.platform && tg.platform !== 'unknown');
-}
-
 function signIn(){
-  if(isTelegramMiniApp()){
-    // Telegram'ning ichki mini-ilova oynasi (desktop va mobilda ham)
-    // Google login popup'ini to'g'ri qo'llab-quvvatlamaydi — shuning
-    // uchun shu sahifani tashqi (oddiy) brauzerda ochamiz (Telegram
-    // parametrlarisiz — aks holda tashqi brauzerda ham xato ishlab
-    // ketishi mumkin).
-    try{
-      const cleanUrl = location.href.split('#')[0].split('?')[0];
-      window.Telegram.WebApp.openLink(cleanUrl);
-      toast('Google bilan kirish uchun sayt tashqi brauzerda ochildi','ok');
-    }catch(e){
-      toast('Iltimos, saytni Telegram tashqarisida (oddiy brauzerda) oching','err');
-    }
-    return;
-  }
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(e=>toast(e.message,"err"));
+  // signInWithPopup o'rniga signInWithRedirect ishlatiladi: popup oyna
+  // ochilmaydi, shuning uchun Telegram kabi ichki brauzerlarda ham,
+  // oddiy saytda ham bir xil, muammosiz ishlaydi.
+  auth.signInWithRedirect(provider).catch(e=>toast(e.message,"err"));
 }
 function signOutUser(){ auth.signOut(); }
+
+// Redirect orqali kirish yakunlangach qaytadigan natijani ushlab olamiz
+// (muvaffaqiyatli bo'lsa, onAuthStateChanged o'zi ishlaydi — bu yerda
+// faqat xatoликни ko'rsatish uchun kerak).
+auth.getRedirectResult().catch(e=>{
+  if(e && e.code && e.code !== 'auth/no-auth-event'){
+    toast('Kirishda xatolik: ' + e.message, 'err');
+  }
+});
 
 function renderAuthBox(){
   const el = $('authBox');
