@@ -63,11 +63,24 @@ img{max-width:100%}
 .topbar-title p{font-size:12px;color:var(--sub)}
 .topbar-title h1,.topbar-title p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+.topbar-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
 .auth-box{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .user-chip{display:flex;align-items:center;gap:8px;background:var(--accent-l);border-radius:99px;padding:5px 12px 5px 5px}
 .user-chip img{width:26px;height:26px;border-radius:50%}
 .user-chip span{font-size:13px;font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .admin-badge{background:var(--gold);color:#fff;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;margin-left:2px}
+
+/* ── TIL TANLASH (UZ / RU / EN) ─────────────────────────────────── */
+.lang-row{display:flex;gap:6px}
+.lang-btn{
+  padding:5px 9px;border-radius:99px;border:1.5px solid var(--border);
+  background:#fff;color:var(--sub);font-size:11.5px;font-weight:700;transition:.15s;
+  display:inline-flex;align-items:center;gap:5px;line-height:1
+}
+.lang-btn svg{border-radius:2px;flex-shrink:0}
+.lang-btn:hover{border-color:var(--accent);color:var(--accent)}
+.lang-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
 .btn{border:none;border-radius:9px;font-weight:700;font-size:13px;padding:9px 15px;transition:.15s}
 a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
 .btn-primary{background:var(--accent);color:#fff}
@@ -191,18 +204,44 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 .toast.err{background:var(--red)}
 .toast.ok{background:var(--green)}
 
-/* ── FOOTER ─────────────────────────────────────────────────────── */
-.site-footer{background:#0f172a;color:#cbd5e1;padding:30px 20px 20px;margin-top:50px}
-.footer-inner{max-width:1180px;margin:0 auto;text-align:center}
-.footer-inner h4{color:#fff;font-size:14px;margin-bottom:6px}
-.footer-inner p{font-size:12.5px;color:#94a3b8;max-width:560px;margin:0 auto 14px}
-.footer-copy{font-size:11px;color:#334155;margin-top:14px}
+/* ── FOOTER (kutubxona haqida + muallif + havolalar + mualliflik) ── */
+.site-footer{background:#0f172a;color:#cbd5e1;padding:34px 20px 22px;margin-top:50px;font-size:13px;line-height:1.6}
+.footer-inner{max-width:1180px;margin:0 auto}
+.footer-about{margin-bottom:24px;padding-bottom:22px;border-bottom:1px solid #1e293b}
+.footer-about h4{color:#fff;font-size:15px;font-weight:800;margin-bottom:6px}
+.footer-about p{font-size:12.5px;color:#94a3b8;max-width:680px;line-height:1.65}
+.footer-author{
+  display:flex;align-items:center;gap:10px;margin-bottom:14px;
+  font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#64748b;
+}
+.footer-author .fa-name{color:#e2e8f0;font-size:14px}
+.footer-logo{width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+.footer-links{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px}
+.f-link{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:99px;
+  font-size:12px;font-weight:700;white-space:nowrap;transition:transform .15s,opacity .15s;
+}
+.f-link:hover{transform:translateY(-2px);opacity:.88}
+.f-link svg{flex-shrink:0}
+.f-link.tg-personal{background:#229ED9;color:#fff}
+.f-link.yt{background:#FF0000;color:#fff}
+.f-link.tg-ilm{background:#1a7fb5;color:#fff}
+.f-link.tg-shax{background:#1565a0;color:#fff}
+.footer-divider{border:none;border-top:1px solid #1e293b;margin:16px 0 14px}
+.footer-copy{font-size:12.5px;font-weight:600;color:#94a3b8;text-align:center}
+.footer-copy a{color:#e2e8f0;font-weight:700;border-bottom:1px dashed rgba(226,232,240,.45)}
+.footer-copy a:hover{color:#fff;border-bottom-color:#fff}
 
 @media (max-width:600px){
+  .topbar-inner{flex-wrap:wrap;gap:8px 12px}
+  .topbar-title{flex:1 1 0}
   .topbar-title p{display:none}
+  .topbar-right{width:100%;justify-content:space-between}
   .user-chip span{max-width:70px}
   .book-row{flex-wrap:wrap}
   .book-actions{width:100%;justify-content:flex-start}
+  .site-footer{padding:26px 16px 18px}
+  .f-link{font-size:11px;padding:7px 12px}
 }
 </style>
 </head>
@@ -234,10 +273,25 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
       <img src="logo.png" alt="Fakultet logotipi" onerror="this.style.display='none'">
     </div>
     <div class="topbar-title">
-      <h1>Fizika Fakulteti Kutubxonasi</h1>
-      <p>P.Q.Habibullayev nomidagi Fizika fakulteti — onlayn resurslar</p>
+      <h1 data-i="topTitle">Fizika Fakulteti Kutubxonasi</h1>
+      <p data-i="topSub">P.Q.Habibullayev nomidagi Fizika fakulteti — onlayn resurslar</p>
     </div>
-    <div class="auth-box" id="authBox"></div>
+    <div class="topbar-right">
+      <div class="lang-row" id="langRow">
+        <button class="lang-btn active" data-lang="uz" title="O'zbekcha"><svg width="18" height="12" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="40" fill="#1EB53A"/><rect width="60" height="13.3" fill="#0099B5"/><rect y="13.3" width="60" height="13.4" fill="#fff"/>
+          <circle cx="11" cy="6.6" r="4.5" fill="#fff"/><circle cx="13" cy="6.6" r="4.5" fill="#0099B5"/>
+        </svg> UZ</button>
+        <button class="lang-btn" data-lang="ru" title="Русский"><svg width="18" height="12" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="40" fill="#fff"/><rect y="13.3" width="60" height="13.4" fill="#0039A6"/><rect y="26.7" width="60" height="13.3" fill="#D52B1E"/>
+        </svg> RU</button>
+        <button class="lang-btn" data-lang="en" title="English"><svg width="18" height="12" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="40" fill="#012169"/><path d="M0,0 L60,40 M60,0 L0,40" stroke="#fff" stroke-width="8"/><path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" stroke-width="5"/>
+          <path d="M30,0 V40 M0,20 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V40 M0,20 H60" stroke="#C8102E" stroke-width="7"/>
+        </svg> EN</button>
+      </div>
+      <div class="auth-box" id="authBox"></div>
+    </div>
   </div>
 </div>
 
@@ -246,27 +300,59 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
   <!-- JS bilan to'ldiriladi -->
 </div>
 
-<div class="site-footer">
+<!-- ======================= FOOTER ======================= -->
+<footer class="site-footer">
   <div class="footer-inner">
-    <h4>Fizika Fakulteti Onlayn Kutubxonasi</h4>
-    <p>Ushbu kutubxona fakultet talabalari va o'qituvchilari tomonidan birgalikda to'ldirilib boriladi. Har bir foydalanuvchi o'zi qo'shgan materialni tahrirlashi yoki o'chirishi mumkin.</p>
-    <div class="footer-copy">© 2026 Fizika Fakulteti</div>
+    <div class="footer-about">
+      <h4 data-i="footTitle">Fizika Fakulteti Onlayn Kutubxonasi</h4>
+      <p data-i="footDesc">Ushbu kutubxona fakultet talabalari va o'qituvchilari tomonidan birgalikda to'ldirilib boriladi. Har bir foydalanuvchi o'zi qo'shgan materialni tahrirlashi yoki o'chirishi mumkin.</p>
+    </div>
+
+    <div class="footer-author">
+      <img class="footer-logo" src="data:image/png;base64,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" alt="Turkistan Science">
+      <span data-i="author">Muallif:</span>
+      <span class="fa-name">Muhammadsodiq Shamsiddinov</span>
+    </div>
+
+    <div class="footer-links">
+      <a class="f-link tg-personal" href="https://t.me/MuhammadSodiqShamsiddinov" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.018 9.51c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 14.215l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.506.371z"/></svg>
+        @MuhammadSodiqShamsiddinov
+      </a>
+      <a class="f-link yt" href="https://www.youtube.com/@YangiZamonJadidlari" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+        <span data-i="linkYt">YouTube — Ilmiy &amp; Shaxsiy</span>
+      </a>
+      <a class="f-link tg-ilm" href="https://t.me/Turkistan_Science" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.018 9.51c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 14.215l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.506.371z"/></svg>
+        <span data-i="linkTgSci">Telegram — Ilmiy kanal</span>
+      </a>
+      <a class="f-link tg-shax" href="https://t.me/YangiZamonJadidlari" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.018 9.51c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 14.215l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.506.371z"/></svg>
+        <span data-i="linkTgPers">Telegram — Shaxsiy kanal</span>
+      </a>
+    </div>
+
+    <hr class="footer-divider">
+    <div class="footer-copy">
+      <span data-i="copy">© 2026 Fizika Fakulteti</span> · <a href="https://t.me/Turkistan_Science" target="_blank" rel="noopener">© Turkistan_Science</a>
+    </div>
   </div>
-</div>
+</footer>
 
 <div class="toast-wrap" id="toastWrap"></div>
 
 <!-- ======================= MODAL: Bo'lim qo'shish ======================= -->
 <div class="modal-overlay" id="modalSection">
   <div class="modal">
-    <h3>Yangi bo'lim qo'shish</h3>
+    <h3 data-i="newSectionTitle">Yangi bo'lim qo'shish</h3>
     <div class="field">
-      <label>Bo'lim nomi</label>
-      <input type="text" id="newSectionName" placeholder="Masalan: Astrofizika">
+      <label data-i="sectionName">Bo'lim nomi</label>
+      <input type="text" id="newSectionName" data-i-ph="sectionPh" placeholder="Masalan: Astrofizika">
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalSection')">Bekor qilish</button>
-      <button class="btn btn-primary" onclick="submitNewSection()">Qo'shish</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalSection')" data-i="cancel">Bekor qilish</button>
+      <button class="btn btn-primary" onclick="submitNewSection()" data-i="add">Qo'shish</button>
     </div>
   </div>
 </div>
@@ -274,18 +360,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 <!-- ======================= MODAL: Kitob qo'shish ======================= -->
 <div class="modal-overlay" id="modalBook">
   <div class="modal">
-    <h3>Adabiyot qo'shish</h3>
+    <h3 data-i="addBookTitle">Adabiyot qo'shish</h3>
     <div class="field">
-      <label>Turi</label>
+      <label data-i="typeLbl">Turi</label>
       <div class="type-choice" id="typeChoice">
-        <button data-type="file" onclick="selectType('file')">📎 Fayl yuklash</button>
-        <button data-type="link" onclick="selectType('link')">🎬 Video havola</button>
+        <button data-type="file" onclick="selectType('file')" data-i="typeFile">📎 Fayl yuklash</button>
+        <button data-type="link" onclick="selectType('link')" data-i="typeLink">🎬 Video havola</button>
       </div>
     </div>
 
     <div id="fileFields" style="display:none">
       <div class="field">
-        <label>Fayl</label>
+        <label data-i="fileLbl">Fayl</label>
         <input type="file" id="bookFile" accept=".doc,.docx,.pdf,.ppt,.pptx" onchange="onFileChosen()">
         <div class="hint" id="fileHint">Ruxsat etilgan formatlar: .doc, .docx, .pdf, .ppt, .pptx — tur avtomatik aniqlanadi</div>
         <div class="upload-progress" id="uploadProgress"><div class="fill" id="uploadFill"></div></div>
@@ -293,31 +379,31 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
         <div class="hint" id="uploadErrorMsg" style="display:none;color:var(--red);font-weight:600"></div>
       </div>
       <div class="field">
-        <label>Sarlavha (ixtiyoriy)</label>
-        <input type="text" id="bookTitle" placeholder="Bo'sh qoldirsangiz, fayl nomi ishlatiladi">
+        <label data-i="titleOpt">Sarlavha (ixtiyoriy)</label>
+        <input type="text" id="bookTitle" data-i-ph="titleOptPh" placeholder="Bo'sh qoldirsangiz, fayl nomi ishlatiladi">
       </div>
     </div>
 
     <div id="linkFields" style="display:none">
       <div class="field">
-        <label>YouTube havolasi</label>
+        <label data-i="ytLbl">YouTube havolasi</label>
         <input type="url" id="linkUrl" placeholder="https://youtube.com/watch?v=..." oninput="tryFetchYtTitle()">
         <div class="hint" id="ytHint"></div>
       </div>
       <div class="field" id="linkTitleField">
-        <label>Sarlavha</label>
-        <input type="text" id="linkTitle" placeholder="Video nomi">
+        <label data-i="titleLbl">Sarlavha</label>
+        <input type="text" id="linkTitle" data-i-ph="videoNamePh" placeholder="Video nomi">
       </div>
     </div>
 
     <div class="checkline">
       <input type="checkbox" id="confirmCheck">
-      <span>Ushbu material fizika (yoki tanlangan bo'limga oid) fanga tegishli, mualliflik huquqini buzmaydi va nomaqbul kontent emasligini tasdiqlayman.</span>
+      <span data-i="confirmText">Ushbu material fizika (yoki tanlangan bo'limga oid) fanga tegishli, mualliflik huquqini buzmaydi va nomaqbul kontent emasligini tasdiqlayman.</span>
     </div>
 
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="cancelBookModal()">Bekor qilish</button>
-      <button class="btn btn-primary" id="submitBookBtn" onclick="submitNewBook()">Qo'shish</button>
+      <button class="btn btn-ghost" onclick="cancelBookModal()" data-i="cancel">Bekor qilish</button>
+      <button class="btn btn-primary" id="submitBookBtn" onclick="submitNewBook()" data-i="add">Qo'shish</button>
     </div>
   </div>
 </div>
@@ -362,7 +448,253 @@ const DEFAULT_SECTIONS = [
   "Psixologiya","Falsafa","Dinshunoslik","Pedagogika"
 ];
 
-const TYPE_LABELS = {pdf:"PDF kitoblar", pptx:"Taqdimot fayllari", word:"Word fayllar", link:"Havolalar (video darslar)"};
+/* ---------------------------------------------------------------------
+   TILLAR: UZ / RU / EN
+   - Bazadagi bo'lim nomlari o'zbekcha saqlanadi; quyidagi jadval ularni
+     ko'rsatish paytida tarjima qiladi. Foydalanuvchi o'zi qo'shgan bo'lim
+     nomlari o'zgarishsiz qoladi.
+   - Tanlangan til brauzerda eslab qolinadi.
+--------------------------------------------------------------------- */
+const LANGS = ['uz','ru','en'];
+let lang = 'uz';
+try{ const sv = localStorage.getItem('lang'); if(LANGS.includes(sv)) lang = sv; }catch(e){}
+
+const SECTION_TR = {
+  "Mexanika":{ru:"Механика", en:"Mechanics"},
+  "Molekulyar Fizika":{ru:"Молекулярная физика", en:"Molecular Physics"},
+  "Elektromagnetizm":{ru:"Электромагнетизм", en:"Electromagnetism"},
+  "Optika":{ru:"Оптика", en:"Optics"},
+  "Atom Fizikasi":{ru:"Атомная физика", en:"Atomic Physics"},
+  "Yadro Fizikasi":{ru:"Ядерная физика", en:"Nuclear Physics"},
+  "Kvant Mexanikasi":{ru:"Квантовая механика", en:"Quantum Mechanics"},
+  "Nazariy Mexanika":{ru:"Теоретическая механика", en:"Theoretical Mechanics"},
+  "Elektrodinamika":{ru:"Электродинамика", en:"Electrodynamics"},
+  "Radio Fizikasi (Elektronika va signallarni qayta ishlash)":{ru:"Радиофизика (электроника и обработка сигналов)", en:"Radiophysics (Electronics and Signal Processing)"},
+  "Fizik Jarayonlarni Kompyuterda Modellashtirish":{ru:"Компьютерное моделирование физических процессов", en:"Computer Modeling of Physical Processes"},
+  "Umumiy nisbiylik nazariyasi":{ru:"Общая теория относительности", en:"General Theory of Relativity"},
+  "Maxsus nisbiylik nazariyasi":{ru:"Специальная теория относительности", en:"Special Theory of Relativity"},
+  "Matematik Fizika usullari":{ru:"Методы математической физики", en:"Methods of Mathematical Physics"},
+  "Matematik Analiz":{ru:"Математический анализ", en:"Mathematical Analysis"},
+  "Chiziqli Algebra va Analitik Geometriya":{ru:"Линейная алгебра и аналитическая геометрия", en:"Linear Algebra and Analytic Geometry"},
+  "Metodika":{ru:"Методика", en:"Teaching Methodology"},
+  "Kimyo":{ru:"Химия", en:"Chemistry"},
+  "Psixologiya":{ru:"Психология", en:"Psychology"},
+  "Falsafa":{ru:"Философия", en:"Philosophy"},
+  "Dinshunoslik":{ru:"Религиоведение", en:"Religious Studies"},
+  "Pedagogika":{ru:"Педагогика", en:"Pedagogy"}
+};
+
+const I18N = {
+uz:{
+  siteTitle:"Fizika Fakulteti — Onlayn Kutubxona",
+  topTitle:"Fizika Fakulteti Kutubxonasi",
+  topSub:"P.Q.Habibullayev nomidagi Fizika fakulteti — onlayn resurslar",
+  signIn:"Google orqali kirish", signOut:"Chiqish",
+  sections:"Bo'limlar", loading:"Yuklanmoqda...", materialsCount:"{n} ta material", addSection:"Bo'lim qo'shish",
+  sectionsLoadFail:"Bo'limlarni yuklab bo'lmadi.", sectionLoadFail:"Bo'limni yuklab bo'lmadi.",
+  backHome:"Bosh sahifaga qaytish", sectionNotFound:"Bo'lim topilmadi.", listLoadFail:"Ro'yxatni yuklab bo'lmadi.",
+  retry:"Qayta urinish",
+  tPdf:"PDF kitoblar", tPptx:"Taqdimot fayllari", tWord:"Word fayllar", tLink:"Havolalar (video darslar)",
+  emptyPdf:"Bu bo'limda hali PDF kitoblar yo'q.", emptyPptx:"Bu bo'limda hali taqdimot fayllari yo'q.",
+  emptyWord:"Bu bo'limda hali word fayllar yo'q.", emptyLink:"Bu bo'limda hali havolalar (video darslar) yo'q.",
+  addBook:"+ Adabiyot qo'shish", addedBy:"Qo'shdi: {name}", unknown:"Noma'lum",
+  download:"⬇ Yuklab olish", edit:"Tahrirlash", del:"O'chirish",
+  newSectionTitle:"Yangi bo'lim qo'shish", sectionName:"Bo'lim nomi", sectionPh:"Masalan: Astrofizika",
+  cancel:"Bekor qilish", add:"Qo'shish",
+  enterSectionName:"Bo'lim nomini kiriting", sectionAdded:"Bo'lim qo'shildi",
+  addBookTitle:"Adabiyot qo'shish", typeLbl:"Turi", typeFile:"📎 Fayl yuklash", typeLink:"🎬 Video havola",
+  fileLbl:"Fayl", fileHintDefault:"Ruxsat etilgan formatlar: {ext} — tur avtomatik aniqlanadi",
+  titleOpt:"Sarlavha (ixtiyoriy)", titleOptPh:"Bo'sh qoldirsangiz, fayl nomi ishlatiladi",
+  ytLbl:"YouTube havolasi", titleLbl:"Sarlavha", videoNamePh:"Video nomi",
+  confirmText:"Ushbu material fizika (yoki tanlangan bo'limga oid) fanga tegishli, mualliflik huquqini buzmaydi va nomaqbul kontent emasligini tasdiqlayman.",
+  fileUnsupported:"⚠️ Bu fayl formati qo'llab-quvvatlanmaydi. Ruxsat etilgan: {ext}",
+  fileDetected:"✓ Aniqlandi: {type} ({mb} MB)",
+  ytFetching:"Video nomi aniqlanmoqda...", ytFound:"✓ Video nomi avtomatik aniqlandi: {title}",
+  ytManual:"Video nomini avtomatik aniqlab bo'lmadi — qo'lda kiriting.",
+  stopUpload:"Yuklash jarayoni to'xtatilsinmi?",
+  needSignIn:"Avval tizimga kiring", pickType:"Material turini tanlang", tickConfirm:"Tasdiqlash katagini belgilang",
+  fillLinkTitle:"Havola va sarlavhani to'ldiring", linkHttp:"Havola http:// yoki https:// bilan boshlanishi kerak",
+  titleRejected:"Sarlavha nomaqbul so'z ehtimoli bilan rad etildi", saveErr:"Saqlashda xatolik: {msg}",
+  noDriveUrl:"Drive yuklash manzili sozlanmagan (DRIVE_UPLOAD_URL).", pickFile:"Faylni tanlang",
+  badFormatToast:"Fayl formati qo'llab-quvvatlanmaydi. Ruxsat etilgan: {ext}",
+  uploadCancelled:"Yuklash bekor qilindi", added:"Adabiyot qo'shildi",
+  driveOkDbFail:"Fayl Drive'ga yuklandi, lekin saytga saqlashda xatolik: {msg}",
+  addingToSite:"100%  —  Saytga qo'shilmoqda…",
+  newTitlePrompt:"Yangi sarlavha:", badWord:"Nomaqbul so'z aniqlandi", updated:"Yangilandi",
+  confirmDelete:"Ushbu materialni o'chirmoqchimisiz?", deleted:"O'chirildi",
+  errReadFile:"Faylni o'qib bo'lmadi",
+  errUnexpected:"Serverdan kutilmagan javob keldi. Code.gs yangi versiyada deploy qilinganini va URL to'g'riligini tekshiring.",
+  errNoServer:"Serverga ulanib bo'lmadi ({msg})", netErr:"tarmoq xatosi", errEmpty:"Fayl bo'sh",
+  sending:"Yuborilmoqda…", connecting:"Drive bilan ulanmoqda…", finalizing:"100%  —  Drive'da yakunlanmoqda…",
+  finalizeErr:"Yakunlashda xatolik", switching:"Muqobil usulga o'tilmoqda…", chunkErr:"Bo'lakni yuborishda xatolik",
+  notFinished:"Yuklash yakunlanmadi — Drive tasdiq bermadi. Qayta urinib ko'ring.",
+  sessionFail:"Yuklash sessiyasi ochilmadi",
+  bigFile:"Katta fayl ({mb} MB) oddiy usulda yuklanmaydi — Drive API sozlamasini tekshiring.",
+  sendingNoPct:"Yuborilmoqda… (bu usulda foiz ko'rsatilmaydi)", driveErr:"Drive yuklashda xatolik",
+  repMethod:"usul", repReason:"sabab", repTotal:"jami",
+  mDirect:"to'g'ridan-to'g'ri", mGasSingle:"Apps Script (bitta so'rov)", mGasChunks:"Apps Script orqali bo'laklab",
+  rDirectBefore:"to'g'ridan-to'g'ri usul oldin ishlamagan",
+  rOldGs:"Code.gs eski versiyada — yangi versiya deploy qilinmagan",
+  rDriveDenied:"Drive to'g'ridan-to'g'ri yuklashga ruxsat bermadi", rNoSession:"sessiya ochilmadi: {err}",
+  tgToast:"Google kirish sahifasi brauzerda ochildi. Kirib bo'lgach, shu ilovaga qayting.",
+  tgNoToken:"Google tokeni topilmadi", tgSignedIn:"Tizimga kirdingiz", signInErr:"Kirishda xatolik: {msg}",
+  hoTitle:"Telegram ilovasi uchun kirish", hoWorking:"Kutib turing…",
+  hoDone:"✅ Tayyor! Telegramga qaytib, kutubxona ilovasini oching — u avtomatik kiradi.",
+  hoBack:"Telegramga qaytish",
+  hoAsk:"Telegramdagi kutubxona ilovasiga kirish uchun Google hisobingizni tasdiqlang.",
+  hoWarn:"Faqat o'zingiz ilovada «Kirish» tugmasini bosgan bo'lsangizgina davom eting.",
+  hoBtn:"Google orqali tasdiqlash", hoPopupClosed:"Oyna yopildi. Qayta urinib ko'ring.",
+  hoTokenFail:"Google tokeni olinmadi", hoError:"Xatolik",
+  footTitle:"Fizika Fakulteti Onlayn Kutubxonasi",
+  footDesc:"Ushbu kutubxona fakultet talabalari va o'qituvchilari tomonidan birgalikda to'ldirilib boriladi. Har bir foydalanuvchi o'zi qo'shgan materialni tahrirlashi yoki o'chirishi mumkin.",
+  author:"Muallif:", linkYt:"YouTube — Ilmiy & Shaxsiy", linkTgSci:"Telegram — Ilmiy kanal", linkTgPers:"Telegram — Shaxsiy kanal",
+  copy:"© 2026 Fizika Fakulteti"
+},
+ru:{
+  siteTitle:"Физический факультет — Онлайн-библиотека",
+  topTitle:"Библиотека физического факультета",
+  topSub:"Физический факультет имени П.К. Хабибуллаева — онлайн-ресурсы",
+  signIn:"Войти через Google", signOut:"Выйти",
+  sections:"Разделы", loading:"Загрузка...", materialsCount:"Материалов: {n}", addSection:"Добавить раздел",
+  sectionsLoadFail:"Не удалось загрузить разделы.", sectionLoadFail:"Не удалось загрузить раздел.",
+  backHome:"Вернуться на главную", sectionNotFound:"Раздел не найден.", listLoadFail:"Не удалось загрузить список.",
+  retry:"Повторить",
+  tPdf:"PDF-книги", tPptx:"Презентации", tWord:"Файлы Word", tLink:"Ссылки (видеоуроки)",
+  emptyPdf:"В этом разделе пока нет PDF-книг.", emptyPptx:"В этом разделе пока нет презентаций.",
+  emptyWord:"В этом разделе пока нет файлов Word.", emptyLink:"В этом разделе пока нет ссылок (видеоуроков).",
+  addBook:"+ Добавить материал", addedBy:"Добавил(а): {name}", unknown:"Неизвестно",
+  download:"⬇ Скачать", edit:"Изменить", del:"Удалить",
+  newSectionTitle:"Добавить новый раздел", sectionName:"Название раздела", sectionPh:"Например: Астрофизика",
+  cancel:"Отмена", add:"Добавить",
+  enterSectionName:"Введите название раздела", sectionAdded:"Раздел добавлен",
+  addBookTitle:"Добавить материал", typeLbl:"Тип", typeFile:"📎 Загрузить файл", typeLink:"🎬 Ссылка на видео",
+  fileLbl:"Файл", fileHintDefault:"Допустимые форматы: {ext} — тип определяется автоматически",
+  titleOpt:"Название (необязательно)", titleOptPh:"Если оставить пустым, будет использовано имя файла",
+  ytLbl:"Ссылка на YouTube", titleLbl:"Название", videoNamePh:"Название видео",
+  confirmText:"Подтверждаю, что этот материал относится к физике (или к выбранному разделу), не нарушает авторских прав и не является недопустимым контентом.",
+  fileUnsupported:"⚠️ Этот формат файла не поддерживается. Допустимо: {ext}",
+  fileDetected:"✓ Определено: {type} ({mb} МБ)",
+  ytFetching:"Определяется название видео...", ytFound:"✓ Название видео определено автоматически: {title}",
+  ytManual:"Не удалось определить название видео автоматически — введите вручную.",
+  stopUpload:"Остановить загрузку?",
+  needSignIn:"Сначала войдите в систему", pickType:"Выберите тип материала", tickConfirm:"Поставьте отметку подтверждения",
+  fillLinkTitle:"Заполните ссылку и название", linkHttp:"Ссылка должна начинаться с http:// или https://",
+  titleRejected:"Название отклонено: возможно, содержит недопустимое слово", saveErr:"Ошибка сохранения: {msg}",
+  noDriveUrl:"Адрес загрузки на Drive не настроен (DRIVE_UPLOAD_URL).", pickFile:"Выберите файл",
+  badFormatToast:"Формат файла не поддерживается. Допустимо: {ext}",
+  uploadCancelled:"Загрузка отменена", added:"Материал добавлен",
+  driveOkDbFail:"Файл загружен на Drive, но при сохранении на сайте произошла ошибка: {msg}",
+  addingToSite:"100%  —  Добавляется на сайт…",
+  newTitlePrompt:"Новое название:", badWord:"Обнаружено недопустимое слово", updated:"Обновлено",
+  confirmDelete:"Удалить этот материал?", deleted:"Удалено",
+  errReadFile:"Не удалось прочитать файл",
+  errUnexpected:"Получен неожиданный ответ сервера. Проверьте, что Code.gs развёрнут в новой версии и URL указан верно.",
+  errNoServer:"Не удалось подключиться к серверу ({msg})", netErr:"сетевая ошибка", errEmpty:"Файл пустой",
+  sending:"Отправка…", connecting:"Подключение к Drive…", finalizing:"100%  —  Завершение на Drive…",
+  finalizeErr:"Ошибка при завершении", switching:"Переключение на запасной способ…", chunkErr:"Ошибка при отправке части файла",
+  notFinished:"Загрузка не завершена — Drive не подтвердил. Попробуйте ещё раз.",
+  sessionFail:"Не удалось открыть сеанс загрузки",
+  bigFile:"Большой файл ({mb} МБ) нельзя загрузить обычным способом — проверьте настройки Drive API.",
+  sendingNoPct:"Отправка… (в этом режиме процент не показывается)", driveErr:"Ошибка загрузки на Drive",
+  repMethod:"способ", repReason:"причина", repTotal:"всего",
+  mDirect:"напрямую", mGasSingle:"Apps Script (один запрос)", mGasChunks:"Apps Script по частям",
+  rDirectBefore:"прямой способ ранее не сработал",
+  rOldGs:"Code.gs старой версии — новая версия не развёрнута",
+  rDriveDenied:"Drive не разрешил прямую загрузку", rNoSession:"сеанс не открыт: {err}",
+  tgToast:"Страница входа Google открыта в браузере. После входа вернитесь в это приложение.",
+  tgNoToken:"Токен Google не найден", tgSignedIn:"Вы вошли в систему", signInErr:"Ошибка входа: {msg}",
+  hoTitle:"Вход для приложения Telegram", hoWorking:"Подождите…",
+  hoDone:"✅ Готово! Вернитесь в Telegram и откройте приложение библиотеки — вход выполнится автоматически.",
+  hoBack:"Вернуться в Telegram",
+  hoAsk:"Подтвердите свой аккаунт Google, чтобы войти в приложение библиотеки в Telegram.",
+  hoWarn:"Продолжайте, только если вы сами нажали «Войти» в приложении.",
+  hoBtn:"Подтвердить через Google", hoPopupClosed:"Окно было закрыто. Попробуйте ещё раз.",
+  hoTokenFail:"Не удалось получить токен Google", hoError:"Ошибка",
+  footTitle:"Онлайн-библиотека физического факультета",
+  footDesc:"Эта библиотека пополняется совместными усилиями студентов и преподавателей факультета. Каждый пользователь может редактировать или удалять добавленные им материалы.",
+  author:"Автор:", linkYt:"YouTube — научный и личный", linkTgSci:"Telegram — научный канал", linkTgPers:"Telegram — личный канал",
+  copy:"© 2026 Физический факультет"
+},
+en:{
+  siteTitle:"Faculty of Physics — Online Library",
+  topTitle:"Faculty of Physics Library",
+  topSub:"P.Q. Habibullayev Faculty of Physics — online resources",
+  signIn:"Sign in with Google", signOut:"Sign out",
+  sections:"Sections", loading:"Loading...", materialsCount:"Materials: {n}", addSection:"Add a section",
+  sectionsLoadFail:"Couldn't load the sections.", sectionLoadFail:"Couldn't load the section.",
+  backHome:"Back to home", sectionNotFound:"Section not found.", listLoadFail:"Couldn't load the list.",
+  retry:"Try again",
+  tPdf:"PDF books", tPptx:"Presentations", tWord:"Word files", tLink:"Links (video lessons)",
+  emptyPdf:"There are no PDF books in this section yet.", emptyPptx:"There are no presentations in this section yet.",
+  emptyWord:"There are no Word files in this section yet.", emptyLink:"There are no links (video lessons) in this section yet.",
+  addBook:"+ Add material", addedBy:"Added by: {name}", unknown:"Unknown",
+  download:"⬇ Download", edit:"Edit", del:"Delete",
+  newSectionTitle:"Add a new section", sectionName:"Section name", sectionPh:"e.g. Astrophysics",
+  cancel:"Cancel", add:"Add",
+  enterSectionName:"Enter a section name", sectionAdded:"Section added",
+  addBookTitle:"Add material", typeLbl:"Type", typeFile:"📎 Upload a file", typeLink:"🎬 Video link",
+  fileLbl:"File", fileHintDefault:"Allowed formats: {ext} — the type is detected automatically",
+  titleOpt:"Title (optional)", titleOptPh:"If left empty, the file name is used",
+  ytLbl:"YouTube link", titleLbl:"Title", videoNamePh:"Video title",
+  confirmText:"I confirm that this material relates to physics (or the selected section), does not infringe copyright and is not inappropriate content.",
+  fileUnsupported:"⚠️ This file format is not supported. Allowed: {ext}",
+  fileDetected:"✓ Detected: {type} ({mb} MB)",
+  ytFetching:"Detecting the video title...", ytFound:"✓ Video title detected automatically: {title}",
+  ytManual:"Couldn't detect the video title automatically — please enter it manually.",
+  stopUpload:"Stop the upload?",
+  needSignIn:"Please sign in first", pickType:"Choose the material type", tickConfirm:"Tick the confirmation box",
+  fillLinkTitle:"Fill in the link and the title", linkHttp:"The link must start with http:// or https://",
+  titleRejected:"Title rejected: it may contain an inappropriate word", saveErr:"Save error: {msg}",
+  noDriveUrl:"The Drive upload URL is not configured (DRIVE_UPLOAD_URL).", pickFile:"Choose a file",
+  badFormatToast:"This file format is not supported. Allowed: {ext}",
+  uploadCancelled:"Upload cancelled", added:"Material added",
+  driveOkDbFail:"The file was uploaded to Drive, but saving it to the site failed: {msg}",
+  addingToSite:"100%  —  Adding to the site…",
+  newTitlePrompt:"New title:", badWord:"Inappropriate word detected", updated:"Updated",
+  confirmDelete:"Delete this material?", deleted:"Deleted",
+  errReadFile:"Couldn't read the file",
+  errUnexpected:"Unexpected response from the server. Check that Code.gs is deployed as the latest version and that the URL is correct.",
+  errNoServer:"Couldn't connect to the server ({msg})", netErr:"network error", errEmpty:"The file is empty",
+  sending:"Sending…", connecting:"Connecting to Drive…", finalizing:"100%  —  Finalizing on Drive…",
+  finalizeErr:"Error while finalizing", switching:"Switching to the fallback method…", chunkErr:"Error sending a file chunk",
+  notFinished:"The upload didn't finish — Drive didn't confirm it. Please try again.",
+  sessionFail:"Couldn't open an upload session",
+  bigFile:"A large file ({mb} MB) can't be uploaded the regular way — check the Drive API settings.",
+  sendingNoPct:"Sending… (no percentage is shown in this mode)", driveErr:"Drive upload error",
+  repMethod:"method", repReason:"reason", repTotal:"total",
+  mDirect:"direct", mGasSingle:"Apps Script (single request)", mGasChunks:"Apps Script in chunks",
+  rDirectBefore:"the direct method failed earlier",
+  rOldGs:"Code.gs is an old version — the new version isn't deployed",
+  rDriveDenied:"Drive didn't allow direct upload", rNoSession:"session not opened: {err}",
+  tgToast:"The Google sign-in page opened in your browser. After signing in, come back to this app.",
+  tgNoToken:"Google token not found", tgSignedIn:"You are signed in", signInErr:"Sign-in error: {msg}",
+  hoTitle:"Sign-in for the Telegram app", hoWorking:"Please wait…",
+  hoDone:"✅ Done! Go back to Telegram and open the library app — it will sign in automatically.",
+  hoBack:"Back to Telegram",
+  hoAsk:"Confirm your Google account to sign in to the library app in Telegram.",
+  hoWarn:"Continue only if you pressed “Sign in” in the app yourself.",
+  hoBtn:"Confirm with Google", hoPopupClosed:"The window was closed. Please try again.",
+  hoTokenFail:"Couldn't get a Google token", hoError:"Error",
+  footTitle:"Faculty of Physics Online Library",
+  footDesc:"This library is built together by the faculty's students and teachers. Each user can edit or delete the materials they have added.",
+  author:"Author:", linkYt:"YouTube — Science & Personal", linkTgSci:"Telegram — Science channel", linkTgPers:"Telegram — Personal channel",
+  copy:"© 2026 Faculty of Physics"
+}
+};
+
+function t(k, p){
+  let s = (I18N[lang] && I18N[lang][k]) || I18N.uz[k] || k;
+  if(p){ for(const key in p){ s = s.split('{' + key + '}').join(p[key]); } }
+  return s;
+}
+function secName(s){
+  const n = (s && s.name) || '';
+  const tr = SECTION_TR[n];
+  return (tr && tr[lang]) || n;
+}
+
+const TYPE_KEYS  = {pdf:'tPdf', pptx:'tPptx', word:'tWord', link:'tLink'};
+const EMPTY_KEYS = {pdf:'emptyPdf', pptx:'emptyPptx', word:'emptyWord', link:'emptyLink'};
 const EXT_TYPE = {
   '.doc':'word', '.docx':'word',
   '.pdf':'pdf',
@@ -381,6 +713,8 @@ const FALLBACK_MAX_BYTES = 25 * 1024 * 1024;
 let currentUser = null;
 let isAdmin = false;
 let sections = [];
+let homeCounts = null;   // bosh sahifadagi materiallar soni (keshda — til almashganda qayta yuklanmaydi)
+let bookCache = null;    // {sectionId, tab, docs:[{id,data}]}
 let currentSectionId = null;
 let currentTab = "word";
 let selectedType = null;
@@ -400,6 +734,40 @@ const HANDOFF_ID = (function(){
 const TG_RETURN_URL = "";
 
 const $ = id => document.getElementById(id);
+
+/* ---------------------------------------------------------------------
+   TIL: statik matnlarni yangilash va almashtirish
+--------------------------------------------------------------------- */
+function applyStatic(){
+  document.documentElement.lang = lang;
+  document.title = t('siteTitle');
+  document.querySelectorAll('[data-i]').forEach(el => { el.textContent = t(el.getAttribute('data-i')); });
+  document.querySelectorAll('[data-i-ph]').forEach(el => { el.setAttribute('placeholder', t(el.getAttribute('data-i-ph'))); });
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+}
+
+function setLang(l){
+  if(!LANGS.includes(l) || l === lang) return;
+  lang = l;
+  try{ localStorage.setItem('lang', l); }catch(e){}
+  applyStatic();
+  if($('modalBook').classList.contains('show')) updateFileHint();
+  redraw();
+}
+
+// Ochiq sahifani yangi tilda qayta chizish (iloji bo'lsa Firestore'ga qayta murojaat qilmasdan)
+function redraw(){
+  renderAuthBox();
+  if(HANDOFF_ID){ renderHandoff(); return; }
+  if(currentSectionId){
+    if(!sections.length){ route(); return; }
+    if(drawSectionShell()){ renderTabs(); renderBookList(true); }
+  } else {
+    if(homeCounts && sections.length) drawHome(); else route();
+  }
+}
+
+document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
 
 /* ---------------------------------------------------------------------
    AUTH
@@ -429,9 +797,9 @@ async function signIn(){
   }catch(e){
     const useRedirect = ['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/web-storage-unsupported'];
     if(useRedirect.includes(e.code)){
-      auth.signInWithRedirect(provider).catch(err=>toast(err.message,'err'));
+      auth.signInWithRedirect(provider).catch(err => toast(err.message,'err'));
     } else if(e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request'){
-      toast('Kirishda xatolik: ' + e.message, 'err');
+      toast(t('signInErr',{msg:e.message}), 'err');
     }
   }
 }
@@ -442,14 +810,14 @@ function signOutUser(){ auth.signOut(); }
 // faqat xatolikni ko'rsatish uchun kerak).
 auth.getRedirectResult().catch(e=>{
   if(e && e.code && e.code !== 'auth/no-auth-event'){
-    toast('Kirishda xatolik: ' + e.message, 'err');
+    toast(t('signInErr',{msg:e.message}), 'err');
   }
 });
 
 function renderAuthBox(){
   const el = $('authBox');
   if(!currentUser){
-    el.innerHTML = `<button class="btn btn-primary" onclick="signIn()">Google orqali kirish</button>`;
+    el.innerHTML = `<button class="btn btn-primary" onclick="signIn()">${escapeHtml(t('signIn'))}</button>`;
     return;
   }
   el.innerHTML = `
@@ -458,7 +826,7 @@ function renderAuthBox(){
       <span>${escapeHtml(currentUser.displayName || currentUser.email)}</span>
       ${isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
     </div>
-    <button class="btn btn-outline btn-sm" onclick="signOutUser()">Chiqish</button>
+    <button class="btn btn-outline btn-sm" onclick="signOutUser()">${escapeHtml(t('signOut'))}</button>
   `;
 }
 
@@ -515,32 +883,42 @@ async function getBookCountsBySection(){
   }
 }
 
-async function renderHome(){
-  const wrap = $('mainWrap');
-  wrap.innerHTML = `<div class="page-head"><h2>Bo'limlar</h2></div><div class="grid" id="sectionsGrid"><div class="empty">Yuklanmoqda...</div></div>`;
-  try{
-    await loadSections();
-    const counts = await getBookCountsBySection();
-    const grid = $('sectionsGrid');
-    grid.innerHTML = sections.map(s => `
+function drawHome(){
+  const counts = homeCounts || {};
+  $('mainWrap').innerHTML = `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2></div><div class="grid" id="sectionsGrid">` +
+    sections.map(s => {
+      const nm = secName(s);
+      return `
       <div class="sec-card" onclick="location.hash='section/${escapeHtml(s.id)}'">
-        <div class="sec-icon">${escapeHtml((s.name||'?').charAt(0))}</div>
-        <h3>${escapeHtml(s.name)}</h3>
-        <div class="cnt">${counts[s.id]||0} ta material</div>
-      </div>
-    `).join('') + `
+        <div class="sec-icon">${escapeHtml((nm||'?').charAt(0))}</div>
+        <h3>${escapeHtml(nm)}</h3>
+        <div class="cnt">${escapeHtml(t('materialsCount',{n: counts[s.id]||0}))}</div>
+      </div>`;
+    }).join('') + `
       <div class="sec-card add-card" onclick="openModal('modalSection')">
         <div class="plus">+</div>
-        <div>Bo'lim qo'shish</div>
+        <div>${escapeHtml(t('addSection'))}</div>
       </div>
-    `;
+    </div>`;
+}
+
+async function renderHome(){
+  const wrap = $('mainWrap');
+  wrap.innerHTML = `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2></div><div class="grid" id="sectionsGrid"><div class="empty">${escapeHtml(t('loading'))}</div></div>`;
+  try{
+    await loadSections();
+    homeCounts = await getBookCountsBySection();
+    if(currentSectionId || HANDOFF_ID) return;   // foydalanuvchi boshqa sahifaga o'tib ketgan
+    drawHome();
   }catch(e){
     console.error('renderHome xatolik:', e);
-    $('sectionsGrid').innerHTML = `
+    const grid = $('sectionsGrid');
+    if(!grid) return;
+    grid.innerHTML = `
       <div class="empty" style="grid-column:1/-1">
-        Bo'limlarni yuklab bo'lmadi.<br>
+        ${escapeHtml(t('sectionsLoadFail'))}<br>
         <span style="font-size:11px">${escapeHtml(e.message)}</span>
-        <div><button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="renderHome()">Qayta urinish</button></div>
+        <div><button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="renderHome()">${escapeHtml(t('retry'))}</button></div>
       </div>`;
   }
 }
@@ -548,41 +926,48 @@ async function renderHome(){
 /* ---------------------------------------------------------------------
    SECTION PAGE
 --------------------------------------------------------------------- */
+// Sahifa "qobig'i": sarlavha, tugma, tablar va ro'yxat uchun bo'sh joy. Muvaffaqiyatli bo'lsa true.
+function drawSectionShell(){
+  const sec = sections.find(s => s.id === currentSectionId);
+  const wrap = $('mainWrap');
+  if(!sec){
+    wrap.innerHTML = `<div class="empty">${escapeHtml(t('sectionNotFound'))} <a href="#" onclick="location.hash=''">${escapeHtml(t('backHome'))}</a></div>`;
+    return false;
+  }
+  wrap.innerHTML = `
+    <div class="crumbs"><a href="#">${escapeHtml(t('sections'))}</a> / <span>${escapeHtml(secName(sec))}</span></div>
+    <div class="page-head">
+      <h2>${escapeHtml(secName(sec))}</h2>
+      <button class="btn btn-primary" onclick="openAddBook()">${escapeHtml(t('addBook'))}</button>
+    </div>
+    <div class="tabs" id="tabsRow"></div>
+    <div class="book-list" id="bookList"><div class="empty">${escapeHtml(t('loading'))}</div></div>
+  `;
+  return true;
+}
+
 async function renderSectionPage(){
   try{
     if(!sections.length) await loadSections();
   }catch(e){
-    $('mainWrap').innerHTML = `<div class="empty">Bo'limni yuklab bo'lmadi.<br><span style="font-size:11px">${escapeHtml(e.message)}</span><div><a href="#" onclick="location.hash=''">Bosh sahifaga qaytish</a></div></div>`;
+    $('mainWrap').innerHTML = `<div class="empty">${escapeHtml(t('sectionLoadFail'))}<br><span style="font-size:11px">${escapeHtml(e.message)}</span><div><a href="#" onclick="location.hash=''">${escapeHtml(t('backHome'))}</a></div></div>`;
     return;
   }
-  const sec = sections.find(s => s.id === currentSectionId);
-  const wrap = $('mainWrap');
-  if(!sec){
-    wrap.innerHTML = `<div class="empty">Bo'lim topilmadi. <a href="#" onclick="location.hash=''">Bosh sahifaga qaytish</a></div>`;
-    return;
-  }
-  wrap.innerHTML = `
-    <div class="crumbs"><a href="#">Bo'limlar</a> / <span>${escapeHtml(sec.name)}</span></div>
-    <div class="page-head">
-      <h2>${escapeHtml(sec.name)}</h2>
-      <button class="btn btn-primary" onclick="openAddBook()">+ Adabiyot qo'shish</button>
-    </div>
-    <div class="tabs" id="tabsRow"></div>
-    <div class="book-list" id="bookList"><div class="empty">Yuklanmoqda...</div></div>
-  `;
+  if(!drawSectionShell()) return;
   renderTabs();
   await renderBookList();
 }
 
 function renderTabs(){
   const row = $('tabsRow');
-  row.innerHTML = Object.keys(TYPE_LABELS).map(t => `
-    <button class="tab ${t===currentTab?'active':''}" onclick="switchTab('${t}')">${TYPE_LABELS[t]}</button>
+  if(!row) return;
+  row.innerHTML = Object.keys(TYPE_KEYS).map(k => `
+    <button class="tab ${k===currentTab?'active':''}" onclick="switchTab('${k}')">${escapeHtml(t(TYPE_KEYS[k]))}</button>
   `).join('');
 }
 
-async function switchTab(t){
-  currentTab = t;
+async function switchTab(k){
+  currentTab = k;
   renderTabs();
   await renderBookList();
 }
@@ -594,56 +979,74 @@ function bookViewUrl(b){
     : b.url;
 }
 
-async function renderBookList(){
+function drawBookList(){
   const listEl = $('bookList');
-  listEl.innerHTML = `<div class="empty">Yuklanmoqda...</div>`;
+  if(!listEl) return;
+  const docs = bookCache ? bookCache.docs : [];
+
+  if(!docs.length){
+    listEl.innerHTML = `
+      <div class="empty">
+        ${escapeHtml(t(EMPTY_KEYS[currentTab]))}
+        <div><button class="btn btn-primary plus-btn" onclick="openAddBook()">${escapeHtml(t('addBook'))}</button></div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = docs.map(({id, data:b}) => {
+    const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
+    const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
+    const openHref = safeUrl(bookViewUrl(b));
+    const dlHref = (b.driveFileId && b.url) ? safeUrl(b.url) : '';
+    return `
+      <div class="book-row">
+        <div class="book-ic ${currentTab}">${icon}</div>
+        <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
+          <div class="t">${escapeHtml(b.title)}</div>
+          <div class="s">${escapeHtml(t('addedBy',{name: b.addedByName || t('unknown')}))}</div>
+        </a>
+        <div class="book-actions">
+          ${dlHref !== '#' && dlHref ? `<a class="btn btn-outline btn-sm" href="${escapeHtml(dlHref)}" target="_blank" rel="noopener">${escapeHtml(t('download'))}</a>` : ''}
+          ${canEdit ? `
+            <button class="btn btn-outline btn-sm" onclick="editBookTitle('${id}','${escapeAttr(b.title)}')">${escapeHtml(t('edit'))}</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteBook('${id}')">${escapeHtml(t('del'))}</button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function renderBookList(useCache){
+  const listEl = $('bookList');
+  if(!listEl) return;
+
+  if(useCache && bookCache && bookCache.sectionId === currentSectionId && bookCache.tab === currentTab){
+    drawBookList();
+    return;
+  }
+
+  listEl.innerHTML = `<div class="empty">${escapeHtml(t('loading'))}</div>`;
+  const sid = currentSectionId, tab = currentTab;
   try{
     const snap = await db.collection('books')
-      .where('sectionId','==', currentSectionId)
-      .where('type','==', currentTab)
+      .where('sectionId','==', sid)
+      .where('type','==', tab)
       .get();
 
-    if(snap.empty){
-      listEl.innerHTML = `
-        <div class="empty">
-          Bu bo'limda hali ${TYPE_LABELS[currentTab].toLowerCase()} yo'q.
-          <div><button class="btn btn-primary plus-btn" onclick="openAddBook()">+ Adabiyot qo'shish</button></div>
-        </div>`;
-      return;
-    }
-
-    const docs = snap.docs.slice().sort((a,b) => {
-      const ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
-      const tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+    const docs = snap.docs.map(d => ({id:d.id, data:d.data()})).sort((a,b) => {
+      const ta = a.data.createdAt ? a.data.createdAt.toMillis() : 0;
+      const tb = b.data.createdAt ? b.data.createdAt.toMillis() : 0;
       return tb - ta;
     });
 
-    listEl.innerHTML = docs.map(d => {
-      const b = d.data();
-      const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
-      const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
-      const openHref = safeUrl(bookViewUrl(b));
-      const dlHref = (b.driveFileId && b.url) ? safeUrl(b.url) : '';
-      return `
-        <div class="book-row">
-          <div class="book-ic ${currentTab}">${icon}</div>
-          <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
-            <div class="t">${escapeHtml(b.title)}</div>
-            <div class="s">Qo'shdi: ${escapeHtml(b.addedByName||'Noma\'lum')}</div>
-          </a>
-          <div class="book-actions">
-            ${dlHref !== '#' && dlHref ? `<a class="btn btn-outline btn-sm" href="${escapeHtml(dlHref)}" target="_blank" rel="noopener">⬇ Yuklab olish</a>` : ''}
-            ${canEdit ? `
-              <button class="btn btn-outline btn-sm" onclick="editBookTitle('${d.id}','${escapeAttr(b.title)}')">Tahrirlash</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteBook('${d.id}')">O'chirish</button>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
+    if(sid !== currentSectionId || tab !== currentTab) return;   // bu orada boshqa tab/bo'lim ochilgan
+    bookCache = {sectionId: sid, tab, docs};
+    drawBookList();
   }catch(e){
     console.error('renderBookList xatolik:', e);
-    listEl.innerHTML = `<div class="empty">Ro'yxatni yuklab bo'lmadi.<br><span style="font-size:11px">${escapeHtml(e.message)}</span></div>`;
+    const el = $('bookList');
+    if(el) el.innerHTML = `<div class="empty">${escapeHtml(t('listLoadFail'))}<br><span style="font-size:11px">${escapeHtml(e.message)}</span></div>`;
   }
 }
 
@@ -653,7 +1056,7 @@ async function renderBookList(){
 function submitNewSection(){
   if(!requireAuth()) return;
   const name = $('newSectionName').value.trim();
-  if(!name){ toast('Bo\'lim nomini kiriting','err'); return; }
+  if(!name){ toast(t('enterSectionName'),'err'); return; }
   db.collection('sections').add({
     name, order: sections.length + Date.now()%1000,
     createdBy: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
@@ -661,7 +1064,7 @@ function submitNewSection(){
   }).then(()=>{
     closeModal('modalSection');
     $('newSectionName').value = '';
-    toast('Bo\'lim qo\'shildi','ok');
+    toast(t('sectionAdded'),'ok');
     renderHome();
   }).catch(e=>toast(e.message,'err'));
 }
@@ -682,7 +1085,7 @@ function openAddBook(){
   $('linkTitle').value = '';
   $('confirmCheck').checked = false;
   $('ytHint').textContent = '';
-  $('fileHint').textContent = 'Ruxsat etilgan formatlar: ' + ALLOWED_EXT_HINT + ' — tur avtomatik aniqlanadi';
+  updateFileHint();
   $('linkTitleField').style.display = 'block';
   hideProgress();
   const uem = $('uploadErrorMsg');
@@ -695,54 +1098,56 @@ function openAddBook(){
 
 function cancelBookModal(){
   if(currentJob && !currentJob.done){
-    if(!confirm('Yuklash jarayoni to\'xtatilsinmi?')) return;
+    if(!confirm(t('stopUpload'))) return;
     currentJob.cancelled = true;
     try{ if(currentJob.xhr) currentJob.xhr.abort(); }catch(e){}
   }
   closeModal('modalBook');
 }
 
-function selectType(t){
-  selectedType = t;
+function selectType(k){
+  selectedType = k;
   $('typeChoice').querySelectorAll('button').forEach(b=>{
-    b.classList.toggle('active', b.dataset.type === t);
+    b.classList.toggle('active', b.dataset.type === k);
   });
-  $('fileFields').style.display = (t === 'file') ? 'block' : 'none';
-  $('linkFields').style.display = (t === 'link') ? 'block' : 'none';
+  $('fileFields').style.display = (k === 'file') ? 'block' : 'none';
+  $('linkFields').style.display = (k === 'link') ? 'block' : 'none';
 }
 
-function onFileChosen(){
+// Fayl tanlash izohi (tanlangan fayl va til bo'yicha)
+function updateFileHint(){
   const file = $('bookFile').files[0];
   const hintEl = $('fileHint');
   if(!file){
     detectedFileType = null;
-    hintEl.textContent = 'Ruxsat etilgan formatlar: ' + ALLOWED_EXT_HINT + ' — tur avtomatik aniqlanadi';
+    hintEl.textContent = t('fileHintDefault',{ext:ALLOWED_EXT_HINT});
     return;
   }
   const ext = '.' + file.name.split('.').pop().toLowerCase();
   detectedFileType = EXT_TYPE[ext] || null;
   if(!detectedFileType){
-    hintEl.textContent = '⚠️ Bu fayl formati qo\'llab-quvvatlanmaydi. Ruxsat etilgan: ' + ALLOWED_EXT_HINT;
+    hintEl.textContent = t('fileUnsupported',{ext:ALLOWED_EXT_HINT});
   } else {
-    hintEl.textContent = '✓ Aniqlandi: ' + TYPE_LABELS[detectedFileType] + ' (' + fmtMB(file.size) + ' MB)';
+    hintEl.textContent = t('fileDetected',{type:t(TYPE_KEYS[detectedFileType]), mb:fmtMB(file.size)});
   }
 }
+function onFileChosen(){ updateFileHint(); }
 
 async function tryFetchYtTitle(){
   const url = $('linkUrl').value.trim();
   const hintEl = $('ytHint');
   if(!url){ hintEl.textContent=''; return; }
-  hintEl.textContent = 'Video nomi aniqlanmoqda...';
+  hintEl.textContent = t('ytFetching');
   try{
     const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
     if(!res.ok) throw new Error('topilmadi');
     const data = await res.json();
     $('linkTitle').value = data.title;
     $('linkTitleField').style.display = 'none';
-    hintEl.textContent = '✓ Video nomi avtomatik aniqlandi: ' + data.title;
+    hintEl.textContent = t('ytFound',{title:data.title});
   }catch(e){
     $('linkTitleField').style.display = 'block';
-    hintEl.textContent = 'Video nomini avtomatik aniqlab bo\'lmadi — qo\'lda kiriting.';
+    hintEl.textContent = t('ytManual');
   }
 }
 
@@ -767,7 +1172,7 @@ const fmtMB = bytes => (bytes / 1048576).toFixed(1);
 function blobToBase64(blob){
   return new Promise((resolve, reject) => {
     const r = new FileReader();
-    r.onerror = () => reject(new Error('Faylni o\'qib bo\'lmadi'));
+    r.onerror = () => reject(new Error(t('errReadFile')));
     r.onload = () => resolve(String(r.result).split(',')[1] || '');
     r.readAsDataURL(blob);
   });
@@ -788,15 +1193,17 @@ async function gasCall(payload, retries){
       try{
         return JSON.parse(txt);
       }catch(e){
-        throw new Error('Serverdan kutilmagan javob keldi. Code.gs yangi versiyada deploy qilinganini va URL to\'g\'riligini tekshiring.');
+        const pe = new Error(t('errUnexpected'));
+        pe.noRetry = true;
+        throw pe;
       }
     }catch(e){
       lastErr = e;
-      if(String(e.message).startsWith('Serverdan kutilmagan')) throw e;
+      if(e.noRetry) throw e;
       await sleep(1200 * (i + 1));
     }
   }
-  throw new Error('Serverga ulanib bo\'lmadi (' + (lastErr && lastErr.message ? lastErr.message : 'tarmoq xatosi') + ')');
+  throw new Error(t('errNoServer',{msg: (lastErr && lastErr.message) ? lastErr.message : t('netErr')}));
 }
 
 function setProgress(job, pct, text){
@@ -874,55 +1281,55 @@ async function uploadDirect(file, session, job){
 async function uploadFileToDrive(file, job){
   const mime = file.type || 'application/octet-stream';
   const total = file.size;
-  if(!total) throw new Error('Fayl bo\'sh');
+  if(!total) throw new Error(t('errEmpty'));
 
   const t0 = performance.now();
   const timings = {};
   let reason = '';
   const finish = (r, method) => {
-    r._report = 'usul: ' + method + (reason ? ' | sabab: ' + reason : '') + ' | jami ' + secs(performance.now() - t0);
+    r._report = t('repMethod') + ': ' + method + (reason ? ' | ' + t('repReason') + ': ' + reason : '') + ' | ' + t('repTotal') + ' ' + secs(performance.now() - t0);
     console.info('[Yuklash]', r._report, timings);
     return r;
   };
   const time = async (name, fn) => {
-    const t = performance.now();
-    try{ return await fn(); } finally { timings[name] = secs(performance.now() - t); }
+    const t1 = performance.now();
+    try{ return await fn(); } finally { timings[name] = secs(performance.now() - t1); }
   };
 
   // Kichik fayl + to'g'ridan-to'g'ri usul avval ishlamagan: bitta so'rov, ortiqcha kutishsiz
   if(directBroken && total <= SINGLE_CALL_MAX){
-    setProgress(job, null, 'Yuborilmoqda…');
-    reason = 'to\'g\'ridan-to\'g\'ri usul oldin ishlamagan';
+    setProgress(job, null, t('sending'));
+    reason = t('rDirectBefore');
     const base64 = await blobToBase64(file);
     const r = await time('upload', () => gasCall({ action:'upload', fileName:file.name, mimeType:mime, base64 }));
-    if(!r || !r.success) throw new Error((r && r.error) || 'Drive yuklashda xatolik');
-    return finish(r, 'Apps Script (bitta so\'rov)');
+    if(!r || !r.success) throw new Error((r && r.error) || t('driveErr'));
+    return finish(r, t('mGasSingle'));
   }
 
-  setProgress(job, 0, 'Drive bilan ulanmoqda…');
+  setProgress(job, 0, t('connecting'));
   let init = await time('init', () => gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total, origin: directBroken ? undefined : location.origin }));
 
   // ---- 1) Asosiy usul: brauzer -> Drive (to'g'ridan-to'g'ri) ----
   if(init && init.success && init.session && init.direct){
     try{
       const fileId = await time('yuborish', () => uploadDirect(file, init.session, job));
-      setProgress(job, 100, '100%  —  Drive\'da yakunlanmoqda…');
+      setProgress(job, 100, t('finalizing'));
       const fin = await time('finalize', () => gasCall({ action:'finalize', fileId }));
-      if(!fin || !fin.success) throw new Error((fin && fin.error) || 'Yakunlashda xatolik');
-      return finish(fin, 'to\'g\'ridan-to\'g\'ri');
+      if(!fin || !fin.success) throw new Error((fin && fin.error) || t('finalizeErr'));
+      return finish(fin, t('mDirect'));
     }catch(e){
       if(e.message !== '__direct_failed__') throw e;   // bekor qilish yoki boshqa xato
-      reason = e.reason || 'noma\'lum';
+      reason = e.reason || t('unknown').toLowerCase();
       directBroken = true;
       console.warn('To\'g\'ridan-to\'g\'ri yuklash ishlamadi:', reason);
-      setProgress(job, 0, 'Muqobil usulga o\'tilmoqda…');
+      setProgress(job, 0, t('switching'));
       init = await time('init2', () => gasCall({ action:'init', fileName:file.name, mimeType:mime, size:total }));
     }
   } else if(init && init.success && !directBroken){
     directBroken = true;
     reason = (init.direct === undefined)
-      ? 'Code.gs eski versiyada — yangi versiya deploy qilinmagan'
-      : (init.directNote || 'Drive to\'g\'ridan-to\'g\'ri yuklashga ruxsat bermadi');
+      ? t('rOldGs')
+      : (init.directNote || t('rDriveDenied'));
   }
 
   // ---- 2) Zaxira: Apps Script orqali bo'laklab (foiz bilan) ----
@@ -933,27 +1340,27 @@ async function uploadFileToDrive(file, job){
       const end = Math.min(start + CHUNK_SIZE, total);
       const base64 = await blobToBase64(file.slice(start, end));
       const r = await time('chunk' + (start / CHUNK_SIZE), () => gasCall({ action:'chunk', session:init.session, mimeType:mime, start, total, base64 }));
-      if(!r || !r.success) throw new Error((r && r.error) || 'Bo\'lakni yuborishda xatolik');
+      if(!r || !r.success) throw new Error((r && r.error) || t('chunkErr'));
       start = end;
       const pct = Math.floor(start / total * 100);
       setProgress(job, pct, pct + '%  —  ' + fmtMB(start) + ' / ' + fmtMB(total) + ' MB');
-      if(r.done) return finish(r, 'Apps Script orqali bo\'laklab');
+      if(r.done) return finish(r, t('mGasChunks'));
     }
-    throw new Error('Yuklash yakunlanmadi — Drive tasdiq bermadi. Qayta urinib ko\'ring.');
+    throw new Error(t('notFinished'));
   }
 
   // ---- 3) Zaxira: butun fayl bitta so'rovda (foizsiz) ----
   console.warn('Sessiya ochilmadi, oddiy usulga o\'tildi:', init && init.error);
   if(total > FALLBACK_MAX_BYTES){
-    throw new Error('Yuklash sessiyasi ochilmadi' + (init && init.error ? ': ' + init.error : '') + '. Katta fayl (' + fmtMB(total) + ' MB) oddiy usulda yuklanmaydi — Drive API sozlamasini tekshiring.');
+    throw new Error(t('sessionFail') + (init && init.error ? ': ' + init.error : '') + '. ' + t('bigFile',{mb:fmtMB(total)}));
   }
   if(job.cancelled) throw new Error('__cancelled__');
-  setProgress(job, null, 'Yuborilmoqda… (bu usulda foiz ko\'rsatilmaydi)');
-  reason = 'sessiya ochilmadi: ' + ((init && init.error) || '');
+  setProgress(job, null, t('sendingNoPct'));
+  reason = t('rNoSession',{err:(init && init.error) || ''});
   const base64 = await blobToBase64(file);
   const r = await time('upload', () => gasCall({ action:'upload', fileName:file.name, mimeType:mime, base64 }));
-  if(!r || !r.success) throw new Error((r && r.error) || 'Drive yuklashda xatolik');
-  return finish(r, 'Apps Script (bitta so\'rov)');
+  if(!r || !r.success) throw new Error((r && r.error) || t('driveErr'));
+  return finish(r, t('mGasSingle'));
 }
 
 // O'chirish: natijasini kutish shart emas
@@ -971,9 +1378,9 @@ function warnUnload(e){ e.preventDefault(); e.returnValue = ''; }
 async function submitNewBook(){
   if(!requireAuth()) return;
   if(currentJob && !currentJob.done) return;   // ikki marta bosilmasin
-  if(!selectedType){ toast('Material turini tanlang','err'); return; }
+  if(!selectedType){ toast(t('pickType'),'err'); return; }
   if(!$('confirmCheck').checked){
-    toast('Tasdiqlash katagini belgilang','err'); return;
+    toast(t('tickConfirm'),'err'); return;
   }
 
   const base = {
@@ -987,27 +1394,27 @@ async function submitNewBook(){
   if(selectedType === 'link'){
     const url = $('linkUrl').value.trim();
     const title = $('linkTitle').value.trim();
-    if(!url || !title){ toast('Havola va sarlavhani to\'ldiring','err'); return; }
-    if(safeUrl(url) === '#'){ toast('Havola http:// yoki https:// bilan boshlanishi kerak','err'); return; }
-    if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
+    if(!url || !title){ toast(t('fillLinkTitle'),'err'); return; }
+    if(safeUrl(url) === '#'){ toast(t('linkHttp'),'err'); return; }
+    if(hasBannedWords(title)){ toast(t('titleRejected'),'err'); return; }
     try{
       await db.collection('books').add({...base, type:'link', title, url: safeUrl(url)});
       finishAddBook('link');
     }catch(e){
-      toast('Saqlashda xatolik: ' + e.message, 'err');
+      toast(t('saveErr',{msg:e.message}), 'err');
     }
     return;
   }
 
   /* ---- Fayl ---- */
   if(!DRIVE_UPLOAD_URL){
-    toast('Drive yuklash manzili sozlanmagan (DRIVE_UPLOAD_URL).', 'err');
+    toast(t('noDriveUrl'), 'err');
     return;
   }
   const file = $('bookFile').files[0];
-  if(!file){ toast('Faylni tanlang','err'); return; }
+  if(!file){ toast(t('pickFile'),'err'); return; }
   if(!detectedFileType){
-    toast('Fayl formati qo\'llab-quvvatlanmaydi. Ruxsat etilgan: ' + ALLOWED_EXT_HINT, 'err');
+    toast(t('badFormatToast',{ext:ALLOWED_EXT_HINT}), 'err');
     return;
   }
 
@@ -1015,7 +1422,7 @@ async function submitNewBook(){
   if(!title){
     title = file.name.replace(/\.[^/.]+$/, '');
   }
-  if(hasBannedWords(title)){ toast('Sarlavha nomaqbul so\'z ehtimoli bilan rad etildi','err'); return; }
+  if(hasBannedWords(title)){ toast(t('titleRejected'),'err'); return; }
 
   const type = detectedFileType;
   const btn = $('submitBookBtn');
@@ -1038,12 +1445,12 @@ async function submitNewBook(){
       throw new Error('__cancelled__');
     }
 
-    setProgress(job, 100, '100%  —  Saytga qo\'shilmoqda…');
+    setProgress(job, 100, t('addingToSite'));
     try{
       await db.collection('books').add({...base, type, title, url: driveResult.url, driveFileId: driveResult.fileId});
     }catch(dbErr){
       deleteFromDrive(driveResult.fileId);   // saytda yozuv yo'q — Drive'da yetim fayl qolmasin
-      throw new Error('Fayl Drive\'ga yuklandi, lekin saytga saqlashda xatolik: ' + dbErr.message);
+      throw new Error(t('driveOkDbFail',{msg:dbErr.message}));
     }
 
     hideProgress();
@@ -1051,7 +1458,7 @@ async function submitNewBook(){
   }catch(err){
     if(err.message === '__cancelled__'){
       hideProgress();
-      toast('Yuklash bekor qilindi');
+      toast(t('uploadCancelled'));
     } else {
       console.error('Drive yuklash xatosi:', err);
       hideProgress();
@@ -1068,26 +1475,26 @@ async function submitNewBook(){
 
 function finishAddBook(type, note){
   closeModal('modalBook');
-  toast('Adabiyot qo\'shildi' + (note ? ' — ' + note : ''), 'ok', note ? 15000 : undefined);
+  toast(t('added') + (note ? ' — ' + note : ''), 'ok', note ? 15000 : undefined);
   if(currentTab !== type) switchTab(type);
   else renderBookList();
 }
 
 async function editBookTitle(id, oldTitle){
-  const t = prompt('Yangi sarlavha:', decodeAttr(oldTitle));
-  if(t === null) return;
-  const trimmed = t.trim();
+  const tt = prompt(t('newTitlePrompt'), decodeAttr(oldTitle));
+  if(tt === null) return;
+  const trimmed = tt.trim();
   if(!trimmed) return;
-  if(hasBannedWords(trimmed)){ toast('Nomaqbul so\'z aniqlandi','err'); return; }
+  if(hasBannedWords(trimmed)){ toast(t('badWord'),'err'); return; }
   try{
     await db.collection('books').doc(id).update({title: trimmed});
-    toast('Yangilandi','ok');
+    toast(t('updated'),'ok');
     renderBookList();
   }catch(e){ toast(e.message,'err'); }
 }
 
 async function deleteBook(id){
-  if(!confirm('Ushbu materialni o\'chirmoqchimisiz?')) return;
+  if(!confirm(t('confirmDelete'))) return;
   try{
     const doc = await db.collection('books').doc(id).get();
     const data = doc.data();
@@ -1095,7 +1502,7 @@ async function deleteBook(id){
     if(data && data.driveFileId){
       deleteFromDrive(data.driveFileId);
     }
-    toast('O\'chirildi','ok');
+    toast(t('deleted'),'ok');
     renderBookList();
   }catch(e){ toast(e.message,'err'); }
 }
@@ -1123,7 +1530,7 @@ function signInViaBrowser(){
   const nonce = newNonce();
   try{ localStorage.setItem('tgLogin', JSON.stringify({n:nonce, t:Date.now()})); }catch(e){}
   Telegram.WebApp.openLink(location.origin + location.pathname + '?tglogin=' + nonce);
-  toast('Google kirish sahifasi brauzerda ochildi. Kirib bo\'lgach, shu ilovaga qayting.', '', 8000);
+  toast(t('tgToast'), '', 8000);
   startTgPolling(nonce);
 }
 
@@ -1157,11 +1564,11 @@ function startTgPolling(nonce){
       const d = snap.data();
       ref.delete().catch(()=>{});
       try{ localStorage.removeItem('tgLogin'); }catch(e){}
-      if(!d.idToken) throw new Error('Google tokeni topilmadi');
+      if(!d.idToken) throw new Error(t('tgNoToken'));
       await auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken));
-      toast('Tizimga kirdingiz','ok');
+      toast(t('tgSignedIn'),'ok');
     }catch(e){
-      toast('Kirishda xatolik: ' + e.message, 'err');
+      toast(t('signInErr',{msg:e.message}), 'err');
     }finally{
       tgChecking = false;
     }
@@ -1177,21 +1584,21 @@ let handoffState = 'ask', handoffErr = '';
 
 function renderHandoff(){
   const back = TG_RETURN_URL
-    ? `<a class="btn btn-primary" href="${escapeHtml(TG_RETURN_URL)}">Telegramga qaytish</a>` : '';
+    ? `<a class="btn btn-primary" href="${escapeHtml(TG_RETURN_URL)}">${escapeHtml(t('hoBack'))}</a>` : '';
   let body;
   if(handoffState === 'working'){
-    body = `<p>Kutib turing…</p>`;
+    body = `<p>${escapeHtml(t('hoWorking'))}</p>`;
   } else if(handoffState === 'done'){
-    body = `<p>✅ Tayyor! Telegramga qaytib, kutubxona ilovasini oching — u avtomatik kiradi.</p>${back}`;
+    body = `<p>${escapeHtml(t('hoDone'))}</p>${back}`;
   } else if(handoffState === 'error'){
     body = `<p style="color:var(--red)">${escapeHtml(handoffErr)}</p>
-            <button class="btn btn-primary" onclick="handoffSignIn()">Qayta urinish</button>`;
+            <button class="btn btn-primary" onclick="handoffSignIn()">${escapeHtml(t('retry'))}</button>`;
   } else {
-    body = `<p>Telegramdagi kutubxona ilovasiga kirish uchun Google hisobingizni tasdiqlang.<br>
-            <small>Faqat o'zingiz ilovada «Kirish» tugmasini bosgan bo'lsangizgina davom eting.</small></p>
-            <button class="btn btn-primary" onclick="handoffSignIn()">Google orqali tasdiqlash</button>`;
+    body = `<p>${escapeHtml(t('hoAsk'))}<br>
+            <small>${escapeHtml(t('hoWarn'))}</small></p>
+            <button class="btn btn-primary" onclick="handoffSignIn()">${escapeHtml(t('hoBtn'))}</button>`;
   }
-  $('mainWrap').innerHTML = `<div class="signin-card"><h2>Telegram ilovasi uchun kirish</h2>${body}</div>`;
+  $('mainWrap').innerHTML = `<div class="signin-card"><h2>${escapeHtml(t('hoTitle'))}</h2>${body}</div>`;
 }
 
 async function handoffSignIn(){
@@ -1199,7 +1606,7 @@ async function handoffSignIn(){
   try{
     const res = await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
     const idToken = res.credential && res.credential.idToken;
-    if(!idToken) throw new Error('Google tokeni olinmadi');
+    if(!idToken) throw new Error(t('hoTokenFail'));
     await db.collection('authHandoff').doc(HANDOFF_ID).set({
       idToken, createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -1207,7 +1614,7 @@ async function handoffSignIn(){
   }catch(e){
     handoffState = 'error';
     handoffErr = (e.code === 'auth/popup-closed-by-user')
-      ? 'Oyna yopildi. Qayta urinib ko\'ring.' : (e.message || 'Xatolik');
+      ? t('hoPopupClosed') : (e.message || t('hoError'));
   }
   renderHandoff();
 }
@@ -1216,7 +1623,7 @@ async function handoffSignIn(){
    HELPERS
 --------------------------------------------------------------------- */
 function requireAuth(){
-  if(!currentUser){ toast('Avval tizimga kiring','err'); return false; }
+  if(!currentUser){ toast(t('needSignIn'),'err'); return false; }
   return true;
 }
 function openModal(id){ $(id).classList.add('show'); }
@@ -1241,6 +1648,11 @@ function safeUrl(u){
     return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : '#';
   }catch(e){ return '#'; }
 }
+
+/* ---------------------------------------------------------------------
+   INIT
+--------------------------------------------------------------------- */
+applyStatic();
 </script>
 </body>
 </html>
