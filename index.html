@@ -189,6 +189,27 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 }
 .upload-status{display:none;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--accent)}
 
+/* ── YANGI: sayt havolasi, tavsif, admin tartiblash ─────────────── */
+.book-ic.site{background:#dcfce7;color:#16a34a}
+.book-body{flex:1;min-width:0}
+.book-meta{display:block;min-width:0}
+.book-desc{
+  font-size:12.5px;color:#475569;margin-top:5px;line-height:1.5;white-space:pre-line;cursor:pointer;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;
+}
+.book-desc.open{display:block;-webkit-line-clamp:unset}
+.link-btn{background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;padding:3px 0;margin-top:3px}
+.link-btn:hover{text-decoration:underline}
+.head-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mv{display:flex;gap:6px}
+.sec-card .mv{margin-top:4px}
+.sec-card.reorder{border-style:dashed;border-color:var(--accent-ring);cursor:default}
+.sec-card.reorder:hover{transform:none;box-shadow:var(--shadow)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.type-choice{grid-template-columns:repeat(3,1fr)}
+.type-choice button{padding:11px 6px;line-height:1.3}
+.field textarea{resize:vertical;min-height:70px}
+
 /* ── SIGN-IN SCREEN ─────────────────────────────────────────────── */
 .signin-card{
   max-width:420px;margin:80px auto;background:#fff;border-radius:18px;
@@ -366,6 +387,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
       <div class="type-choice" id="typeChoice">
         <button data-type="file" onclick="selectType('file')" data-i="typeFile">📎 Fayl yuklash</button>
         <button data-type="link" onclick="selectType('link')" data-i="typeLink">🎬 Video havola</button>
+        <button data-type="site" onclick="selectType('site')" data-i="typeSite">🌐 Sayt havolasi</button>
       </div>
     </div>
 
@@ -386,14 +408,19 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 
     <div id="linkFields" style="display:none">
       <div class="field">
-        <label data-i="ytLbl">YouTube havolasi</label>
+        <label id="linkUrlLbl">YouTube havolasi</label>
         <input type="url" id="linkUrl" placeholder="https://youtube.com/watch?v=..." oninput="tryFetchYtTitle()">
         <div class="hint" id="ytHint"></div>
       </div>
       <div class="field" id="linkTitleField">
-        <label data-i="titleLbl">Sarlavha</label>
-        <input type="text" id="linkTitle" data-i-ph="videoNamePh" placeholder="Video nomi">
+        <label id="linkTitleLbl">Sarlavha</label>
+        <input type="text" id="linkTitle" placeholder="Video nomi">
       </div>
+    </div>
+
+    <div class="field" id="descField">
+      <label data-i="descLbl">Kitobga tavsif (ixtiyoriy)</label>
+      <textarea id="bookDesc" rows="3" maxlength="800" data-i-ph="descPh" placeholder="Bu kitob nima haqida? Qisqacha yozing…"></textarea>
     </div>
 
     <div class="checkline">
@@ -404,6 +431,21 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="cancelBookModal()" data-i="cancel">Bekor qilish</button>
       <button class="btn btn-primary" id="submitBookBtn" onclick="submitNewBook()" data-i="add">Qo'shish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= MODAL: Tavsif yozish / tahrirlash ======================= -->
+<div class="modal-overlay" id="modalDesc">
+  <div class="modal">
+    <h3 data-i="descModalTitle">Kitobga tavsif</h3>
+    <div class="hint" id="descBookTitle" style="margin:-8px 0 10px;font-weight:700"></div>
+    <div class="field">
+      <textarea id="descText" rows="6" maxlength="800" data-i-ph="descPh" placeholder="Bu kitob nima haqida? Qisqacha yozing…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalDesc')" data-i="cancel">Bekor qilish</button>
+      <button class="btn btn-primary" id="descSaveBtn" onclick="saveDesc()" data-i="save">Saqlash</button>
     </div>
   </div>
 </div>
@@ -494,9 +536,9 @@ uz:{
   sectionsLoadFail:"Bo'limlarni yuklab bo'lmadi.", sectionLoadFail:"Bo'limni yuklab bo'lmadi.",
   backHome:"Bosh sahifaga qaytish", sectionNotFound:"Bo'lim topilmadi.", listLoadFail:"Ro'yxatni yuklab bo'lmadi.",
   retry:"Qayta urinish",
-  tPdf:"PDF kitoblar", tPptx:"Taqdimot fayllari", tWord:"Word fayllar", tLink:"Havolalar (video darslar)",
+  tPdf:"PDF kitoblar", tPptx:"Taqdimot fayllari", tWord:"Word fayllar", tLink:"Video havolalar", tSite:"Sayt havolalari",
   emptyPdf:"Bu bo'limda hali PDF kitoblar yo'q.", emptyPptx:"Bu bo'limda hali taqdimot fayllari yo'q.",
-  emptyWord:"Bu bo'limda hali word fayllar yo'q.", emptyLink:"Bu bo'limda hali havolalar (video darslar) yo'q.",
+  emptyWord:"Bu bo'limda hali word fayllar yo'q.", emptyLink:"Bu bo'limda hali video havolalar yo'q.", emptySite:"Bu bo'limda hali sayt havolalari yo'q.",
   addBook:"+ Adabiyot qo'shish", addedBy:"Qo'shdi: {name}", unknown:"Noma'lum",
   download:"⬇ Yuklab olish", edit:"Tahrirlash", del:"O'chirish",
   newSectionTitle:"Yangi bo'lim qo'shish", sectionName:"Bo'lim nomi", sectionPh:"Masalan: Astrofizika",
@@ -545,6 +587,16 @@ uz:{
   hoWarn:"Faqat o'zingiz ilovada «Kirish» tugmasini bosgan bo'lsangizgina davom eting.",
   hoBtn:"Google orqali tasdiqlash", hoPopupClosed:"Oyna yopildi. Qayta urinib ko'ring.",
   hoTokenFail:"Google tokeni olinmadi", hoError:"Xatolik",
+  typeSite:"🌐 Sayt havolasi", siteLbl:"Sayt havolasi", siteTitlePh:"Bo'sh qoldirsangiz, sayt manzili ishlatiladi",
+  fillSiteUrl:"Sayt havolasini kiriting",
+  descLbl:"Kitobga tavsif (ixtiyoriy)", descPh:"Bu kitob nima haqida? Qisqacha yozing…", descModalTitle:"Kitobga tavsif",
+  addDesc:"+ Tavsif yozish", editDesc:"✏️ Tavsifni tahrirlash", save:"Saqlash",
+  descSaved:"Tavsif saqlandi", descRemoved:"Tavsif o'chirildi",
+  descTaken:"Bu tavsifni faqat uning muallifi yoki admin o'zgartira oladi.",
+  descRejected:"Tavsif nomaqbul so'z ehtimoli bilan rad etildi",
+  reorder:"↕ Tartiblash", reorderDone:"✔ Tayyor", moveBefore:"Oldinga surish", moveAfter:"Orqaga surish",
+  moveUp:"Yuqoriga", moveDown:"Pastga", resetAz:"↺ A–Z", resetAzTitle:"Alifbo tartibiga qaytarish",
+  orderSaved:"Tartib saqlandi", orderErr:"Tartibni saqlab bo'lmadi: {msg}",
   footTitle:"Fizika Fakulteti Onlayn Kutubxonasi",
   footDesc:"Ushbu kutubxona fakultet talabalari va o'qituvchilari tomonidan birgalikda to'ldirilib boriladi. Har bir foydalanuvchi o'zi qo'shgan materialni tahrirlashi yoki o'chirishi mumkin.",
   author:"Muallif:", linkYt:"YouTube — Ilmiy & Shaxsiy", linkTgSci:"Telegram — Ilmiy kanal", linkTgPers:"Telegram — Shaxsiy kanal",
@@ -559,9 +611,9 @@ ru:{
   sectionsLoadFail:"Не удалось загрузить разделы.", sectionLoadFail:"Не удалось загрузить раздел.",
   backHome:"Вернуться на главную", sectionNotFound:"Раздел не найден.", listLoadFail:"Не удалось загрузить список.",
   retry:"Повторить",
-  tPdf:"PDF-книги", tPptx:"Презентации", tWord:"Файлы Word", tLink:"Ссылки (видеоуроки)",
+  tPdf:"PDF-книги", tPptx:"Презентации", tWord:"Файлы Word", tLink:"Видео-ссылки", tSite:"Ссылки на сайты",
   emptyPdf:"В этом разделе пока нет PDF-книг.", emptyPptx:"В этом разделе пока нет презентаций.",
-  emptyWord:"В этом разделе пока нет файлов Word.", emptyLink:"В этом разделе пока нет ссылок (видеоуроков).",
+  emptyWord:"В этом разделе пока нет файлов Word.", emptyLink:"В этом разделе пока нет видео-ссылок.", emptySite:"В этом разделе пока нет ссылок на сайты.",
   addBook:"+ Добавить материал", addedBy:"Добавил(а): {name}", unknown:"Неизвестно",
   download:"⬇ Скачать", edit:"Изменить", del:"Удалить",
   newSectionTitle:"Добавить новый раздел", sectionName:"Название раздела", sectionPh:"Например: Астрофизика",
@@ -610,6 +662,16 @@ ru:{
   hoWarn:"Продолжайте, только если вы сами нажали «Войти» в приложении.",
   hoBtn:"Подтвердить через Google", hoPopupClosed:"Окно было закрыто. Попробуйте ещё раз.",
   hoTokenFail:"Не удалось получить токен Google", hoError:"Ошибка",
+  typeSite:"🌐 Ссылка на сайт", siteLbl:"Ссылка на сайт", siteTitlePh:"Если оставить пустым, будет использован адрес сайта",
+  fillSiteUrl:"Введите ссылку на сайт",
+  descLbl:"Описание книги (необязательно)", descPh:"О чём эта книга? Напишите кратко…", descModalTitle:"Описание книги",
+  addDesc:"+ Добавить описание", editDesc:"✏️ Изменить описание", save:"Сохранить",
+  descSaved:"Описание сохранено", descRemoved:"Описание удалено",
+  descTaken:"Изменить это описание может только его автор или администратор.",
+  descRejected:"Описание отклонено: возможно, содержит недопустимое слово",
+  reorder:"↕ Порядок", reorderDone:"✔ Готово", moveBefore:"Сдвинуть вперёд", moveAfter:"Сдвинуть назад",
+  moveUp:"Вверх", moveDown:"Вниз", resetAz:"↺ A–Z", resetAzTitle:"Вернуть алфавитный порядок",
+  orderSaved:"Порядок сохранён", orderErr:"Не удалось сохранить порядок: {msg}",
   footTitle:"Онлайн-библиотека физического факультета",
   footDesc:"Эта библиотека пополняется совместными усилиями студентов и преподавателей факультета. Каждый пользователь может редактировать или удалять добавленные им материалы.",
   author:"Автор:", linkYt:"YouTube — научный и личный", linkTgSci:"Telegram — научный канал", linkTgPers:"Telegram — личный канал",
@@ -624,9 +686,9 @@ en:{
   sectionsLoadFail:"Couldn't load the sections.", sectionLoadFail:"Couldn't load the section.",
   backHome:"Back to home", sectionNotFound:"Section not found.", listLoadFail:"Couldn't load the list.",
   retry:"Try again",
-  tPdf:"PDF books", tPptx:"Presentations", tWord:"Word files", tLink:"Links (video lessons)",
+  tPdf:"PDF books", tPptx:"Presentations", tWord:"Word files", tLink:"Video links", tSite:"Website links",
   emptyPdf:"There are no PDF books in this section yet.", emptyPptx:"There are no presentations in this section yet.",
-  emptyWord:"There are no Word files in this section yet.", emptyLink:"There are no links (video lessons) in this section yet.",
+  emptyWord:"There are no Word files in this section yet.", emptyLink:"There are no video links in this section yet.", emptySite:"There are no website links in this section yet.",
   addBook:"+ Add material", addedBy:"Added by: {name}", unknown:"Unknown",
   download:"⬇ Download", edit:"Edit", del:"Delete",
   newSectionTitle:"Add a new section", sectionName:"Section name", sectionPh:"e.g. Astrophysics",
@@ -675,6 +737,16 @@ en:{
   hoWarn:"Continue only if you pressed “Sign in” in the app yourself.",
   hoBtn:"Confirm with Google", hoPopupClosed:"The window was closed. Please try again.",
   hoTokenFail:"Couldn't get a Google token", hoError:"Error",
+  typeSite:"🌐 Website link", siteLbl:"Website link", siteTitlePh:"If left empty, the site address is used",
+  fillSiteUrl:"Enter the website link",
+  descLbl:"Book description (optional)", descPh:"What is this book about? Write a short summary…", descModalTitle:"Book description",
+  addDesc:"+ Add a description", editDesc:"✏️ Edit description", save:"Save",
+  descSaved:"Description saved", descRemoved:"Description removed",
+  descTaken:"Only its author or an admin can change this description.",
+  descRejected:"Description rejected: it may contain an inappropriate word",
+  reorder:"↕ Reorder", reorderDone:"✔ Done", moveBefore:"Move earlier", moveAfter:"Move later",
+  moveUp:"Move up", moveDown:"Move down", resetAz:"↺ A–Z", resetAzTitle:"Reset to alphabetical order",
+  orderSaved:"Order saved", orderErr:"Couldn't save the order: {msg}",
   footTitle:"Faculty of Physics Online Library",
   footDesc:"This library is built together by the faculty's students and teachers. Each user can edit or delete the materials they have added.",
   author:"Author:", linkYt:"YouTube — Science & Personal", linkTgSci:"Telegram — Science channel", linkTgPers:"Telegram — Personal channel",
@@ -693,8 +765,11 @@ function secName(s){
   return (tr && tr[lang]) || n;
 }
 
-const TYPE_KEYS  = {pdf:'tPdf', pptx:'tPptx', word:'tWord', link:'tLink'};
-const EMPTY_KEYS = {pdf:'emptyPdf', pptx:'emptyPptx', word:'emptyWord', link:'emptyLink'};
+// Diqqat: bazada VIDEO havolalar eskidan beri type:'link' bilan saqlangan, shuning uchun 'link' = video.
+// Sayt havolalari yangi 'site' turi bilan saqlanadi.
+const TYPE_KEYS  = {pdf:'tPdf', pptx:'tPptx', word:'tWord', link:'tLink', site:'tSite'};
+const EMPTY_KEYS = {pdf:'emptyPdf', pptx:'emptyPptx', word:'emptyWord', link:'emptyLink', site:'emptySite'};
+const TYPE_ICONS = {pdf:'📕', pptx:'📊', word:'📄', link:'🎬', site:'🌐'};
 const EXT_TYPE = {
   '.doc':'word', '.docx':'word',
   '.pdf':'pdf',
@@ -716,10 +791,13 @@ let sections = [];
 let homeCounts = null;   // bosh sahifadagi materiallar soni (keshda — til almashganda qayta yuklanmaydi)
 let bookCache = null;    // {sectionId, tab, docs:[{id,data}]}
 let currentSectionId = null;
-let currentTab = "word";
+let currentTab = "pdf";   // bo'limga kirganda birinchi bo'lib PDF bandi ochiladi
 let selectedType = null;
 let detectedFileType = null;
 let currentJob = null;   // hozirgi yuklash jarayoni {cancelled, done}
+let reorderMode = false; // admin uchun: bo'lim va kitoblar joylashuvini o'zgartirish rejimi
+let orderBusy = false;
+let descEditId = null;   // tavsifi tahrirlanayotgan kitob ID si
 
 /* ---- Telegram Mini App uchun Google orqali kirish ---- */
 // Telegram ichida (initData bor) — Google o'rnatilgan brauzerda kirishni bloklaydi,
@@ -751,7 +829,7 @@ function setLang(l){
   lang = l;
   try{ localStorage.setItem('lang', l); }catch(e){}
   applyStatic();
-  if($('modalBook').classList.contains('show')) updateFileHint();
+  if($('modalBook').classList.contains('show')){ updateFileHint(); updateLinkFields(); }
   redraw();
 }
 
@@ -835,12 +913,13 @@ function renderAuthBox(){
 --------------------------------------------------------------------- */
 window.addEventListener('hashchange', route);
 function route(){
+  reorderMode = false;
   // Telegram Mini App uchun brauzerda ochilgan tasdiqlash sahifasi
   if(HANDOFF_ID){ renderHandoff(); return; }
   const hash = location.hash.replace('#','');
   if(hash.startsWith('section/')){
     currentSectionId = hash.split('/')[1];
-    currentTab = 'word';
+    currentTab = 'pdf';
     renderSectionPage();
   } else {
     currentSectionId = null;
@@ -885,21 +964,31 @@ async function getBookCountsBySection(){
 
 function drawHome(){
   const counts = homeCounts || {};
-  $('mainWrap').innerHTML = `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2></div><div class="grid" id="sectionsGrid">` +
-    sections.map(s => {
+  const rm = isAdmin && reorderMode;
+  const head = `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2>` +
+    (isAdmin ? `<div class="head-actions"><button class="btn ${rm ? 'btn-primary' : 'btn-outline'}" onclick="toggleReorder()">${escapeHtml(t(rm ? 'reorderDone' : 'reorder'))}</button></div>` : '') +
+    `</div>`;
+  $('mainWrap').innerHTML = head + `<div class="grid" id="sectionsGrid">` +
+    sections.map((s, i) => {
       const nm = secName(s);
+      const mv = rm ? `<div class="mv">
+          <button class="btn btn-outline btn-sm" ${i === 0 ? 'disabled' : ''} title="${escapeHtml(t('moveBefore'))}" onclick="event.stopPropagation();moveSection('${escapeHtml(s.id)}',-1)">◀</button>
+          <button class="btn btn-outline btn-sm" ${i === sections.length - 1 ? 'disabled' : ''} title="${escapeHtml(t('moveAfter'))}" onclick="event.stopPropagation();moveSection('${escapeHtml(s.id)}',1)">▶</button>
+        </div>` : '';
       return `
-      <div class="sec-card" onclick="location.hash='section/${escapeHtml(s.id)}'">
+      <div class="sec-card${rm ? ' reorder' : ''}" onclick="openSection('${escapeHtml(s.id)}')">
         <div class="sec-icon">${escapeHtml((nm||'?').charAt(0))}</div>
         <h3>${escapeHtml(nm)}</h3>
         <div class="cnt">${escapeHtml(t('materialsCount',{n: counts[s.id]||0}))}</div>
+        ${mv}
       </div>`;
-    }).join('') + `
+    }).join('') +
+    (rm ? '' : `
       <div class="sec-card add-card" onclick="openModal('modalSection')">
         <div class="plus">+</div>
         <div>${escapeHtml(t('addSection'))}</div>
-      </div>
-    </div>`;
+      </div>`) +
+    `</div>`;
 }
 
 async function renderHome(){
@@ -934,11 +1023,16 @@ function drawSectionShell(){
     wrap.innerHTML = `<div class="empty">${escapeHtml(t('sectionNotFound'))} <a href="#" onclick="location.hash=''">${escapeHtml(t('backHome'))}</a></div>`;
     return false;
   }
+  const rm = isAdmin && reorderMode;
   wrap.innerHTML = `
     <div class="crumbs"><a href="#">${escapeHtml(t('sections'))}</a> / <span>${escapeHtml(secName(sec))}</span></div>
     <div class="page-head">
       <h2>${escapeHtml(secName(sec))}</h2>
-      <button class="btn btn-primary" onclick="openAddBook()">${escapeHtml(t('addBook'))}</button>
+      <div class="head-actions">
+        ${isAdmin ? `<button class="btn ${rm ? 'btn-primary' : 'btn-outline'}" onclick="toggleReorder()">${escapeHtml(t(rm ? 'reorderDone' : 'reorder'))}</button>` : ''}
+        ${rm ? `<button class="btn btn-outline" title="${escapeHtml(t('resetAzTitle'))}" onclick="resetBookOrder()">${escapeHtml(t('resetAz'))}</button>` : ''}
+        <button class="btn btn-primary" onclick="openAddBook()">${escapeHtml(t('addBook'))}</button>
+      </div>
     </div>
     <div class="tabs" id="tabsRow"></div>
     <div class="book-list" id="bookList"><div class="empty">${escapeHtml(t('loading'))}</div></div>
@@ -983,6 +1077,7 @@ function drawBookList(){
   const listEl = $('bookList');
   if(!listEl) return;
   const docs = bookCache ? bookCache.docs : [];
+  const rm = isAdmin && reorderMode;
 
   if(!docs.length){
     listEl.innerHTML = `
@@ -993,19 +1088,38 @@ function drawBookList(){
     return;
   }
 
-  listEl.innerHTML = docs.map(({id, data:b}) => {
-    const canEdit = currentUser && (isAdmin || b.addedBy === currentUser.uid);
-    const icon = currentTab==='word'?'📄':currentTab==='pdf'?'📕':currentTab==='pptx'?'📊':'🎬';
+  listEl.innerHTML = docs.map(({id, data:b}, i) => {
+    const canEdit = canEditBook(b);
+    const icon = TYPE_ICONS[currentTab] || '📄';
     const openHref = safeUrl(bookViewUrl(b));
     const dlHref = (b.driveFileId && b.url) ? safeUrl(b.url) : '';
+
+    const descHtml = b.description
+      ? `<div class="book-desc" onclick="this.classList.toggle('open')">${escapeHtml(b.description)}</div>` : '';
+    let descAct = '';
+    if(!b.description){
+      descAct = `<button class="link-btn" onclick="openDescModal('${id}')">${escapeHtml(t('addDesc'))}</button>`;
+    } else if(canEditDesc(b)){
+      descAct = `<button class="link-btn" onclick="openDescModal('${id}')">${escapeHtml(t('editDesc'))}</button>`;
+    }
+
+    const mv = rm ? `
+      <button class="btn btn-outline btn-sm" ${i === 0 ? 'disabled' : ''} title="${escapeHtml(t('moveUp'))}" onclick="moveBook('${id}',-1)">▲</button>
+      <button class="btn btn-outline btn-sm" ${i === docs.length - 1 ? 'disabled' : ''} title="${escapeHtml(t('moveDown'))}" onclick="moveBook('${id}',1)">▼</button>` : '';
+
     return `
       <div class="book-row">
         <div class="book-ic ${currentTab}">${icon}</div>
-        <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
-          <div class="t">${escapeHtml(b.title)}</div>
-          <div class="s">${escapeHtml(t('addedBy',{name: b.addedByName || t('unknown')}))}</div>
-        </a>
+        <div class="book-body">
+          <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
+            <div class="t">${escapeHtml(b.title)}</div>
+            <div class="s">${escapeHtml(t('addedBy',{name: b.addedByName || t('unknown')}))}</div>
+          </a>
+          ${descHtml}
+          ${descAct ? `<div>${descAct}</div>` : ''}
+        </div>
         <div class="book-actions">
+          ${mv}
           ${dlHref !== '#' && dlHref ? `<a class="btn btn-outline btn-sm" href="${escapeHtml(dlHref)}" target="_blank" rel="noopener">${escapeHtml(t('download'))}</a>` : ''}
           ${canEdit ? `
             <button class="btn btn-outline btn-sm" onclick="editBookTitle('${id}','${escapeAttr(b.title)}')">${escapeHtml(t('edit'))}</button>
@@ -1034,11 +1148,8 @@ async function renderBookList(useCache){
       .where('type','==', tab)
       .get();
 
-    const docs = snap.docs.map(d => ({id:d.id, data:d.data()})).sort((a,b) => {
-      const ta = a.data.createdAt ? a.data.createdAt.toMillis() : 0;
-      const tb = b.data.createdAt ? b.data.createdAt.toMillis() : 0;
-      return tb - ta;
-    });
+    // Admin qo'lda joylashtirgan tartib, qolganlari alifbo (A–Z) tartibida
+    const docs = sortBooks(snap.docs.map(d => ({id:d.id, data:d.data()})));
 
     if(sid !== currentSectionId || tab !== currentTab) return;   // bu orada boshqa tab/bo'lim ochilgan
     bookCache = {sectionId: sid, tab, docs};
@@ -1058,7 +1169,7 @@ function submitNewSection(){
   const name = $('newSectionName').value.trim();
   if(!name){ toast(t('enterSectionName'),'err'); return; }
   db.collection('sections').add({
-    name, order: sections.length + Date.now()%1000,
+    name, order: sections.reduce((m, s) => Math.max(m, typeof s.order === 'number' ? s.order : 0), -1) + 1,
     createdBy: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(()=>{
@@ -1083,6 +1194,7 @@ function openAddBook(){
   $('bookFile').value = '';
   $('linkUrl').value = '';
   $('linkTitle').value = '';
+  $('bookDesc').value = '';
   $('confirmCheck').checked = false;
   $('ytHint').textContent = '';
   updateFileHint();
@@ -1092,7 +1204,7 @@ function openAddBook(){
   uem.style.display = 'none';
   uem.textContent = '';
   $('submitBookBtn').disabled = false;
-  selectType(currentTab === 'link' ? 'link' : 'file');
+  selectType(currentTab === 'link' || currentTab === 'site' ? currentTab : 'file');
   openModal('modalBook');
 }
 
@@ -1106,12 +1218,28 @@ function cancelBookModal(){
 }
 
 function selectType(k){
+  const prev = selectedType;
   selectedType = k;
   $('typeChoice').querySelectorAll('button').forEach(b=>{
     b.classList.toggle('active', b.dataset.type === k);
   });
   $('fileFields').style.display = (k === 'file') ? 'block' : 'none';
-  $('linkFields').style.display = (k === 'link') ? 'block' : 'none';
+  $('linkFields').style.display = (k === 'link' || k === 'site') ? 'block' : 'none';
+  // video <-> sayt almashganda eski havola va sarlavha qolib ketmasin
+  if(prev && prev !== k && (k === 'link' || k === 'site')){
+    $('linkUrl').value = ''; $('linkTitle').value = ''; $('ytHint').textContent = '';
+  }
+  updateLinkFields();
+}
+
+// Havola maydonlari yozuvlari: video yoki sayt bo'yicha (va til bo'yicha)
+function updateLinkFields(){
+  const site = selectedType === 'site';
+  $('linkUrlLbl').textContent = t(site ? 'siteLbl' : 'ytLbl');
+  $('linkUrl').placeholder = site ? 'https://example.com' : 'https://youtube.com/watch?v=...';
+  $('linkTitleLbl').textContent = t(site ? 'titleOpt' : 'titleLbl');
+  $('linkTitle').placeholder = t(site ? 'siteTitlePh' : 'videoNamePh');
+  if(site){ $('linkTitleField').style.display = 'block'; $('ytHint').textContent = ''; }
 }
 
 // Fayl tanlash izohi (tanlangan fayl va til bo'yicha)
@@ -1134,6 +1262,7 @@ function updateFileHint(){
 function onFileChosen(){ updateFileHint(); }
 
 async function tryFetchYtTitle(){
+  if(selectedType !== 'link') return;   // sayt havolasi uchun sarlavha avtomatik olinmaydi
   const url = $('linkUrl').value.trim();
   const hintEl = $('ytHint');
   if(!url){ hintEl.textContent=''; return; }
@@ -1390,16 +1519,27 @@ async function submitNewBook(){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
-  /* ---- Video havola ---- */
-  if(selectedType === 'link'){
+  // Ixtiyoriy tavsif
+  const desc = $('bookDesc').value.trim().slice(0, 800);
+  if(desc && hasBannedWords(desc)){ toast(t('descRejected'),'err'); return; }
+  const descFields = desc
+    ? {description: desc, descBy: currentUser.uid, descByName: currentUser.displayName || currentUser.email}
+    : {};
+
+  /* ---- Video yoki sayt havolasi ---- */
+  if(selectedType === 'link' || selectedType === 'site'){
+    const isSite = selectedType === 'site';
     const url = $('linkUrl').value.trim();
-    const title = $('linkTitle').value.trim();
-    if(!url || !title){ toast(t('fillLinkTitle'),'err'); return; }
+    let title = $('linkTitle').value.trim();
+    if(!url || (!title && !isSite)){ toast(t(isSite ? 'fillSiteUrl' : 'fillLinkTitle'),'err'); return; }
     if(safeUrl(url) === '#'){ toast(t('linkHttp'),'err'); return; }
+    if(!title){   // sayt uchun sarlavha bo'sh bo'lsa, sayt manzili ishlatiladi
+      try{ title = new URL(safeUrl(url)).hostname.replace(/^www\./, ''); }catch(e){ title = url; }
+    }
     if(hasBannedWords(title)){ toast(t('titleRejected'),'err'); return; }
     try{
-      await db.collection('books').add({...base, type:'link', title, url: safeUrl(url)});
-      finishAddBook('link');
+      await db.collection('books').add({...base, ...descFields, type: selectedType, title, url: safeUrl(url)});
+      finishAddBook(selectedType);
     }catch(e){
       toast(t('saveErr',{msg:e.message}), 'err');
     }
@@ -1447,7 +1587,7 @@ async function submitNewBook(){
 
     setProgress(job, 100, t('addingToSite'));
     try{
-      await db.collection('books').add({...base, type, title, url: driveResult.url, driveFileId: driveResult.fileId});
+      await db.collection('books').add({...base, ...descFields, type, title, url: driveResult.url, driveFileId: driveResult.fileId});
     }catch(dbErr){
       deleteFromDrive(driveResult.fileId);   // saytda yozuv yo'q — Drive'da yetim fayl qolmasin
       throw new Error(t('driveOkDbFail',{msg:dbErr.message}));
@@ -1617,6 +1757,165 @@ async function handoffSignIn(){
       ? t('hoPopupClosed') : (e.message || t('hoError'));
   }
   renderHandoff();
+}
+
+/* ---------------------------------------------------------------------
+   TARTIB (faqat adminlar) VA KITOB TAVSIFI
+--------------------------------------------------------------------- */
+const collator = new Intl.Collator('en', {numeric:true, sensitivity:'base'});
+
+// Kitoblar: admin qo'lda joylashtirgan bo'lsa (order maydoni) — shu tartibda,
+// qolganlari alifbo (A–Z) tartibida.
+function sortBooks(docs){
+  return docs.slice().sort((a, b) => {
+    const oa = typeof a.data.order === 'number', ob = typeof b.data.order === 'number';
+    if(oa && ob && a.data.order !== b.data.order) return a.data.order - b.data.order;
+    if(oa !== ob) return oa ? -1 : 1;
+    return collator.compare(a.data.title || '', b.data.title || '');
+  });
+}
+
+function openSection(id){
+  if(reorderMode && isAdmin) return;   // tartiblash rejimida tasodifan bo'limga kirib ketmaslik uchun
+  location.hash = 'section/' + id;
+}
+function toggleReorder(){
+  if(!isAdmin) return;
+  reorderMode = !reorderMode;
+  redraw();
+}
+
+async function moveSection(id, dir){
+  if(!isAdmin || orderBusy) return;
+  const i = sections.findIndex(s => s.id === id), j = i + dir;
+  if(i < 0 || j < 0 || j >= sections.length) return;
+  const arr = sections.slice();
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  orderBusy = true;
+  try{
+    const batch = db.batch();
+    arr.forEach((s, idx) => { if(s.order !== idx) batch.update(db.collection('sections').doc(s.id), {order: idx}); });
+    await batch.commit();
+    arr.forEach((s, idx) => { s.order = idx; });
+    sections = arr;
+    drawHome();
+  }catch(e){
+    toast(t('orderErr',{msg:e.message}), 'err');
+  }finally{
+    orderBusy = false;
+  }
+}
+
+async function moveBook(id, dir){
+  if(!isAdmin || orderBusy || !bookCache) return;
+  if(bookCache.sectionId !== currentSectionId || bookCache.tab !== currentTab) return;
+  const docs = bookCache.docs.slice();
+  const i = docs.findIndex(d => d.id === id), j = i + dir;
+  if(i < 0 || j < 0 || j >= docs.length) return;
+  [docs[i], docs[j]] = [docs[j], docs[i]];
+  orderBusy = true;
+  try{
+    const batch = db.batch();
+    docs.forEach((d, idx) => {
+      const o = (idx + 1) * 10;
+      if(d.data.order !== o) batch.update(db.collection('books').doc(d.id), {order: o});
+    });
+    await batch.commit();
+    docs.forEach((d, idx) => { d.data.order = (idx + 1) * 10; });
+    bookCache.docs = docs;
+    drawBookList();
+  }catch(e){
+    toast(t('orderErr',{msg:e.message}), 'err');
+  }finally{
+    orderBusy = false;
+  }
+}
+
+// Shu ro'yxatdagi qo'lda tartibni olib tashlab, alifbo (A–Z) tartibiga qaytaradi
+async function resetBookOrder(){
+  if(!isAdmin || orderBusy || !bookCache) return;
+  const docs = bookCache.docs;
+  const withOrder = docs.filter(d => typeof d.data.order === 'number');
+  if(!withOrder.length){ toast(t('orderSaved'),'ok'); return; }
+  orderBusy = true;
+  try{
+    const batch = db.batch();
+    withOrder.forEach(d => batch.update(db.collection('books').doc(d.id), {order: firebase.firestore.FieldValue.delete()}));
+    await batch.commit();
+    withOrder.forEach(d => { delete d.data.order; });
+    bookCache.docs = sortBooks(docs);
+    drawBookList();
+    toast(t('orderSaved'),'ok');
+  }catch(e){
+    toast(t('orderErr',{msg:e.message}), 'err');
+  }finally{
+    orderBusy = false;
+  }
+}
+
+// Kim nima qila oladi:
+//  - materialni tahrirlash/o'chirish: uni qo'shgan foydalanuvchi va adminlar
+//  - tavsif yo'q bo'lsa: tizimga kirgan HAR KIM yozishi mumkin
+//  - tavsif bor bo'lsa: uni o'zgartira oladi — materialni qo'shgan, tavsifni yozgan yoki admin
+function canEditBook(b){ return !!(currentUser && (isAdmin || b.addedBy === currentUser.uid)); }
+function canEditDesc(b){
+  if(!currentUser) return false;
+  return !b.description || canEditBook(b) || b.descBy === currentUser.uid;
+}
+
+function openDescModal(id){
+  if(!requireAuth()) return;
+  const entry = bookCache && bookCache.docs.find(d => d.id === id);
+  if(!entry) return;
+  if(!canEditDesc(entry.data)){ toast(t('descTaken'),'err'); return; }
+  descEditId = id;
+  $('descBookTitle').textContent = entry.data.title || '';
+  $('descText').value = entry.data.description || '';
+  $('descSaveBtn').disabled = false;
+  openModal('modalDesc');
+}
+
+async function saveDesc(){
+  if(!requireAuth() || !descEditId) return;
+  const id = descEditId;
+  const text = $('descText').value.trim().slice(0, 800);
+  if(text && hasBannedWords(text)){ toast(t('descRejected'),'err'); return; }
+  const btn = $('descSaveBtn');
+  btn.disabled = true;
+  try{
+    const ref = db.collection('books').doc(id);
+    const snap = await ref.get();
+    const cur = snap.data() || {};
+    if(!canEditDesc(cur)){   // bu orada boshqa birov tavsif yozib qo'ygan bo'lishi mumkin
+      toast(t('descTaken'),'err');
+      closeModal('modalDesc');
+      return;
+    }
+    const F = firebase.firestore.FieldValue;
+    const name = currentUser.displayName || currentUser.email;
+    let upd;
+    if(!text) upd = {description: F.delete(), descBy: F.delete(), descByName: F.delete()};
+    else if(!cur.description) upd = {description: text, descBy: currentUser.uid, descByName: name};
+    else upd = {description: text};   // mavjud tavsifni tahrirlash: dastlabki muallif saqlanadi
+    await ref.update(upd);
+
+    const entry = bookCache && bookCache.docs.find(d => d.id === id);
+    if(entry){
+      if(!text){ delete entry.data.description; delete entry.data.descBy; delete entry.data.descByName; }
+      else {
+        entry.data.description = text;
+        if(!cur.description){ entry.data.descBy = currentUser.uid; entry.data.descByName = name; }
+      }
+    }
+    closeModal('modalDesc');
+    descEditId = null;
+    toast(t(text ? 'descSaved' : 'descRemoved'), 'ok');
+    drawBookList();
+  }catch(e){
+    toast(e.message, 'err');
+  }finally{
+    btn.disabled = false;
+  }
 }
 
 /* ---------------------------------------------------------------------
