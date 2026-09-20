@@ -417,13 +417,23 @@ auth.onAuthStateChanged(async user => {
   route();
 });
 
-function signIn(){
+async function signIn(){
   // Telegram Mini App ichida Google kirishni bloklaydi — brauzer orqali kiramiz
   if(IS_TG){ signInViaBrowser(); return; }
   const provider = new firebase.auth.GoogleAuthProvider();
-  // signInWithPopup o'rniga signInWithRedirect ishlatiladi: popup oyna
-  // ochilmaydi, shuning uchun oddiy saytda muammosiz ishlaydi.
-  auth.signInWithRedirect(provider).catch(e=>toast(e.message,"err"));
+  // Oddiy brauzerda popup ishlatiladi: signInWithRedirect zamonaviy brauzerlarda
+  // (github.io va firebaseapp.com turli domen bo'lgani uchun) ishonchsiz.
+  // Popup ochilmasa, redirect zaxira sifatida ishlatiladi.
+  try{
+    await auth.signInWithPopup(provider);
+  }catch(e){
+    const useRedirect = ['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/web-storage-unsupported'];
+    if(useRedirect.includes(e.code)){
+      auth.signInWithRedirect(provider).catch(err=>toast(err.message,'err'));
+    } else if(e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request'){
+      toast('Kirishda xatolik: ' + e.message, 'err');
+    }
+  }
 }
 function signOutUser(){ auth.signOut(); }
 
