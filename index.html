@@ -387,6 +387,18 @@ let selectedType = null;
 let detectedFileType = null;
 let currentJob = null;   // hozirgi yuklash jarayoni {cancelled, done}
 
+/* ---- Telegram Mini App uchun Google orqali kirish ---- */
+// Telegram ichida (initData bor) — Google o'rnatilgan brauzerda kirishni bloklaydi,
+// shuning uchun kirish oddiy brauzerda bajariladi va token Firestore orqali qaytariladi.
+const IS_TG = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
+// Oddiy brauzerda ochilgan tasdiqlash sahifasi: ?tglogin=<tasodifiy kod>
+const HANDOFF_ID = (function(){
+  const v = new URLSearchParams(location.search).get('tglogin');
+  return (v && /^[a-f0-9]{32,64}$/.test(v)) ? v : null;
+})();
+// Ixtiyoriy: brauzerda "Telegramga qaytish" tugmasi uchun, masalan "https://t.me/BOT_USERNAME/APP_NOMI"
+const TG_RETURN_URL = "";
+
 const $ = id => document.getElementById(id);
 
 /* ---------------------------------------------------------------------
@@ -396,6 +408,7 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   isAdmin = !!(user && ADMIN_EMAILS.includes(user.email));
   renderAuthBox();
+  if(!user) resumeTgLogin();
   try{
     await ensureDefaultSections();
   }catch(e){
@@ -405,17 +418,18 @@ auth.onAuthStateChanged(async user => {
 });
 
 function signIn(){
+  // Telegram Mini App ichida Google kirishni bloklaydi — brauzer orqali kiramiz
+  if(IS_TG){ signInViaBrowser(); return; }
   const provider = new firebase.auth.GoogleAuthProvider();
   // signInWithPopup o'rniga signInWithRedirect ishlatiladi: popup oyna
-  // ochilmaydi, shuning uchun Telegram kabi ichki brauzerlarda ham,
-  // oddiy saytda ham bir xil, muammosiz ishlaydi.
+  // ochilmaydi, shuning uchun oddiy saytda muammosiz ishlaydi.
   auth.signInWithRedirect(provider).catch(e=>toast(e.message,"err"));
 }
 function signOutUser(){ auth.signOut(); }
 
 // Redirect orqali kirish yakunlangach qaytadigan natijani ushlab olamiz
 // (muvaffaqiyatli bo'lsa, onAuthStateChanged o'zi ishlaydi — bu yerda
-// faqat xatoликни ko'rsatish uchun kerak).
+// faqat xatolikni ko'rsatish uchun kerak).
 auth.getRedirectResult().catch(e=>{
   if(e && e.code && e.code !== 'auth/no-auth-event'){
     toast('Kirishda xatolik: ' + e.message, 'err');
@@ -443,6 +457,8 @@ function renderAuthBox(){
 --------------------------------------------------------------------- */
 window.addEventListener('hashchange', route);
 function route(){
+  // Telegram Mini App uchun brauzerda ochilgan tasdiqlash sahifasi
+  if(HANDOFF_ID){ renderHandoff(); return; }
   const hash = location.hash.replace('#','');
   if(hash.startsWith('section/')){
     currentSectionId = hash.split('/')[1];
@@ -1072,6 +1088,118 @@ async function deleteBook(id){
     toast('O\'chirildi','ok');
     renderBookList();
   }catch(e){ toast(e.message,'err'); }
+}
+
+/* ---------------------------------------------------------------------
+   TELEGRAM MINI APP: Google kirishni oddiy brauzer orqali bajarish
+
+   Nega kerak: Google Telegram'ning ichki brauzerida (webview) kirishni
+   bloklaydi. Shuning uchun Mini App "Kirish" bosilganda tashqi brauzerda
+   ?tglogin=<kod> sahifasini ochadi. U yerda Google orqali kirilgach,
+   Google tokeni Firestore'dagi authHandoff/<kod> hujjatiga yoziladi.
+   Mini App uni o'qib, darhol o'chiradi va signInWithCredential bilan kiradi.
+--------------------------------------------------------------------- */
+let tgPoll = null, tgChecking = false, tgCheckFn = null;
+const tgVis = () => { if(!document.hidden && tgCheckFn) tgCheckFn(); };
+
+function newNonce(){
+  const a = new Uint8Array(24);
+  crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ---- Mini App tomoni ----
+function signInViaBrowser(){
+  const nonce = newNonce();
+  try{ localStorage.setItem('tgLogin', JSON.stringify({n:nonce, t:Date.now()})); }catch(e){}
+  Telegram.WebApp.openLink(location.origin + location.pathname + '?tglogin=' + nonce);
+  toast('Google kirish sahifasi brauzerda ochildi. Kirib bo\'lgach, shu ilovaga qayting.', '', 8000);
+  startTgPolling(nonce);
+}
+
+// Mini App qayta yuklangan bo'lsa, 10 daqiqa ichida kutishni davom ettiramiz
+function resumeTgLogin(){
+  if(!IS_TG || tgPoll) return;
+  try{
+    const s = JSON.parse(localStorage.getItem('tgLogin') || 'null');
+    if(s && Date.now() - s.t < 10*60*1000) startTgPolling(s.n);
+  }catch(e){}
+}
+
+function stopTgPolling(){
+  if(tgPoll){ clearInterval(tgPoll); tgPoll = null; }
+  document.removeEventListener('visibilitychange', tgVis);
+  tgCheckFn = null;
+}
+
+function startTgPolling(nonce){
+  stopTgPolling();
+  const started = Date.now();
+  const check = async () => {
+    if(tgChecking) return;
+    if(Date.now() - started > 10*60*1000){ stopTgPolling(); return; }
+    tgChecking = true;
+    try{
+      const ref = db.collection('authHandoff').doc(nonce);
+      const snap = await ref.get();
+      if(!snap.exists) return;
+      stopTgPolling();
+      const d = snap.data();
+      ref.delete().catch(()=>{});
+      try{ localStorage.removeItem('tgLogin'); }catch(e){}
+      if(!d.idToken) throw new Error('Google tokeni topilmadi');
+      await auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken));
+      toast('Tizimga kirdingiz','ok');
+    }catch(e){
+      toast('Kirishda xatolik: ' + e.message, 'err');
+    }finally{
+      tgChecking = false;
+    }
+  };
+  tgCheckFn = check;
+  tgPoll = setInterval(check, 2000);
+  document.addEventListener('visibilitychange', tgVis);
+  check();
+}
+
+// ---- Oddiy brauzer tomoni (Telegram "openLink" ochgan sahifa) ----
+let handoffState = 'ask', handoffErr = '';
+
+function renderHandoff(){
+  const back = TG_RETURN_URL
+    ? `<a class="btn btn-primary" href="${escapeHtml(TG_RETURN_URL)}">Telegramga qaytish</a>` : '';
+  let body;
+  if(handoffState === 'working'){
+    body = `<p>Kutib turing…</p>`;
+  } else if(handoffState === 'done'){
+    body = `<p>✅ Tayyor! Telegramga qaytib, kutubxona ilovasini oching — u avtomatik kiradi.</p>${back}`;
+  } else if(handoffState === 'error'){
+    body = `<p style="color:var(--red)">${escapeHtml(handoffErr)}</p>
+            <button class="btn btn-primary" onclick="handoffSignIn()">Qayta urinish</button>`;
+  } else {
+    body = `<p>Telegramdagi kutubxona ilovasiga kirish uchun Google hisobingizni tasdiqlang.<br>
+            <small>Faqat o'zingiz ilovada «Kirish» tugmasini bosgan bo'lsangizgina davom eting.</small></p>
+            <button class="btn btn-primary" onclick="handoffSignIn()">Google orqali tasdiqlash</button>`;
+  }
+  $('mainWrap').innerHTML = `<div class="signin-card"><h2>Telegram ilovasi uchun kirish</h2>${body}</div>`;
+}
+
+async function handoffSignIn(){
+  handoffState = 'working'; renderHandoff();
+  try{
+    const res = await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    const idToken = res.credential && res.credential.idToken;
+    if(!idToken) throw new Error('Google tokeni olinmadi');
+    await db.collection('authHandoff').doc(HANDOFF_ID).set({
+      idToken, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    handoffState = 'done';
+  }catch(e){
+    handoffState = 'error';
+    handoffErr = (e.code === 'auth/popup-closed-by-user')
+      ? 'Oyna yopildi. Qayta urinib ko\'ring.' : (e.message || 'Xatolik');
+  }
+  renderHandoff();
 }
 
 /* ---------------------------------------------------------------------
