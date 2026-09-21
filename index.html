@@ -105,7 +105,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
 .sec-card{
   background:var(--card);border:1px solid var(--border);border-radius:var(--r);
-  padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;
+  padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;position:relative;
   display:flex;flex-direction:column;gap:8px;min-height:120px;
 }
 .sec-card:hover{transform:translateY(-3px);border-color:var(--accent-ring);box-shadow:0 10px 28px rgba(29,78,216,.14)}
@@ -215,6 +215,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 }
 body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:none;user-select:none}
 .drag-hint{font-size:12.5px;color:var(--sub);margin:-10px 0 16px}
+.build-tag{opacity:.65;white-space:nowrap}
 /* Foydalanuvchi belgisi: rasm yuklanmasa, ismning bosh harfi ko'rinadi */
 .user-chip .av{
   position:relative;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
@@ -225,6 +226,19 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
 .type-choice{grid-template-columns:repeat(3,1fr)}
 .type-choice button{padding:11px 6px;line-height:1.3}
 .field textarea{resize:vertical;min-height:70px}
+
+/* Bo'limni o'chirish (faqat admin) */
+.sec-del{
+  position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;padding:0;
+  border:1.5px solid var(--border);background:#fff;color:var(--red);
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.sec-del:hover{background:var(--red);border-color:var(--red);color:#fff}
+.drag-ghost .sec-del{display:none}
+.btn-danger-solid{background:var(--red);color:#fff}
+.btn-danger-solid:hover{background:#b91c1c}
+.del-text{font-size:14px;line-height:1.6;color:var(--text);margin-bottom:18px}
+.del-text b{display:block;margin-bottom:6px;font-size:15px}
 
 /* ── SIGN-IN SCREEN ─────────────────────────────────────────────── */
 .signin-card{
@@ -421,11 +435,11 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
     <h3 data-i="newSectionTitle">Yangi bo'lim qo'shish</h3>
     <div class="field">
       <label data-i="sectionName">Bo'lim nomi</label>
-      <input type="text" id="newSectionName" data-i-ph="sectionPh" placeholder="Masalan: Astrofizika">
+      <input type="text" id="newSectionName" maxlength="80" onkeydown="if(event.key==='Enter'){submitNewSection()}" data-i-ph="sectionPh" placeholder="Masalan: Astrofizika">
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modalSection')" data-i="cancel">Bekor qilish</button>
-      <button class="btn btn-primary" onclick="submitNewSection()" data-i="add">Qo'shish</button>
+      <button class="btn btn-primary" id="addSectionBtn" onclick="submitNewSection()" data-i="add">Qo'shish</button>
     </div>
   </div>
 </div>
@@ -483,6 +497,18 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="cancelBookModal()" data-i="cancel">Bekor qilish</button>
       <button class="btn btn-primary" id="submitBookBtn" onclick="submitNewBook()" data-i="add">Qo'shish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= MODAL: Bo'limni o'chirishni tasdiqlash ======================= -->
+<div class="modal-overlay" id="modalDelSection">
+  <div class="modal">
+    <h3 data-i="delSectionTitle">Bo'limni o'chirish</h3>
+    <div class="del-text" id="delSectionText"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalDelSection')" data-i="cancel">Bekor qilish</button>
+      <button class="btn btn-danger-solid" id="delSectionBtn" onclick="confirmDeleteSection()" data-i="delSectionYes">Ha, o'chirilsin</button>
     </div>
   </div>
 </div>
@@ -558,6 +584,9 @@ if(window.Telegram && window.Telegram.WebApp){
 // hozirgi (Version 5) deployment URL'i. Code.gs ni yangilaganda
 // "Manage deployments -> qalam -> New version" qilsangiz, URL o'zgarmaydi.
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
+
+// Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
+const APP_BUILD = "2026.09.20-08";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -676,6 +705,11 @@ uz:{
   descSaved:"Tavsif saqlandi", descRemoved:"Tavsif o'chirildi",
   descTaken:"Bu tavsifni faqat uning muallifi yoki admin o'zgartira oladi.",
   descRejected:"Tavsif nomaqbul so'z ehtimoli bilan rad etildi",
+  sectionExists:"«{name}» bo'limi allaqachon mavjud.",
+  delSectionTitle:"Bo'limni o'chirish", delSectionAsk:"\"{name}\" bo'limini o'chiraveraymi?",
+  delSectionWithBooks:"Bo'limdagi {n} ta material ham butunlay o'chib ketadi. Buni ortga qaytarib bo'lmaydi.",
+  delSectionEmpty:"Bu bo'lim bo'sh. Buni ortga qaytarib bo'lmaydi.",
+  delSectionYes:"Ha, o'chirilsin", delSectionDone:"Bo'lim o'chirildi", delSectionErr:"O'chirib bo'lmadi: {msg}",
   dragHint:"Adminlar uchun: bo'limni 1 soniya bosib turing, so'ng istalgan joyga surib qo'yib yuboring.",
   orderSaved:"Tartib saqlandi", orderErr:"Tartibni saqlab bo'lmadi: {msg}",
   footTitle:"Fizika Fakulteti Onlayn Kutubxonasi",
@@ -750,6 +784,11 @@ ru:{
   descSaved:"Описание сохранено", descRemoved:"Описание удалено",
   descTaken:"Изменить это описание может только его автор или администратор.",
   descRejected:"Описание отклонено: возможно, содержит недопустимое слово",
+  sectionExists:"Раздел «{name}» уже существует.",
+  delSectionTitle:"Удалить раздел", delSectionAsk:"Удалить раздел «{name}»?",
+  delSectionWithBooks:"Все материалы раздела ({n}) тоже будут удалены навсегда. Это действие нельзя отменить.",
+  delSectionEmpty:"Раздел пуст. Это действие нельзя отменить.",
+  delSectionYes:"Да, удалить", delSectionDone:"Раздел удалён", delSectionErr:"Не удалось удалить: {msg}",
   dragHint:"Для админов: удерживайте раздел 1 секунду, затем перетащите его на нужное место.",
   orderSaved:"Порядок сохранён", orderErr:"Не удалось сохранить порядок: {msg}",
   footTitle:"Онлайн-библиотека физического факультета",
@@ -824,6 +863,11 @@ en:{
   descSaved:"Description saved", descRemoved:"Description removed",
   descTaken:"Only its author or an admin can change this description.",
   descRejected:"Description rejected: it may contain an inappropriate word",
+  sectionExists:"The section “{name}” already exists.",
+  delSectionTitle:"Delete section", delSectionAsk:"Delete the section “{name}”?",
+  delSectionWithBooks:"All {n} materials in this section will be permanently deleted too. This can't be undone.",
+  delSectionEmpty:"This section is empty. This can't be undone.",
+  delSectionYes:"Yes, delete", delSectionDone:"Section deleted", delSectionErr:"Couldn't delete: {msg}",
   dragHint:"Admins: hold a section for 1 second, then drag it wherever you want.",
   orderSaved:"Order saved", orderErr:"Couldn't save the order: {msg}",
   footTitle:"Faculty of Physics Online Library",
@@ -1012,16 +1056,25 @@ function route(){
 /* ---------------------------------------------------------------------
    SECTIONS (Firestore)
 --------------------------------------------------------------------- */
-async function ensureDefaultSections(){
-  const snap = await db.collection('sections').limit(1).get();
-  if(snap.empty){
-    const batch = db.batch();
-    DEFAULT_SECTIONS.forEach((name, i) => {
-      const ref = db.collection('sections').doc();
-      batch.set(ref, {name, order:i, createdBy:'system', createdByName:'Tizim', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-    });
-    await batch.commit();
+// Tayyor bo'limlar faqat baza butunlay bo'sh bo'lganda yaratiladi. Sahifa ochilganda bu funksiya
+// bir necha marta chaqirilishi mumkin (kirish holati o'zgarganda), shuning uchun natija eslab qolinadi
+// va hujjat ID lari aniq (default_01...) — bir vaqtda ikki marta ishlasa ham, nusxalar hosil bo'lmaydi.
+let defaultsPromise = null;
+function ensureDefaultSections(){
+  if(!defaultsPromise){
+    defaultsPromise = (async () => {
+      const snap = await db.collection('sections').limit(1).get();
+      if(snap.empty){
+        const batch = db.batch();
+        DEFAULT_SECTIONS.forEach((name, i) => {
+          const ref = db.collection('sections').doc('default_' + String(i + 1).padStart(2, '0'));
+          batch.set(ref, {name, order:i, createdBy:'system', createdByName:'Tizim', createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+        });
+        await batch.commit();
+      }
+    })().catch(e => { defaultsPromise = null; throw e; });
   }
+  return defaultsPromise;
 }
 
 async function loadSections(){
@@ -1049,12 +1102,13 @@ function drawHome(){
   const admin = !!isAdmin;
   $('mainWrap').innerHTML =
     `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2></div>` +
-    (admin ? `<div class="drag-hint">${escapeHtml(t('dragHint'))}</div>` : '') +
+    (admin ? `<div class="drag-hint">${escapeHtml(t('dragHint'))} <span class="build-tag">· ${escapeHtml(APP_BUILD)}</span></div>` : '') +
     `<div class="grid" id="sectionsGrid">` +
     sections.map(s => {
       const nm = secName(s);
       return `
       <div class="sec-card${admin ? ' draggable' : ''}" data-id="${escapeHtml(s.id)}" onclick="openSection('${escapeHtml(s.id)}')">
+        ${admin ? `<button class="sec-del" title="${escapeHtml(t('delSectionTitle'))}" aria-label="${escapeHtml(t('delSectionTitle'))}" onclick="event.stopPropagation();askDeleteSection('${escapeHtml(s.id)}')">${TRASH_SVG}</button>` : ''}
         <div class="sec-icon">${escapeHtml((nm||'?').charAt(0))}</div>
         <h3>${escapeHtml(nm)}</h3>
         <div class="cnt">${escapeHtml(t('materialsCount',{n: counts[s.id]||0}))}</div>
@@ -1230,20 +1284,61 @@ async function renderBookList(useCache){
 /* ---------------------------------------------------------------------
    ADD SECTION
 --------------------------------------------------------------------- */
-function submitNewSection(){
+// Nomlarni solishtirish uchun: kichik harf, ortiqcha bo'shliqsiz, apostroflar bir xil ( ' ’ ʻ ʼ ` )
+function normName(str){
+  return String(str || '').toLowerCase()
+    .replace(/[\u2018\u2019\u02bb\u02bc\u0060\u00b4]/g, "'")
+    .replace(/\s+/g, ' ').trim();
+}
+// Bir xil nom = bir xil hujjat ID si. Shu tufayli ikki qurilmadan bir vaqtda qo'shilsa ham, faqat bittasi yaratiladi.
+function nameToId(norm){
+  const b64 = btoa(unescape(encodeURIComponent(norm))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return 'u_' + b64;
+}
+let addingSection = false;
+
+async function submitNewSection(){
+  if(addingSection) return;                 // tugma ikki marta bosilsa, ikkinchisi e'tiborsiz qoladi
   if(!requireAuth()) return;
-  const name = $('newSectionName').value.trim();
+  const name = $('newSectionName').value.replace(/\s+/g, ' ').trim().slice(0, 80);
   if(!name){ toast(t('enterSectionName'),'err'); return; }
-  db.collection('sections').add({
-    name, order: sections.reduce((m, s) => Math.max(m, typeof s.order === 'number' ? s.order : 0), -1) + 1,
-    createdBy: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(()=>{
+  const btn = $('addSectionBtn');
+  addingSection = true;
+  btn.disabled = true;
+  try{
+    // Eng yangi ro'yxatni bazadan olamiz: bu qurilmadagi ro'yxat eskirgan bo'lishi mumkin
+    const snap = await db.collection('sections').get();
+    const fresh = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    const key = normName(name);
+    // O'zbekcha, ruscha va inglizcha nomlar bilan solishtiramiz ("Mexanika" = "Механика" = "Mechanics")
+    const clash = fresh.find(s => {
+      const tr = SECTION_TR[s.name] || {};
+      return [s.name, tr.ru, tr.en].some(n => n && normName(n) === key);
+    });
+    if(clash){ toast(t('sectionExists',{name: secName(clash)}), 'err'); return; }
+
+    const order = fresh.reduce((m, s) => Math.max(m, typeof s.order === 'number' ? s.order : 0), -1) + 1;
+    const ref = db.collection('sections').doc(nameToId(key));
+    await db.runTransaction(async tx => {
+      const cur = await tx.get(ref);
+      if(cur.exists) throw new Error('__exists__');
+      tx.set(ref, {
+        name, order,
+        createdBy: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
     closeModal('modalSection');
     $('newSectionName').value = '';
     toast(t('sectionAdded'),'ok');
     renderHome();
-  }).catch(e=>toast(e.message,'err'));
+  }catch(e){
+    if(e.message === '__exists__') toast(t('sectionExists',{name}), 'err');
+    else toast(e.message, 'err');
+  }finally{
+    addingSection = false;
+    btn.disabled = false;
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -1866,6 +1961,7 @@ function initSectionDrag(){
 function onSecPointerDown(e){
   if(drag || !isAdmin) return;
   if(e.pointerType === 'mouse' && e.button !== 0) return;
+  if(e.target.closest('.sec-del')) return;   // o'chirish tugmasi bosilganda surish boshlanmasin
   const card = e.target.closest('.sec-card[data-id]');
   if(!card) return;
   drag = {
@@ -2072,6 +2168,75 @@ function saveSectionOrder(){
       if(!currentSectionId) renderHome();   // bazadagi haqiqiy tartibga qaytamiz
     }
   });
+}
+
+/* ---- Bo'limni o'chirish (faqat adminlar) ----
+   Avval so'raladi ("o'chiraveraymi?") va bo'limdagi materiallar soni ko'rsatiladi.
+   Tasdiqlansa: bo'limdagi barcha materiallar, bo'limning o'zi va Google Drive'dagi fayllar o'chiriladi. */
+const TRASH_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+let delSectionId = null, delSectionDocs = null;
+
+async function askDeleteSection(id){
+  if(!isAdmin) return;
+  const sec = sections.find(s => s.id === id);
+  if(!sec) return;
+  delSectionId = id; delSectionDocs = null;
+  $('delSectionText').textContent = t('loading');
+  $('delSectionBtn').disabled = true;
+  openModal('modalDelSection');
+  try{
+    const snap = await db.collection('books').where('sectionId','==', id).get();
+    if(delSectionId !== id) return;   // bu orada oyna yopilgan yoki boshqa bo'lim tanlangan
+    delSectionDocs = snap.docs;
+    const n = snap.docs.length;
+    $('delSectionText').innerHTML =
+      '<b>' + escapeHtml(t('delSectionAsk',{name: secName(sec)})) + '</b>' +
+      escapeHtml(t(n ? 'delSectionWithBooks' : 'delSectionEmpty', {n}));
+    $('delSectionBtn').disabled = false;
+  }catch(e){
+    $('delSectionText').textContent = t('delSectionErr',{msg:e.message});
+  }
+}
+
+async function confirmDeleteSection(){
+  if(!isAdmin || !delSectionId || !delSectionDocs) return;
+  const id = delSectionId, docs = delSectionDocs;
+  const btn = $('delSectionBtn');
+  btn.disabled = true;
+  try{
+    // 1) materiallar (partiyalab), 2) bo'limning o'zi — xato bo'lsa bo'lim qoladi va qayta urinish mumkin
+    for(let i = 0; i < docs.length; i += 400){
+      const batch = db.batch();
+      docs.slice(i, i + 400).forEach(d => batch.delete(db.collection('books').doc(d.id)));
+      await batch.commit();
+    }
+    await db.collection('sections').doc(id).delete();
+    purgeDriveFiles(docs.map(d => d.data().driveFileId).filter(Boolean));   // fonda, ketma-ket
+
+    sections = sections.filter(s => s.id !== id);
+    if(homeCounts) delete homeCounts[id];
+    if(bookCache && bookCache.sectionId === id) bookCache = null;
+    delSectionId = null; delSectionDocs = null;
+    closeModal('modalDelSection');
+    toast(t('delSectionDone'), 'ok');
+    drawHome();
+  }catch(e){
+    toast(t('delSectionErr',{msg:e.message}), 'err');
+    btn.disabled = false;
+  }
+}
+
+// Drive fayllarini birma-bir o'chiradi (Apps Script'ni birdaniga ko'p so'rov bilan bosib qo'ymaslik uchun)
+async function purgeDriveFiles(ids){
+  for(const fileId of ids){
+    try{
+      await fetch(DRIVE_UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'delete', fileId })
+      });
+    }catch(e){ console.warn('Drive\'dan o\'chirishda xatolik:', e.message); }
+  }
 }
 
 /* ---- Telegram Mini App: pastdagi/yuqoridagi "orqaga" tugmasi ----
