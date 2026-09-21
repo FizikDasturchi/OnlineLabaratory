@@ -240,6 +240,25 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
 .del-text{font-size:14px;line-height:1.6;color:var(--text);margin-bottom:18px}
 .del-text b{display:block;margin-bottom:6px;font-size:15px}
 
+/* Bir nechta fayl: tanlanganlar ro'yxati */
+.file-list{margin-top:10px;max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.file-list:empty{display:none}
+.frow{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+.frow.uploading{border-color:var(--accent-ring);background:var(--accent-l)}
+.frow.done{background:var(--green-bg);border-color:#bbf7d0}
+.frow.error{background:var(--red-bg);border-color:#fecdd3}
+.frow.skipped{opacity:.6}
+.fic{font-size:18px;flex-shrink:0}
+.fbody{flex:1;min-width:0}
+.fname{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta{font-size:11.5px;color:var(--sub);word-break:break-word}
+.frow.error .fmeta{color:var(--red)}
+.fbar{height:5px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:5px;display:none}
+.frow.uploading .fbar{display:block}
+.fbar>div{height:100%;background:var(--accent);width:0%;transition:width .3s}
+.fx{border:none;background:transparent;color:var(--sub);font-size:16px;line-height:1;padding:6px 8px;border-radius:6px;flex-shrink:0}
+.fx:hover{background:var(--red-bg);color:var(--red)}
+
 /* ── SIGN-IN SCREEN ─────────────────────────────────────────────── */
 .signin-card{
   max-width:420px;margin:80px auto;background:#fff;border-radius:18px;
@@ -460,16 +479,18 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
     <div id="fileFields" style="display:none">
       <div class="field">
         <label data-i="fileLbl">Fayl</label>
-        <input type="file" id="bookFile" accept=".doc,.docx,.pdf,.ppt,.pptx" onchange="onFileChosen()">
-        <div class="hint" id="fileHint">Ruxsat etilgan formatlar: .doc, .docx, .pdf, .ppt, .pptx — tur avtomatik aniqlanadi</div>
+        <input type="file" id="bookFile" accept=".doc,.docx,.pdf,.ppt,.pptx" multiple onchange="onFileChosen()">
+        <div class="hint" id="fileHint">Ruxsat etilgan formatlar: .doc, .docx, .pdf, .ppt, .pptx — bir nechta faylni birdaniga tanlash mumkin</div>
+        <div class="file-list" id="fileList"></div>
         <div class="upload-progress" id="uploadProgress"><div class="fill" id="uploadFill"></div></div>
         <div class="upload-status" id="uploadStatus"></div>
         <div class="hint" id="uploadErrorMsg" style="display:none;color:var(--red);font-weight:600"></div>
       </div>
-      <div class="field">
+      <div class="field" id="bookTitleField">
         <label data-i="titleOpt">Sarlavha (ixtiyoriy)</label>
         <input type="text" id="bookTitle" data-i-ph="titleOptPh" placeholder="Bo'sh qoldirsangiz, fayl nomi ishlatiladi">
       </div>
+      <div class="hint" id="multiTitleHint" data-i="multiTitleHint" style="display:none;margin:-4px 0 14px"></div>
     </div>
 
     <div id="linkFields" style="display:none">
@@ -487,11 +508,12 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
     <div class="field" id="descField">
       <label data-i="descLbl">Kitobga tavsif (ixtiyoriy)</label>
       <textarea id="bookDesc" rows="3" maxlength="800" data-i-ph="descPh" placeholder="Bu kitob nima haqida? Qisqacha yozing…"></textarea>
+      <div class="hint" id="descMultiHint" data-i="descMultiHint" style="display:none"></div>
     </div>
 
     <div class="checkline">
       <input type="checkbox" id="confirmCheck">
-      <span data-i="confirmText">Ushbu material fizika (yoki tanlangan bo'limga oid) fanga tegishli va nomaqbul kontent emasligini tasdiqlayman.</span>
+      <span data-i="confirmText">Ushbu material fizika (yoki tanlangan bo'limga oid) fanga tegishli, mualliflik huquqini buzmaydi va nomaqbul kontent emasligini tasdiqlayman.</span>
     </div>
 
     <div class="modal-actions">
@@ -656,7 +678,7 @@ uz:{
   cancel:"Bekor qilish", add:"Qo'shish",
   enterSectionName:"Bo'lim nomini kiriting", sectionAdded:"Bo'lim qo'shildi",
   addBookTitle:"Adabiyot qo'shish", typeLbl:"Turi", typeFile:"📎 Fayl yuklash", typeLink:"🎬 Video havola",
-  fileLbl:"Fayl", fileHintDefault:"Ruxsat etilgan formatlar: {ext} — tur avtomatik aniqlanadi",
+  fileLbl:"Fayl", fileHintDefault:"Ruxsat etilgan formatlar: {ext} — bir nechta faylni birdaniga tanlash mumkin",
   titleOpt:"Sarlavha (ixtiyoriy)", titleOptPh:"Bo'sh qoldirsangiz, fayl nomi ishlatiladi",
   ytLbl:"YouTube havolasi", titleLbl:"Sarlavha", videoNamePh:"Video nomi",
   confirmText:"Ushbu material fizika (yoki tanlangan bo'limga oid) fanga tegishli, mualliflik huquqini buzmaydi va nomaqbul kontent emasligini tasdiqlayman.",
@@ -705,6 +727,12 @@ uz:{
   descSaved:"Tavsif saqlandi", descRemoved:"Tavsif o'chirildi",
   descTaken:"Bu tavsifni faqat uning muallifi yoki admin o'zgartira oladi.",
   descRejected:"Tavsif nomaqbul so'z ehtimoli bilan rad etildi",
+  filesSelected:"Tanlandi: {n} ta fayl ({mb} MB)", filesSkipped:" · {n} tasi qo'llab-quvvatlanmaydi",
+  stPending:"Kutilmoqda", stDone:"Yuklandi", stUnsupported:"Format qo'llab-quvvatlanmaydi", stRemove:"Olib tashlash",
+  multiTitleHint:"Bir nechta fayl tanlandi: har birining nomi sarlavha bo'ladi (keyin tahrirlash mumkin). Fayllar ketma-ket yuklanadi.",
+  descMultiHint:"Bir nechta fayl tanlangan bo'lsa, bu tavsif hammasiga qo'yiladi.",
+  batchSummary:"{ok} ta yuklandi, {failed} tasida xatolik. Xato bo'lganlarini qayta yuborish uchun «Qo'shish» ni bosing.",
+  addedMany:"{n} ta material qo'shildi",
   sectionExists:"«{name}» bo'limi allaqachon mavjud.",
   delSectionTitle:"Bo'limni o'chirish", delSectionAsk:"\"{name}\" bo'limini o'chiraveraymi?",
   delSectionWithBooks:"Bo'limdagi {n} ta material ham butunlay o'chib ketadi. Buni ortga qaytarib bo'lmaydi.",
@@ -735,7 +763,7 @@ ru:{
   cancel:"Отмена", add:"Добавить",
   enterSectionName:"Введите название раздела", sectionAdded:"Раздел добавлен",
   addBookTitle:"Добавить материал", typeLbl:"Тип", typeFile:"📎 Загрузить файл", typeLink:"🎬 Ссылка на видео",
-  fileLbl:"Файл", fileHintDefault:"Допустимые форматы: {ext} — тип определяется автоматически",
+  fileLbl:"Файл", fileHintDefault:"Допустимые форматы: {ext} — можно выбрать сразу несколько файлов",
   titleOpt:"Название (необязательно)", titleOptPh:"Если оставить пустым, будет использовано имя файла",
   ytLbl:"Ссылка на YouTube", titleLbl:"Название", videoNamePh:"Название видео",
   confirmText:"Подтверждаю, что этот материал относится к физике (или к выбранному разделу), не нарушает авторских прав и не является недопустимым контентом.",
@@ -784,6 +812,12 @@ ru:{
   descSaved:"Описание сохранено", descRemoved:"Описание удалено",
   descTaken:"Изменить это описание может только его автор или администратор.",
   descRejected:"Описание отклонено: возможно, содержит недопустимое слово",
+  filesSelected:"Выбрано файлов: {n} ({mb} МБ)", filesSkipped:" · не поддерживается: {n}",
+  stPending:"Ожидает", stDone:"Загружено", stUnsupported:"Формат не поддерживается", stRemove:"Убрать",
+  multiTitleHint:"Выбрано несколько файлов: названием станет имя каждого файла (потом можно изменить). Файлы загружаются по очереди.",
+  descMultiHint:"Если выбрано несколько файлов, это описание применится ко всем.",
+  batchSummary:"Загружено: {ok}, с ошибкой: {failed}. Нажмите «Добавить», чтобы повторить неудачные.",
+  addedMany:"Добавлено материалов: {n}",
   sectionExists:"Раздел «{name}» уже существует.",
   delSectionTitle:"Удалить раздел", delSectionAsk:"Удалить раздел «{name}»?",
   delSectionWithBooks:"Все материалы раздела ({n}) тоже будут удалены навсегда. Это действие нельзя отменить.",
@@ -814,7 +848,7 @@ en:{
   cancel:"Cancel", add:"Add",
   enterSectionName:"Enter a section name", sectionAdded:"Section added",
   addBookTitle:"Add material", typeLbl:"Type", typeFile:"📎 Upload a file", typeLink:"🎬 Video link",
-  fileLbl:"File", fileHintDefault:"Allowed formats: {ext} — the type is detected automatically",
+  fileLbl:"File", fileHintDefault:"Allowed formats: {ext} — you can select several files at once",
   titleOpt:"Title (optional)", titleOptPh:"If left empty, the file name is used",
   ytLbl:"YouTube link", titleLbl:"Title", videoNamePh:"Video title",
   confirmText:"I confirm that this material relates to physics (or the selected section), does not infringe copyright and is not inappropriate content.",
@@ -863,6 +897,12 @@ en:{
   descSaved:"Description saved", descRemoved:"Description removed",
   descTaken:"Only its author or an admin can change this description.",
   descRejected:"Description rejected: it may contain an inappropriate word",
+  filesSelected:"Selected: {n} files ({mb} MB)", filesSkipped:" · {n} unsupported",
+  stPending:"Waiting", stDone:"Uploaded", stUnsupported:"Unsupported format", stRemove:"Remove",
+  multiTitleHint:"Several files selected: each file name becomes its title (you can edit it later). Files upload one after another.",
+  descMultiHint:"With several files selected, this description is applied to all of them.",
+  batchSummary:"Uploaded: {ok}, failed: {failed}. Press “Add” to retry the failed ones.",
+  addedMany:"{n} materials added",
   sectionExists:"The section “{name}” already exists.",
   delSectionTitle:"Delete section", delSectionAsk:"Delete the section “{name}”?",
   delSectionWithBooks:"All {n} materials in this section will be permanently deleted too. This can't be undone.",
@@ -916,7 +956,8 @@ let bookCache = null;    // {sectionId, tab, docs:[{id,data}]}
 let currentSectionId = null;
 let currentTab = "pdf";   // bo'limga kirganda birinchi bo'lib PDF bandi ochiladi
 let selectedType = null;
-let detectedFileType = null;
+let batchItems = [];   // tanlangan fayllar: {id, file, type, status, pct, err}
+let batchSeq = 0;
 let currentJob = null;   // hozirgi yuklash jarayoni {cancelled, done}
 let descEditId = null;   // tavsifi tahrirlanayotgan kitob ID si
 
@@ -951,7 +992,7 @@ function setLang(l){
   lang = l;
   try{ localStorage.setItem('lang', l); }catch(e){}
   applyStatic();
-  if($('modalBook').classList.contains('show')){ updateFileHint(); updateLinkFields(); }
+  if($('modalBook').classList.contains('show')){ updateFileHint(); updateLinkFields(); renderFileList(); }
   redraw();
 }
 
@@ -1347,7 +1388,7 @@ async function submitNewSection(){
 function openAddBook(){
   if(!requireAuth()) return;
   selectedType = null;
-  detectedFileType = null;
+  batchItems = [];
   $('typeChoice').querySelectorAll('button').forEach(b=>b.classList.remove('active'));
   $('fileFields').style.display = 'none';
   $('linkFields').style.display = 'none';
@@ -1358,6 +1399,7 @@ function openAddBook(){
   $('bookDesc').value = '';
   $('confirmCheck').checked = false;
   $('ytHint').textContent = '';
+  renderFileList();
   updateFileHint();
   $('linkTitleField').style.display = 'block';
   hideProgress();
@@ -1403,24 +1445,97 @@ function updateLinkFields(){
   if(site){ $('linkTitleField').style.display = 'block'; $('ytHint').textContent = ''; }
 }
 
-// Fayl tanlash izohi (tanlangan fayl va til bo'yicha)
+// Fayl tanlash izohi (tanlangan fayllar va til bo'yicha)
 function updateFileHint(){
-  const file = $('bookFile').files[0];
   const hintEl = $('fileHint');
-  if(!file){
-    detectedFileType = null;
+  const valid = batchItems.filter(it => it.type);
+  const skipped = batchItems.length - valid.length;
+  if(!batchItems.length){
     hintEl.textContent = t('fileHintDefault',{ext:ALLOWED_EXT_HINT});
-    return;
-  }
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  detectedFileType = EXT_TYPE[ext] || null;
-  if(!detectedFileType){
-    hintEl.textContent = t('fileUnsupported',{ext:ALLOWED_EXT_HINT});
+  } else if(valid.length === 1 && !skipped){
+    hintEl.textContent = t('fileDetected',{type:t(TYPE_KEYS[valid[0].type]), mb:fmtMB(valid[0].file.size)});
   } else {
-    hintEl.textContent = t('fileDetected',{type:t(TYPE_KEYS[detectedFileType]), mb:fmtMB(file.size)});
+    const bytes = valid.reduce((sum, it) => sum + it.file.size, 0);
+    hintEl.textContent = t('filesSelected',{n:valid.length, mb:fmtMB(bytes)}) + (skipped ? t('filesSkipped',{n:skipped}) : '');
   }
+  // Bir nechta fayl bo'lsa: sarlavha maydoni yashiriladi (har birining nomi sarlavha bo'ladi)
+  const multi = valid.length > 1;
+  $('bookTitleField').style.display = multi ? 'none' : 'block';
+  $('multiTitleHint').style.display = multi ? 'block' : 'none';
+  $('descMultiHint').style.display = multi ? 'block' : 'none';
 }
-function onFileChosen(){ updateFileHint(); }
+
+// Fayl tanlanganda: yangilari ro'yxatga qo'shiladi (avval tanlanganlar saqlanadi, takrorlari e'tiborga olinmaydi)
+function onFileChosen(){
+  const input = $('bookFile');
+  Array.from(input.files || []).forEach(f => {
+    if(batchItems.some(it => it.file.name === f.name && it.file.size === f.size && it.file.lastModified === f.lastModified)) return;
+    const ext = '.' + f.name.split('.').pop().toLowerCase();
+    const type = EXT_TYPE[ext] || null;
+    batchItems.push({id: ++batchSeq, file: f, type, status: type ? 'pending' : 'skipped', pct: 0, err: ''});
+  });
+  input.value = '';   // xuddi shu faylni yana tanlash ham ishlashi uchun
+  renderFileList();
+  updateFileHint();
+}
+
+function removeFileItem(id){
+  batchItems = batchItems.filter(it => it.id !== id);
+  renderFileList();
+  updateFileHint();
+}
+
+function fileMeta(it){
+  const size = fmtMB(it.file.size) + ' MB';
+  let st;
+  if(it.status === 'uploading') st = it.pct > 0 ? it.pct + '%' : '…';
+  else if(it.status === 'done') st = '✓ ' + t('stDone');
+  else if(it.status === 'error') st = '✗ ' + it.err;
+  else if(it.status === 'skipped') st = t('stUnsupported');
+  else st = t('stPending');
+  return size + ' · ' + st;
+}
+
+function renderFileList(){
+  const el = $('fileList');
+  if(!el) return;
+  const running = !!(currentJob && !currentJob.done);
+  el.innerHTML = batchItems.map(it => {
+    const icon = it.type ? (TYPE_ICONS[it.type] || '📄') : '⚠️';
+    const canRemove = !running && it.status !== 'uploading' && it.status !== 'done';
+    return `
+      <div class="frow ${it.status}" id="frow-${it.id}">
+        <div class="fic">${icon}</div>
+        <div class="fbody">
+          <div class="fname">${escapeHtml(it.file.name)}</div>
+          <div class="fmeta">${escapeHtml(fileMeta(it))}</div>
+          <div class="fbar"><div style="width:${it.pct || 0}%"></div></div>
+        </div>
+        ${canRemove ? `<button class="fx" type="button" title="${escapeHtml(t('stRemove'))}" onclick="removeFileItem(${it.id})">✕</button>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// Yuklash vaqtida faqat bitta qatorni yangilaymiz (butun ro'yxatni qayta chizmasdan)
+function updateFileRow(it){
+  const row = $('frow-' + it.id);
+  if(!row) return;
+  row.className = 'frow ' + it.status;
+  row.querySelector('.fmeta').textContent = fileMeta(it);
+  row.querySelector('.fbar > div').style.width = (it.pct || 0) + '%';
+  if(it.status === 'uploading' && row.scrollIntoView) row.scrollIntoView({block:'nearest'});
+}
+
+// Yuklashdan keyin: kerakli bo'limdagi ro'yxatni yangilaymiz
+function refreshAfterBatch(types){
+  if(!types || !types.length) return;
+  if(types.includes(currentTab)) renderBookList(); else switchTab(types[0]);
+}
+function finishAddMany(types, n){
+  closeModal('modalBook');
+  toast(t('addedMany',{n}), 'ok');
+  refreshAfterBatch(types);
+}
 
 async function tryFetchYtTitle(){
   if(selectedType !== 'link') return;   // sayt havolasi uchun sarlavha avtomatik olinmaydi
@@ -1498,6 +1613,7 @@ async function gasCall(payload, retries){
 
 function setProgress(job, pct, text){
   if(job && job.cancelled) return;
+  if(job && job.onPct && pct !== null) job.onPct(pct);   // bir nechta fayl: ro'yxatdagi qatorni yangilash
   const wrap = $('uploadProgress'), fill = $('uploadFill'), st = $('uploadStatus');
   wrap.style.display = 'block';
   st.style.display = 'block';
@@ -1507,7 +1623,7 @@ function setProgress(job, pct, text){
     wrap.classList.remove('indeterminate');
     fill.style.width = pct + '%';
   }
-  st.textContent = text || '';
+  st.textContent = (job && job.prefix ? job.prefix + '  —  ' : '') + (text || '');
 }
 
 function hideProgress(){
@@ -1707,73 +1823,100 @@ async function submitNewBook(){
     return;
   }
 
-  /* ---- Fayl ---- */
+  /* ---- Fayllar (bitta yoki bir nechta, ketma-ket yuklanadi) ---- */
   if(!DRIVE_UPLOAD_URL){
     toast(t('noDriveUrl'), 'err');
     return;
   }
-  const file = $('bookFile').files[0];
-  if(!file){ toast(t('pickFile'),'err'); return; }
-  if(!detectedFileType){
+  if(!batchItems.length){ toast(t('pickFile'),'err'); return; }
+  if(!batchItems.some(it => it.type)){
     toast(t('badFormatToast',{ext:ALLOWED_EXT_HINT}), 'err');
     return;
   }
+  // Yuklanadiganlar: kutayotganlar va oldingi urinishda xato bo'lganlar (qo'llab-quvvatlanmaydiganlari o'tkazib yuboriladi)
+  const todo = batchItems.filter(it => it.type && (it.status === 'pending' || it.status === 'error'));
+  if(!todo.length) return;
 
-  let title = $('bookTitle').value.trim();
-  if(!title){
-    title = file.name.replace(/\.[^/.]+$/, '');
-  }
-  if(hasBannedWords(title)){ toast(t('titleRejected'),'err'); return; }
+  const singleMode = batchItems.filter(it => it.type).length === 1;
+  const singleTitle = $('bookTitle').value.trim();
+  if(singleMode && singleTitle && hasBannedWords(singleTitle)){ toast(t('titleRejected'),'err'); return; }
 
-  const type = detectedFileType;
   const btn = $('submitBookBtn');
   const errEl = $('uploadErrorMsg');
   errEl.style.display = 'none';
   errEl.textContent = '';
   btn.disabled = true;
 
-  const job = { cancelled:false, done:false };
+  const job = { cancelled:false, done:false, prefix:'', onPct:null };
   currentJob = job;
   window.addEventListener('beforeunload', warnUnload);
   try{ if(TGWA) TGWA.enableClosingConfirmation(); }catch(e){}   // Telegram: yuklash vaqtida tasodifan yopib yubormaslik
+  renderFileList();   // yuklash vaqtida "olib tashlash" tugmalari yashiriladi
 
-  let driveResult = null;
+  let ok = 0, failed = 0, lastNote = '';
+  const okTypes = [];
   try{
-    driveResult = await uploadFileToDrive(file, job);
+    for(let i = 0; i < todo.length; i++){
+      if(job.cancelled) break;
+      const it = todo[i];
+      it.status = 'uploading'; it.pct = 0; it.err = '';
+      job.prefix = todo.length > 1 ? (i + 1) + '/' + todo.length + ' · ' + it.file.name : '';
+      job.onPct = pct => { it.pct = pct; updateFileRow(it); };
+      updateFileRow(it);
+      try{
+        const title = (singleMode && singleTitle) ? singleTitle : it.file.name.replace(/\.[^/.]+$/, '');
+        if(hasBannedWords(title)) throw new Error(t('titleRejected'));
 
-    if(job.cancelled){
-      // Foydalanuvchi oxirgi lahzada bekor qilgan — Drive'dagi faylni ham olib tashlaymiz
-      deleteFromDrive(driveResult.fileId);
-      throw new Error('__cancelled__');
-    }
-
-    setProgress(job, 100, t('addingToSite'));
-    try{
-      await db.collection('books').add({...base, ...descFields, type, title, url: driveResult.url, driveFileId: driveResult.fileId});
-    }catch(dbErr){
-      deleteFromDrive(driveResult.fileId);   // saytda yozuv yo'q — Drive'da yetim fayl qolmasin
-      throw new Error(t('driveOkDbFail',{msg:dbErr.message}));
-    }
-
-    hideProgress();
-    finishAddBook(type, driveResult._report);
-  }catch(err){
-    if(err.message === '__cancelled__'){
-      hideProgress();
-      toast(t('uploadCancelled'));
-    } else {
-      console.error('Drive yuklash xatosi:', err);
-      hideProgress();
-      errEl.textContent = err.message;
-      errEl.style.display = 'block';
-      toast(err.message, 'err');
+        const driveResult = await uploadFileToDrive(it.file, job);
+        if(job.cancelled){
+          // Foydalanuvchi oxirgi lahzada bekor qilgan — Drive'dagi faylni ham olib tashlaymiz
+          deleteFromDrive(driveResult.fileId);
+          it.status = 'pending';
+          break;
+        }
+        setProgress(job, 100, t('addingToSite'));
+        try{
+          await db.collection('books').add({...base, ...descFields, type: it.type, title, url: driveResult.url, driveFileId: driveResult.fileId});
+        }catch(dbErr){
+          deleteFromDrive(driveResult.fileId);   // saytda yozuv yo'q — Drive'da yetim fayl qolmasin
+          throw new Error(t('driveOkDbFail',{msg:dbErr.message}));
+        }
+        it.status = 'done'; it.pct = 100;
+        ok++; okTypes.push(it.type); lastNote = driveResult._report || '';
+      }catch(err){
+        if(err.message === '__cancelled__'){ it.status = 'pending'; break; }
+        console.error('Yuklash xatosi:', err);
+        it.status = 'error'; it.err = err.message; failed++;
+      }
+      updateFileRow(it);
     }
   }finally{
     job.done = true;
+    job.onPct = null;
+    hideProgress();
     window.removeEventListener('beforeunload', warnUnload);
     try{ if(TGWA) TGWA.disableClosingConfirmation(); }catch(e){}
-    if(currentJob === job) btn.disabled = false;
+    btn.disabled = false;
   }
+  renderFileList();
+
+  if(job.cancelled){
+    toast(t('uploadCancelled'));
+    if(ok) toast(t('addedMany',{n:ok}), 'ok');
+    refreshAfterBatch(okTypes);
+    return;
+  }
+  if(!failed){
+    if(todo.length === 1) finishAddBook(okTypes[0], lastNote);   // bitta fayl: avvalgidek
+    else finishAddMany(okTypes, ok);
+    return;
+  }
+  // Ba'zilari xato bo'ldi: oyna ochiq qoladi, «Qo'shish»ni qayta bosib, faqat xato bo'lganlarini yuborish mumkin
+  const msg = todo.length === 1 ? todo[0].err : t('batchSummary',{ok, failed});
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  toast(msg, 'err');
+  refreshAfterBatch(okTypes);
 }
 
 function finishAddBook(type, note){
