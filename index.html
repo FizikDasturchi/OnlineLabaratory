@@ -234,7 +234,13 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
   display:flex;align-items:center;justify-content:center;transition:.15s;
 }
 .sec-del:hover{background:var(--red);border-color:var(--red);color:#fff}
-.drag-ghost .sec-del{display:none}
+.sec-edit{
+  position:absolute;top:10px;right:52px;width:34px;height:34px;border-radius:50%;padding:0;
+  border:1.5px solid var(--border);background:#fff;color:var(--accent);
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.sec-edit:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.drag-ghost .sec-del,.drag-ghost .sec-edit{display:none}
 .btn-danger-solid{background:var(--red);color:#fff}
 .btn-danger-solid:hover{background:#b91c1c}
 .del-text{font-size:14px;line-height:1.6;color:var(--text);margin-bottom:18px}
@@ -275,6 +281,9 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
 .toast{background:#0f172a;color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 .toast.err{background:var(--red)}
 .toast.ok{background:var(--green)}
+.toast{line-height:1.45}
+.toast .toast-btn{display:block;margin-top:7px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.55);color:#fff;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700}
+.toast .toast-btn:hover{background:rgba(255,255,255,.3)}
 
 /* ── FOOTER (kutubxona haqida + muallif + havolalar + mualliflik) ── */
 .site-footer{background:#0f172a;color:#cbd5e1;padding:34px 20px 22px;margin-top:50px;font-size:13px;line-height:1.6}
@@ -525,6 +534,30 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
   </div>
 </div>
 
+<!-- ======================= MODAL: Bo'lim nomini tahrirlash (admin) ======================= -->
+<div class="modal-overlay" id="modalEditSection">
+  <div class="modal">
+    <h3 data-i="editSectionTitle">Bo'lim nomini tahrirlash</h3>
+    <div class="field">
+      <label data-i="editSecUz">Nomi (o'zbekcha)</label>
+      <input type="text" id="editSecUz" maxlength="80" onkeydown="if(event.key==='Enter'){saveEditSection()}">
+    </div>
+    <div class="field">
+      <label data-i="editSecRu">Ruscha nomi (ixtiyoriy)</label>
+      <input type="text" id="editSecRu" maxlength="80" onkeydown="if(event.key==='Enter'){saveEditSection()}">
+    </div>
+    <div class="field">
+      <label data-i="editSecEn">Inglizcha nomi (ixtiyoriy)</label>
+      <input type="text" id="editSecEn" maxlength="80" onkeydown="if(event.key==='Enter'){saveEditSection()}">
+      <div class="hint" data-i="editSecHint">Ruscha va inglizcha nom bo'sh qolsa, o'zbekcha nom hamma tilda ko'rinadi.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalEditSection')" data-i="cancel">Bekor qilish</button>
+      <button class="btn btn-primary" id="editSecBtn" onclick="saveEditSection()" data-i="save">Saqlash</button>
+    </div>
+  </div>
+</div>
+
 <!-- ======================= MODAL: Bo'limni o'chirishni tasdiqlash ======================= -->
 <div class="modal-overlay" id="modalDelSection">
   <div class="modal">
@@ -729,6 +762,8 @@ uz:{
   descSaved:"Tavsif saqlandi", descRemoved:"Tavsif o'chirildi",
   descTaken:"Bu tavsifni faqat uning muallifi yoki admin o'zgartira oladi.",
   descRejected:"Tavsif nomaqbul so'z ehtimoli bilan rad etildi",
+  dupToast:"Saytda allaqachon bor edi, o'tkazib yuborildi ({d}): {names}",
+  failToast:"Yuklanmadi ({n}): {names}. Sabab: {reason}", retryFailed:"Qayta urinish",
   stDupMine:"Bu kitobni siz allaqachon yuklagansiz ({where}) — o'tkazib yuborildi",
   stDupOther:"Bu kitob allaqachon yuklangan ({where}, {who}) — o'tkazib yuborildi",
   stDupSame:"Ro'yxatda bir xil fayl ikki marta bor — o'tkazib yuborildi",
@@ -741,6 +776,8 @@ uz:{
   descMultiHint:"Bir nechta fayl tanlangan bo'lsa, bu tavsif hammasiga qo'yiladi.",
   batchSummary:"{ok} ta yuklandi, {failed} tasida xatolik. Xato bo'lganlarini qayta yuborish uchun «Qo'shish» ni bosing.",
   addedMany:"{n} ta material qo'shildi",
+  editSectionTitle:"Bo'lim nomini tahrirlash", editSecUz:"Nomi (o'zbekcha)", editSecRu:"Ruscha nomi (ixtiyoriy)", editSecEn:"Inglizcha nomi (ixtiyoriy)",
+  editSecHint:"Ruscha va inglizcha nom bo'sh qolsa, o'zbekcha nom hamma tilda ko'rinadi.", sectionRenamed:"Bo'lim nomi o'zgartirildi",
   sectionExists:"«{name}» bo'limi allaqachon mavjud.",
   delSectionTitle:"Bo'limni o'chirish", delSectionAsk:"\"{name}\" bo'limini o'chiraveraymi?",
   delSectionWithBooks:"Bo'limdagi {n} ta material ham butunlay o'chib ketadi. Buni ortga qaytarib bo'lmaydi.",
@@ -820,6 +857,8 @@ ru:{
   descSaved:"Описание сохранено", descRemoved:"Описание удалено",
   descTaken:"Изменить это описание может только его автор или администратор.",
   descRejected:"Описание отклонено: возможно, содержит недопустимое слово",
+  dupToast:"Уже были на сайте, пропущены ({d}): {names}",
+  failToast:"Не загружено ({n}): {names}. Причина: {reason}", retryFailed:"Повторить",
   stDupMine:"Вы уже загружали эту книгу ({where}) — пропущено",
   stDupOther:"Эта книга уже загружена ({where}, {who}) — пропущено",
   stDupSame:"Один и тот же файл выбран дважды — пропущено",
@@ -832,6 +871,8 @@ ru:{
   descMultiHint:"Если выбрано несколько файлов, это описание применится ко всем.",
   batchSummary:"Загружено: {ok}, с ошибкой: {failed}. Нажмите «Добавить», чтобы повторить неудачные.",
   addedMany:"Добавлено материалов: {n}",
+  editSectionTitle:"Изменить название раздела", editSecUz:"Название (узбекский)", editSecRu:"Название по-русски (необязательно)", editSecEn:"Название по-английски (необязательно)",
+  editSecHint:"Если русское или английское название пустое, везде показывается узбекское.", sectionRenamed:"Название раздела изменено",
   sectionExists:"Раздел «{name}» уже существует.",
   delSectionTitle:"Удалить раздел", delSectionAsk:"Удалить раздел «{name}»?",
   delSectionWithBooks:"Все материалы раздела ({n}) тоже будут удалены навсегда. Это действие нельзя отменить.",
@@ -911,6 +952,8 @@ en:{
   descSaved:"Description saved", descRemoved:"Description removed",
   descTaken:"Only its author or an admin can change this description.",
   descRejected:"Description rejected: it may contain an inappropriate word",
+  dupToast:"Already on the site, skipped ({d}): {names}",
+  failToast:"Failed to upload ({n}): {names}. Reason: {reason}", retryFailed:"Retry",
   stDupMine:"You already uploaded this book ({where}) — skipped",
   stDupOther:"This book is already on the site ({where}, {who}) — skipped",
   stDupSame:"The same file was selected twice — skipped",
@@ -923,6 +966,8 @@ en:{
   descMultiHint:"With several files selected, this description is applied to all of them.",
   batchSummary:"Uploaded: {ok}, failed: {failed}. Press “Add” to retry the failed ones.",
   addedMany:"{n} materials added",
+  editSectionTitle:"Rename section", editSecUz:"Name (Uzbek)", editSecRu:"Russian name (optional)", editSecEn:"English name (optional)",
+  editSecHint:"If the Russian or English name is empty, the Uzbek name is shown in every language.", sectionRenamed:"Section renamed",
   sectionExists:"The section “{name}” already exists.",
   delSectionTitle:"Delete section", delSectionAsk:"Delete the section “{name}”?",
   delSectionWithBooks:"All {n} materials in this section will be permanently deleted too. This can't be undone.",
@@ -942,8 +987,13 @@ function t(k, p){
   if(p){ for(const key in p){ s = s.split('{' + key + '}').join(p[key]); } }
   return s;
 }
+// Bo'lim nomi tanlangan tilda: avval admin kiritgan ruscha/inglizcha nom (nameRu/nameEn), keyin tayyor tarjima, oxirida o'zbekcha nom
 function secName(s){
   const n = (s && s.name) || '';
+  if(s){
+    if(lang === 'ru' && s.nameRu) return s.nameRu;
+    if(lang === 'en' && s.nameEn) return s.nameEn;
+  }
   const tr = SECTION_TR[n];
   return (tr && tr[lang]) || n;
 }
@@ -1169,6 +1219,7 @@ function drawHome(){
       const nm = secName(s);
       return `
       <div class="sec-card${admin ? ' draggable' : ''}" data-id="${escapeHtml(s.id)}" onclick="openSection('${escapeHtml(s.id)}')">
+        ${admin ? `<button class="sec-edit" title="${escapeHtml(t('edit'))}" aria-label="${escapeHtml(t('edit'))}" onclick="event.stopPropagation();openEditSection('${escapeHtml(s.id)}')">${PENCIL_SVG}</button>` : ''}
         ${admin ? `<button class="sec-del" title="${escapeHtml(t('delSectionTitle'))}" aria-label="${escapeHtml(t('delSectionTitle'))}" onclick="event.stopPropagation();askDeleteSection('${escapeHtml(s.id)}')">${TRASH_SVG}</button>` : ''}
         <div class="sec-icon">${escapeHtml((nm||'?').charAt(0))}</div>
         <h3>${escapeHtml(nm)}</h3>
@@ -1374,16 +1425,22 @@ async function submitNewSection(){
     // O'zbekcha, ruscha va inglizcha nomlar bilan solishtiramiz ("Mexanika" = "Механика" = "Mechanics")
     const clash = fresh.find(s => {
       const tr = SECTION_TR[s.name] || {};
-      return [s.name, tr.ru, tr.en].some(n => n && normName(n) === key);
+      return [s.name, s.nameRu, s.nameEn, tr.ru, tr.en].some(n => n && normName(n) === key);
     });
     if(clash){ toast(t('sectionExists',{name: secName(clash)}), 'err'); return; }
 
     const order = fresh.reduce((m, s) => Math.max(m, typeof s.order === 'number' ? s.order : 0), -1) + 1;
     const ref = db.collection('sections').doc(nameToId(key));
     await db.runTransaction(async tx => {
+      let target = ref;
       const cur = await tx.get(ref);
-      if(cur.exists) throw new Error('__exists__');
-      tx.set(ref, {
+      if(cur.exists){
+        // Shu ID dagi bo'lim boshqa nomga o'zgartirilgan bo'lishi mumkin — u holda yangi (tasodifiy) ID ishlatamiz
+        const cd = cur.data ? (cur.data() || {}) : {};
+        if([cd.name, cd.nameRu, cd.nameEn].some(n => n && normName(n) === key)) throw new Error('__exists__');
+        target = db.collection('sections').doc();
+      }
+      tx.set(target, {
         name, order,
         createdBy: currentUser.uid, createdByName: currentUser.displayName || currentUser.email,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1616,6 +1673,16 @@ function forceUploadItem(id){
   const it = batchItems.find(x => x.id === id);
   if(!it) return;
   it.force = true; it.status = 'pending'; it.dup = null;
+  renderFileList();
+  updateFileHint();
+}
+
+// Xabardagi tugma ("Baribir yuklash" / "Qayta urinish"): oynani shu fayllar bilan qayta ochadi
+function reopenUploadWith(items, force){
+  if(!requireAuth()) return;
+  openAddBook();
+  selectType('file');
+  batchItems = items.map(it => ({id: ++batchSeq, file: it.file, type: it.type, status: 'pending', pct: 0, err: '', fp: it.fp, dup: null, force: !!force}));
   renderFileList();
   updateFileHint();
 }
@@ -2028,24 +2095,26 @@ async function submitNewBook(){
     refreshAfterBatch(okTypes);
     return;
   }
-  const dupNote = dupCount ? t('dupSuffix',{d:dupCount}) : '';
-  if(!failed){
-    if(!dupCount){
-      if(toUpload.length === 1) finishAddBook(okTypes[0], lastNote);   // bitta fayl: avvalgidek
-      else finishAddMany(okTypes, ok);
-      return;
-    }
-    // Ba'zilari saytda allaqachon bor edi: oyna ochiq qoladi, qaysilari o'tkazib yuborilgani ko'rinib turadi
-    if(ok){ toast(t('addedWithDup',{n:ok, d:dupCount}), 'ok', 7000); refreshAfterBatch(okTypes); }
-    else toast(t('allDup'), undefined, 6000);
+  // Yuklash tugadi: oyna AVTOMATIK yopiladi. Takrorlar va xatolar haqida xabarlar chiqadi (ularda tugma ham bor).
+  const dupItems = todo.filter(it => it.status === 'dup');
+  const failItems = todo.filter(it => it.status === 'error');
+  if(!dupItems.length && !failItems.length){
+    if(toUpload.length === 1) finishAddBook(okTypes[0], lastNote);   // bitta fayl: avvalgidek
+    else finishAddMany(okTypes, ok);
     return;
   }
-  // Ba'zilari xato bo'ldi: oyna ochiq qoladi, «Qo'shish»ni qayta bosib, faqat xato bo'lganlarini yuborish mumkin
-  const msg = (toUpload.length === 1 ? toUpload[0].err : t('batchSummary',{ok, failed})) + dupNote;
-  errEl.textContent = msg;
-  errEl.style.display = 'block';
-  toast(msg, 'err');
-  refreshAfterBatch(okTypes);
+  closeModal('modalBook');
+  if(ok){ toast(t('addedMany',{n:ok}), 'ok', 5000); refreshAfterBatch(okTypes); }
+  const namesOf = items => items.slice(0, 3).map(it => it.file.name).join(', ') + (items.length > 3 ? ' (+' + (items.length - 3) + ')' : '');
+  if(dupItems.length){
+    toast(t('dupToast',{d: dupItems.length, names: namesOf(dupItems)}), undefined, 12000,
+          {label: t('forceUpload'), fn: () => reopenUploadWith(dupItems, true)});
+  }
+  if(failItems.length){
+    const reason = String(failItems[0].err || '').slice(0, 140);
+    toast(t('failToast',{n: failItems.length, names: namesOf(failItems), reason}), 'err', 12000,
+          {label: t('retryFailed'), fn: () => reopenUploadWith(failItems, false)});
+  }
 }
 
 function finishAddBook(type, note){
@@ -2233,7 +2302,7 @@ function initSectionDrag(){
 function onSecPointerDown(e){
   if(drag || !isAdmin) return;
   if(e.pointerType === 'mouse' && e.button !== 0) return;
-  if(e.target.closest('.sec-del')) return;   // o'chirish tugmasi bosilganda surish boshlanmasin
+  if(e.target.closest('.sec-del, .sec-edit')) return;   // tugmalar bosilganda surish boshlanmasin
   const card = e.target.closest('.sec-card[data-id]');
   if(!card) return;
   drag = {
@@ -2511,6 +2580,67 @@ async function purgeDriveFiles(ids){
   }
 }
 
+/* ---- Bo'lim nomini tahrirlash (faqat adminlar) ----
+   O'zbekcha nom majburiy; ruscha va inglizcha nom ixtiyoriy (bo'sh qolsa, tayyor tarjima yoki o'zbekcha nom ko'rinadi). */
+const PENCIL_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+let editSecId = null, savingSection = false;
+
+function openEditSection(id){
+  if(!isAdmin) return;
+  const sec = sections.find(s => s.id === id);
+  if(!sec) return;
+  editSecId = id;
+  const tr = SECTION_TR[sec.name] || {};
+  $('editSecUz').value = sec.name || '';
+  $('editSecRu').value = sec.nameRu || tr.ru || '';   // hozirgi tarjima oldindan to'ldiriladi — nom o'zgarganda yo'qolib ketmasin
+  $('editSecEn').value = sec.nameEn || tr.en || '';
+  $('editSecBtn').disabled = false;
+  openModal('modalEditSection');
+}
+
+async function saveEditSection(){
+  if(!isAdmin || !editSecId || savingSection) return;
+  const clean = v => String(v || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const uz = clean($('editSecUz').value), ru = clean($('editSecRu').value), en = clean($('editSecEn').value);
+  if(!uz){ toast(t('enterSectionName'),'err'); return; }
+  const id = editSecId;
+  const sec = sections.find(s => s.id === id);
+  if(!sec) return;
+  const btn = $('editSecBtn');
+  savingSection = true;
+  btn.disabled = true;
+  try{
+    // Boshqa bo'limlar bilan takrorlanmasligini eng yangi ro'yxat bo'yicha tekshiramiz
+    const snap = await db.collection('sections').get();
+    const others = snap.docs.filter(d => d.id !== id).map(d => ({id:d.id, ...d.data()}));
+    const keys = [uz, ru, en].filter(Boolean).map(normName);
+    const clash = others.find(o => {
+      const tr = SECTION_TR[o.name] || {};
+      return [o.name, o.nameRu, o.nameEn, tr.ru, tr.en].some(n => n && keys.includes(normName(n)));
+    });
+    if(clash){ toast(t('sectionExists',{name: secName(clash)}), 'err'); return; }
+
+    const F = firebase.firestore.FieldValue;
+    await db.collection('sections').doc(id).update({
+      name: uz,
+      nameRu: ru || F.delete(),
+      nameEn: en || F.delete()
+    });
+    sec.name = uz;
+    if(ru) sec.nameRu = ru; else delete sec.nameRu;
+    if(en) sec.nameEn = en; else delete sec.nameEn;
+    closeModal('modalEditSection');
+    editSecId = null;
+    toast(t('sectionRenamed'), 'ok');
+    drawHome();
+  }catch(e){
+    toast(e.message, 'err');
+  }finally{
+    savingSection = false;
+    btn.disabled = false;
+  }
+}
+
 /* ---- Telegram Mini App: pastdagi/yuqoridagi "orqaga" tugmasi ----
    Oldin u ilovadan butunlay chiqarib yuborardi. Endi bo'lim ichida yoki oyna ochiqligida
    orqaga tugmasi shu sahifadan qaytaradi; faqat bosh sahifada ilovadan chiqadi. */
@@ -2608,10 +2738,20 @@ function requireAuth(){
 }
 function openModal(id){ $(id).classList.add('show'); updateBackButton(); }
 function closeModal(id){ $(id).classList.remove('show'); updateBackButton(); }
-function toast(msg, kind, ms){
+function toast(msg, kind, ms, action){
   const el = document.createElement('div');
   el.className = 'toast' + (kind==='err'?' err':kind==='ok'?' ok':'');
-  el.textContent = msg;
+  const span = document.createElement('span');
+  span.textContent = msg;
+  el.appendChild(span);
+  if(action){   // xabar ichida tugma: {label, fn}
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'toast-btn';
+    b.textContent = action.label;
+    b.onclick = () => { el.remove(); action.fn(); };
+    el.appendChild(b);
+  }
   $('toastWrap').appendChild(el);
   setTimeout(()=>el.remove(), ms || (kind==='err' ? 7000 : 3200));
 }
