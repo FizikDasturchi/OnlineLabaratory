@@ -248,6 +248,8 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
 .frow.done{background:var(--green-bg);border-color:#bbf7d0}
 .frow.error{background:var(--red-bg);border-color:#fecdd3}
 .frow.skipped{opacity:.6}
+.frow.dup{background:var(--amber-bg);border-color:#fde68a}
+.frow.dup .fmeta{color:#92400e}
 .fic{font-size:18px;flex-shrink:0}
 .fbody{flex:1;min-width:0}
 .fname{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -727,6 +729,12 @@ uz:{
   descSaved:"Tavsif saqlandi", descRemoved:"Tavsif o'chirildi",
   descTaken:"Bu tavsifni faqat uning muallifi yoki admin o'zgartira oladi.",
   descRejected:"Tavsif nomaqbul so'z ehtimoli bilan rad etildi",
+  stDupMine:"Bu kitobni siz allaqachon yuklagansiz ({where}) — o'tkazib yuborildi",
+  stDupOther:"Bu kitob allaqachon yuklangan ({where}, {who}) — o'tkazib yuborildi",
+  stDupSame:"Ro'yxatda bir xil fayl ikki marta bor — o'tkazib yuborildi",
+  forceUpload:"Baribir yuklash", checkingDup:"Saytda borligi tekshirilmoqda…",
+  addedWithDup:"{n} ta material qo'shildi, {d} tasi allaqachon bor edi va o'tkazib yuborildi",
+  allDup:"Tanlangan fayllarning hammasi saytda allaqachon bor", dupSuffix:" · {d} tasi allaqachon bor edi",
   filesSelected:"Tanlandi: {n} ta fayl ({mb} MB)", filesSkipped:" · {n} tasi qo'llab-quvvatlanmaydi",
   stPending:"Kutilmoqda", stDone:"Yuklandi", stUnsupported:"Format qo'llab-quvvatlanmaydi", stRemove:"Olib tashlash",
   multiTitleHint:"Bir nechta fayl tanlandi: har birining nomi sarlavha bo'ladi (keyin tahrirlash mumkin). Fayllar ketma-ket yuklanadi.",
@@ -812,6 +820,12 @@ ru:{
   descSaved:"Описание сохранено", descRemoved:"Описание удалено",
   descTaken:"Изменить это описание может только его автор или администратор.",
   descRejected:"Описание отклонено: возможно, содержит недопустимое слово",
+  stDupMine:"Вы уже загружали эту книгу ({where}) — пропущено",
+  stDupOther:"Эта книга уже загружена ({where}, {who}) — пропущено",
+  stDupSame:"Один и тот же файл выбран дважды — пропущено",
+  forceUpload:"Всё равно загрузить", checkingDup:"Проверяем, нет ли файла на сайте…",
+  addedWithDup:"Добавлено: {n}; уже были на сайте и пропущены: {d}",
+  allDup:"Все выбранные файлы уже есть на сайте", dupSuffix:" · уже были: {d}",
   filesSelected:"Выбрано файлов: {n} ({mb} МБ)", filesSkipped:" · не поддерживается: {n}",
   stPending:"Ожидает", stDone:"Загружено", stUnsupported:"Формат не поддерживается", stRemove:"Убрать",
   multiTitleHint:"Выбрано несколько файлов: названием станет имя каждого файла (потом можно изменить). Файлы загружаются по очереди.",
@@ -897,6 +911,12 @@ en:{
   descSaved:"Description saved", descRemoved:"Description removed",
   descTaken:"Only its author or an admin can change this description.",
   descRejected:"Description rejected: it may contain an inappropriate word",
+  stDupMine:"You already uploaded this book ({where}) — skipped",
+  stDupOther:"This book is already on the site ({where}, {who}) — skipped",
+  stDupSame:"The same file was selected twice — skipped",
+  forceUpload:"Upload anyway", checkingDup:"Checking whether the file is already on the site…",
+  addedWithDup:"{n} added; {d} already existed and were skipped",
+  allDup:"All selected files are already on the site", dupSuffix:" · {d} already existed",
   filesSelected:"Selected: {n} files ({mb} MB)", filesSkipped:" · {n} unsupported",
   stPending:"Waiting", stDone:"Uploaded", stUnsupported:"Unsupported format", stRemove:"Remove",
   multiTitleHint:"Several files selected: each file name becomes its title (you can edit it later). Files upload one after another.",
@@ -1472,7 +1492,7 @@ function onFileChosen(){
     if(batchItems.some(it => it.file.name === f.name && it.file.size === f.size && it.file.lastModified === f.lastModified)) return;
     const ext = '.' + f.name.split('.').pop().toLowerCase();
     const type = EXT_TYPE[ext] || null;
-    batchItems.push({id: ++batchSeq, file: f, type, status: type ? 'pending' : 'skipped', pct: 0, err: ''});
+    batchItems.push({id: ++batchSeq, file: f, type, status: type ? 'pending' : 'skipped', pct: 0, err: '', fp: null, dup: null, force: false});
   });
   input.value = '';   // xuddi shu faylni yana tanlash ham ishlashi uchun
   renderFileList();
@@ -1492,6 +1512,10 @@ function fileMeta(it){
   else if(it.status === 'done') st = '✓ ' + t('stDone');
   else if(it.status === 'error') st = '✗ ' + it.err;
   else if(it.status === 'skipped') st = t('stUnsupported');
+  else if(it.status === 'dup'){
+    const d = it.dup || {};
+    st = '↷ ' + (d.kind === 'same' ? t('stDupSame') : d.kind === 'mine' ? t('stDupMine',{where:d.where}) : t('stDupOther',{where:d.where, who:d.who}));
+  }
   else st = t('stPending');
   return size + ' · ' + st;
 }
@@ -1510,6 +1534,7 @@ function renderFileList(){
           <div class="fname">${escapeHtml(it.file.name)}</div>
           <div class="fmeta">${escapeHtml(fileMeta(it))}</div>
           <div class="fbar"><div style="width:${it.pct || 0}%"></div></div>
+          ${it.status === 'dup' && !running ? `<button class="link-btn" type="button" onclick="forceUploadItem(${it.id})">${escapeHtml(t('forceUpload'))}</button>` : ''}
         </div>
         ${canRemove ? `<button class="fx" type="button" title="${escapeHtml(t('stRemove'))}" onclick="removeFileItem(${it.id})">✕</button>` : ''}
       </div>`;
@@ -1524,6 +1549,75 @@ function updateFileRow(it){
   row.querySelector('.fmeta').textContent = fileMeta(it);
   row.querySelector('.fbar > div').style.width = (it.pct || 0) + '%';
   if(it.status === 'uploading' && row.scrollIntoView) row.scrollIntoView({block:'nearest'});
+}
+
+/* ---- Saytda avvaldan borligini aniqlash ----
+   1) Fayl "izi" (hajm + boshi/o'rtasi/oxiridan SHA-256): nomi o'zgargan bo'lsa ham bir xil fayl topiladi.
+      Yangi yuklangan kitoblar izi bazada saqlanadi.
+   2) Iz saqlanmagan eski kitoblar uchun: sarlavha fayl nomi bilan bir xil bo'lsa ("(2)" qo'shimchasiz).
+   Topilgan fayl yuklanmaydi va ro'yxatda sababi yoziladi; jarayon to'xtamaydi. Xato deb o'ylasangiz —
+   "Baribir yuklash" tugmasi bor. */
+function normText(str){
+  return String(str || '').toLowerCase()
+    .replace(/[\u2018\u2019\u02bb\u02bc\u0060\u00b4]/g, "'")
+    .replace(/\s*\(\d+\)\s*$/, '')            // brauzer qo'shgan "(2)"
+    .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+function normFile(name){ return normText(String(name || '').replace(/\.[^/.]+$/, '')); }
+
+function readBlob(blob){
+  if(blob.arrayBuffer) return blob.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+    r.readAsArrayBuffer(blob);
+  });
+}
+async function fileFingerprint(file){
+  if(!(window.crypto && crypto.subtle)) return null;
+  const CH = 256 * 1024, size = file.size;
+  const parts = [await readBlob(file.slice(0, Math.min(CH, size)))];
+  if(size > 3 * CH){ const mid = Math.floor(size / 2); parts.push(await readBlob(file.slice(mid - CH / 2, mid + CH / 2))); }
+  if(size > CH) parts.push(await readBlob(file.slice(Math.max(CH, size - CH), size)));
+  const total = parts.reduce((sum, x) => sum + x.byteLength, 0);
+  const buf = new Uint8Array(total);
+  let off = 0;
+  parts.forEach(x => { buf.set(new Uint8Array(x), off); off += x.byteLength; });
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
+  return size + '-' + Array.from(digest.slice(0, 16), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function loadBookIndex(){
+  const snap = await db.collection('books').get();
+  return snap.docs.map(d => {
+    const b = d.data();
+    return {id:d.id, type:b.type, title:b.title || '', fp:b.fp || null, fileName:b.fileName || null, fileSize:b.fileSize || null,
+            addedBy:b.addedBy, addedByName:b.addedByName, sectionId:b.sectionId, isFile: !!b.driveFileId || ['pdf','pptx','word'].includes(b.type)};
+  }).filter(e => e.isFile);
+}
+
+function findDuplicate(item, index){
+  const nf = normFile(item.file.name);
+  for(const e of index){
+    if(item.fp && e.fp){ if(item.fp === e.fp) return e; continue; }          // ikkalasida ham iz bor: faqat iz bo'yicha
+    if(e.fileName && e.fileSize){ if(e.fileSize === item.file.size && normFile(e.fileName) === nf) return e; continue; }
+    if(!e.fp && !e.fileName && normText(e.title) === nf) return e;             // eski kitob: sarlavha = fayl nomi
+  }
+  return null;
+}
+
+function sectionLabel(id){
+  const sec = sections.find(x => x.id === id);
+  return sec ? secName(sec) : t('unknown');
+}
+
+function forceUploadItem(id){
+  const it = batchItems.find(x => x.id === id);
+  if(!it) return;
+  it.force = true; it.status = 'pending'; it.dup = null;
+  renderFileList();
+  updateFileHint();
 }
 
 // Yuklashdan keyin: kerakli bo'limdagi ro'yxatni yangilaymiz
@@ -1853,14 +1947,39 @@ async function submitNewBook(){
   try{ if(TGWA) TGWA.enableClosingConfirmation(); }catch(e){}   // Telegram: yuklash vaqtida tasodifan yopib yubormaslik
   renderFileList();   // yuklash vaqtida "olib tashlash" tugmalari yashiriladi
 
-  let ok = 0, failed = 0, lastNote = '';
+  let ok = 0, failed = 0, dupCount = 0, lastNote = '';
   const okTypes = [];
+  let toUpload = [];
   try{
-    for(let i = 0; i < todo.length; i++){
+    // ---- 1) Saytda avvaldan borligini tekshirish (xato bo'lsa, tekshiruvsiz davom etadi) ----
+    setProgress(job, null, t('checkingDup'));
+    let index = null;
+    try{ index = await loadBookIndex(); }catch(e){ console.warn('Takrorlanish tekshiruvi o\'tkazib yuborildi:', e.message); }
+    const seen = new Set();
+    for(const it of todo){
       if(job.cancelled) break;
-      const it = todo[i];
+      try{ it.fp = await fileFingerprint(it.file); }catch(e){ it.fp = null; }
+      if(!it.force){
+        let dup = null;
+        if(it.fp && seen.has(it.fp)) dup = {kind:'same'};
+        else if(index){
+          const e = findDuplicate(it, index);
+          if(e) dup = {kind: (currentUser && e.addedBy === currentUser.uid) ? 'mine' : 'other', where: sectionLabel(e.sectionId), who: e.addedByName || t('unknown')};
+        }
+        if(dup){ it.status = 'dup'; it.dup = dup; dupCount++; }
+      }
+      if(it.fp) seen.add(it.fp);
+    }
+    hideProgress();
+    renderFileList();
+    toUpload = todo.filter(it => it.status !== 'dup');
+
+    // ---- 2) Qolganlarini ketma-ket yuklash ----
+    for(let i = 0; i < toUpload.length; i++){
+      if(job.cancelled) break;
+      const it = toUpload[i];
       it.status = 'uploading'; it.pct = 0; it.err = '';
-      job.prefix = todo.length > 1 ? (i + 1) + '/' + todo.length + ' · ' + it.file.name : '';
+      job.prefix = toUpload.length > 1 ? (i + 1) + '/' + toUpload.length + ' · ' + it.file.name : '';
       job.onPct = pct => { it.pct = pct; updateFileRow(it); };
       updateFileRow(it);
       try{
@@ -1876,7 +1995,10 @@ async function submitNewBook(){
         }
         setProgress(job, 100, t('addingToSite'));
         try{
-          await db.collection('books').add({...base, ...descFields, type: it.type, title, url: driveResult.url, driveFileId: driveResult.fileId});
+          await db.collection('books').add({
+            ...base, ...descFields, type: it.type, title, url: driveResult.url, driveFileId: driveResult.fileId,
+            fileName: it.file.name, fileSize: it.file.size, ...(it.fp ? {fp: it.fp} : {})
+          });
         }catch(dbErr){
           deleteFromDrive(driveResult.fileId);   // saytda yozuv yo'q — Drive'da yetim fayl qolmasin
           throw new Error(t('driveOkDbFail',{msg:dbErr.message}));
@@ -1906,13 +2028,20 @@ async function submitNewBook(){
     refreshAfterBatch(okTypes);
     return;
   }
+  const dupNote = dupCount ? t('dupSuffix',{d:dupCount}) : '';
   if(!failed){
-    if(todo.length === 1) finishAddBook(okTypes[0], lastNote);   // bitta fayl: avvalgidek
-    else finishAddMany(okTypes, ok);
+    if(!dupCount){
+      if(toUpload.length === 1) finishAddBook(okTypes[0], lastNote);   // bitta fayl: avvalgidek
+      else finishAddMany(okTypes, ok);
+      return;
+    }
+    // Ba'zilari saytda allaqachon bor edi: oyna ochiq qoladi, qaysilari o'tkazib yuborilgani ko'rinib turadi
+    if(ok){ toast(t('addedWithDup',{n:ok, d:dupCount}), 'ok', 7000); refreshAfterBatch(okTypes); }
+    else toast(t('allDup'), undefined, 6000);
     return;
   }
   // Ba'zilari xato bo'ldi: oyna ochiq qoladi, «Qo'shish»ni qayta bosib, faqat xato bo'lganlarini yuborish mumkin
-  const msg = todo.length === 1 ? todo[0].err : t('batchSummary',{ok, failed});
+  const msg = (toUpload.length === 1 ? toUpload[0].err : t('batchSummary',{ok, failed})) + dupNote;
   errEl.textContent = msg;
   errEl.style.display = 'block';
   toast(msg, 'err');
