@@ -119,6 +119,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 .search-row .search-clear:hover{background:var(--accent-l);color:var(--accent)}
 .search-row.has-val .search-clear{display:block}
 .search-hint{font-size:12px;color:var(--sub);margin:-12px 0 16px}
+#homeSearchResults:empty{margin:0}
+#homeSearchResults{margin-bottom:22px}
+.search-results-head{font-size:12.5px;font-weight:700;color:var(--sub);margin:-6px 0 10px}
 
 /* ── SECTIONS GRID ──────────────────────────────────────────────── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
@@ -664,7 +667,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.09.21-09";
+const APP_BUILD = "2026.09.22-10";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -809,8 +812,9 @@ uz:{
   autoTrHint:"Ruscha va inglizcha nomlar avtomatik tarjima qilinadi.",
   autoTrBtn:"🌐 Avtomatik tarjima qilish", autoTrWorking:"Tarjima qilinmoqda…", autoTrDone:"Tarjima qilindi",
   autoTrFail:"Avtomatik tarjima qilib bo'lmadi — qo'lda kiriting.",
-  searchHomePh:"Bo'lim qidirish…", searchBooksPh:"Ushbu bo'limdan qidirish…",
-  noSearchResults:"Hech narsa topilmadi.", searchResultsCount:"{n} ta natija",
+  searchHomePh:"Bo'lim yoki material qidirish…", searchBooksPh:"Ushbu bo'limdan qidirish…",
+  noSearchResults:"Hech narsa topilmadi.", searchResultsCount:"{n} ta natija topildi",
+  resultSection:"Bo'lim: {name}", openSection:"Bo'limga o'tish",
   footTitle:"Fizika Fakulteti Onlayn Kutubxonasi",
   footDesc:"Ushbu kutubxona fakultet talabalari va o'qituvchilari tomonidan birgalikda to'ldirilib boriladi. Har bir foydalanuvchi o'zi qo'shgan materialni tahrirlashi yoki o'chirishi mumkin.",
   author:"Dasturchi va Muallif", ideaAuthor:"G'oya muallifi", linkYt:"YouTube — Ilmiy & Shaxsiy", linkTgSci:"Telegram — Ilmiy kanal",
@@ -909,8 +913,9 @@ ru:{
   autoTrHint:"Русское и английское названия будут переведены автоматически.",
   autoTrBtn:"🌐 Перевести автоматически", autoTrWorking:"Переводим…", autoTrDone:"Переведено",
   autoTrFail:"Не удалось перевести автоматически — введите вручную.",
-  searchHomePh:"Поиск раздела…", searchBooksPh:"Поиск в этом разделе…",
-  noSearchResults:"Ничего не найдено.", searchResultsCount:"Найдено: {n}",
+  searchHomePh:"Поиск раздела или материала…", searchBooksPh:"Поиск в этом разделе…",
+  noSearchResults:"Ничего не найдено.", searchResultsCount:"Найдено результатов: {n}",
+  resultSection:"Раздел: {name}", openSection:"Перейти в раздел",
   footTitle:"Онлайн-библиотека физического факультета",
   footDesc:"Эта библиотека пополняется совместными усилиями студентов и преподавателей факультета. Каждый пользователь может редактировать или удалять добавленные им материалы.",
   author:"Разработчик и автор", ideaAuthor:"Автор идеи", linkYt:"YouTube — научный и личный", linkTgSci:"Telegram — научный канал",
@@ -1009,8 +1014,9 @@ en:{
   autoTrHint:"Russian and English names are translated automatically.",
   autoTrBtn:"🌐 Auto-translate", autoTrWorking:"Translating…", autoTrDone:"Translated",
   autoTrFail:"Couldn't auto-translate — please enter it manually.",
-  searchHomePh:"Search sections…", searchBooksPh:"Search in this section…",
-  noSearchResults:"No results found.", searchResultsCount:"{n} results",
+  searchHomePh:"Search sections or materials…", searchBooksPh:"Search in this section…",
+  noSearchResults:"No results found.", searchResultsCount:"{n} results found",
+  resultSection:"Section: {name}", openSection:"Go to section",
   footTitle:"Faculty of Physics Online Library",
   footDesc:"This library is built together by the faculty's students and teachers. Each user can edit or delete the materials they have added.",
   author:"Developer & Author", ideaAuthor:"Idea author", linkYt:"YouTube — Science & Personal", linkTgSci:"Telegram — Science channel",
@@ -1058,6 +1064,7 @@ let currentUser = null;
 let isAdmin = false;
 let sections = [];
 let homeCounts = null;   // bosh sahifadagi materiallar soni (keshda — til almashganda qayta yuklanmaydi)
+let allBooksIndex = null;   // BUTUN sayt bo'yicha materiallar ro'yxati — bosh sahifadagi global qidiruv uchun
 let bookCache = null;    // {sectionId, tab, docs:[{id,data}]}
 let currentSectionId = null;
 let currentTab = "pdf";   // bo'limga kirganda birinchi bo'lib PDF bandi ochiladi
@@ -1232,27 +1239,44 @@ async function loadSections(){
   sections = snap.docs.map(d => ({id:d.id, ...d.data()}));
 }
 
-async function getBookCountsBySection(){
+// Bosh sahifada bo'limlar soni VA butun sayt bo'yicha material qidiruvi uchun bitta so'rovda yuklanadi.
+async function loadAllBooksAndCounts(){
   try{
     const snap = await db.collection('books').get();
+    const docs = snap.docs.map(d => ({id:d.id, ...d.data()}));
     const counts = {};
-    snap.forEach(d => {
-      const sid = d.data().sectionId;
-      counts[sid] = (counts[sid]||0) + 1;
-    });
-    return counts;
+    docs.forEach(b => { counts[b.sectionId] = (counts[b.sectionId]||0) + 1; });
+    return {docs, counts};
   }catch(e){
-    console.warn('getBookCountsBySection xatolik:', e.message);
-    return {};
+    console.warn('loadAllBooksAndCounts xatolik:', e.message);
+    return {docs: [], counts: {}};
   }
 }
 
+/* ---- Lotin <-> Kirill: qidiruv uchun ikkalasini ham bir xil "kalit"ga keltiradi ----
+   Masalan lotincha "kalashnikov" va kirillcha "калашников" ikkalasi ham
+   "kalashnikov" kaliti bilan tenglashtiriladi — foydalanuvchi qaysi
+   yozuvda yozishidan qat'i nazar, natija topiladi. */
+const CYR_TO_LAT = {
+  'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y',
+  'к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f',
+  'х':'x','ц':'c','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'i','ь':'','э':'e','ю':'yu','я':'ya',
+  'ў':'o','қ':'q','ғ':'g','ҳ':'h'
+};
+function toLatinKey(str){
+  let out = '';
+  for(const ch of String(str || '')) out += CYR_TO_LAT.hasOwnProperty(ch) ? CYR_TO_LAT[ch] : ch;
+  return out;
+}
+
 /* ---- Qidiruv matnini solishtirish uchun normallashtirish ----
-   Kichik harf, apostroflarni bir xillashtirish, ortiqcha bo'shliqni olib tashlash. */
+   Kichik harf, apostroflarni olib tashlash, ortiqcha bo'shliqni yig'ish,
+   so'ng kirill harflarini lotinga o'giradi — shu orqali ikkala yozuv ham mos tushadi. */
 function normSearch(str){
-  return String(str || '').toLowerCase()
-    .replace(/[\u2018\u2019\u02bb\u02bc\u0060\u00b4]/g, "'")
+  const s = String(str || '').toLowerCase()
+    .replace(/[\u2018\u2019\u02bb\u02bc\u0060\u00b4']/g, '')
     .replace(/\s+/g, ' ').trim();
+  return toLatinKey(s);
 }
 
 function drawHome(){
@@ -1265,30 +1289,62 @@ function drawHome(){
       <button type="button" class="search-clear" title="${escapeHtml(t('cancel'))}" onclick="clearHomeSearch()">✕</button>
     </div>` +
     (admin ? `<div class="drag-hint">${escapeHtml(t('dragHint'))} <span class="build-tag">· ${escapeHtml(APP_BUILD)}</span></div>` : '') +
+    `<div id="homeSearchResults"></div>` +
     `<div class="grid" id="sectionsGrid"></div>`;
   $('homeSearchRow').classList.toggle('has-val', !!homeSearchQuery);
-  renderSectionsGrid();
+  updateHomeSearch();
 }
 
-// Faqat kartochkalar qismini qayta chizadi — qidiruv maydoni fokusda qolaveradi
-function renderSectionsGrid(){
-  const grid = $('sectionsGrid');
+// Qidiruv natijalarini (bo'limlar + BUTUN SAYT bo'yicha materiallar) qayta chizadi.
+// Qidiruv maydoni o'zi qayta chizilmaydi — fokus va kursor joyida qolaveradi.
+function updateHomeSearch(){
+  const grid = $('sectionsGrid'), resWrap = $('homeSearchResults');
   if(!grid) return;
   const counts = homeCounts || {};
   const q = normSearch(homeSearchQuery);
-  const filtered = q ? sections.filter(s => normSearch(secName(s)).includes(q)) : sections;
+  const secMatches = q ? sections.filter(s => normSearch(secName(s)).includes(q)) : sections;
+  const bookMatches = q ? (allBooksIndex||[]).filter(b => normSearch(b.title).includes(q) || normSearch(b.description).includes(q)) : [];
 
-  if(q && !filtered.length){
-    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">${escapeHtml(t('noSearchResults'))}</div>`;
-    return;
+  // ── Materiallar (butun sayt bo'yicha, bo'limdan tashqarida ham) ──
+  if(resWrap){
+    if(!q){
+      resWrap.innerHTML = '';
+    } else if(bookMatches.length){
+      resWrap.innerHTML = `<div class="search-results-head">${escapeHtml(t('searchResultsCount',{n:bookMatches.length}))}</div>` +
+        '<div class="book-list">' + bookMatches.slice(0, 60).map(b => {
+          const icon = TYPE_ICONS[b.type] || '📄';
+          const openHref = safeUrl(bookViewUrl(b));
+          const dlHref = (b.driveFileId && b.url) ? safeUrl(b.url) : '';
+          const secNm = sectionLabel(b.sectionId);
+          return `
+            <div class="book-row">
+              <div class="book-ic ${escapeHtml(b.type||'')}">${icon}</div>
+              <div class="book-body">
+                <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
+                  <div class="t">${escapeHtml(b.title||'')}</div>
+                  <div class="s">${escapeHtml(t('resultSection',{name:secNm}))}</div>
+                </a>
+              </div>
+              <div class="book-actions">
+                ${dlHref && dlHref!=='#' ? `<a class="btn btn-outline btn-sm" href="${escapeHtml(dlHref)}" target="_blank" rel="noopener">${escapeHtml(t('download'))}</a>` : ''}
+                <a class="btn btn-outline btn-sm" href="#section/${escapeHtml(b.sectionId||'')}">${escapeHtml(t('openSection'))}</a>
+              </div>
+            </div>`;
+        }).join('') + '</div>';
+    } else if(!secMatches.length){
+      resWrap.innerHTML = `<div class="empty">${escapeHtml(t('noSearchResults'))}</div>`;
+    } else {
+      resWrap.innerHTML = '';
+    }
   }
 
-  grid.innerHTML = filtered.map(s => {
+  // ── Bo'limlar kartochkalari ──
+  grid.innerHTML = secMatches.map(s => {
       const nm = secName(s);
       return `
-      <div class="sec-card${(admin_flag() && !q) ? ' draggable' : ''}" data-id="${escapeHtml(s.id)}" onclick="openSection('${escapeHtml(s.id)}')">
-        ${admin_flag() ? `<button class="sec-edit" title="${escapeHtml(t('edit'))}" aria-label="${escapeHtml(t('edit'))}" onclick="event.stopPropagation();openEditSection('${escapeHtml(s.id)}')">${PENCIL_SVG}</button>` : ''}
-        ${admin_flag() ? `<button class="sec-del" title="${escapeHtml(t('delSectionTitle'))}" aria-label="${escapeHtml(t('delSectionTitle'))}" onclick="event.stopPropagation();askDeleteSection('${escapeHtml(s.id)}')">${TRASH_SVG}</button>` : ''}
+      <div class="sec-card${(isAdmin && !q) ? ' draggable' : ''}" data-id="${escapeHtml(s.id)}" onclick="openSection('${escapeHtml(s.id)}')">
+        ${isAdmin ? `<button class="sec-edit" title="${escapeHtml(t('edit'))}" aria-label="${escapeHtml(t('edit'))}" onclick="event.stopPropagation();openEditSection('${escapeHtml(s.id)}')">${PENCIL_SVG}</button>` : ''}
+        ${isAdmin ? `<button class="sec-del" title="${escapeHtml(t('delSectionTitle'))}" aria-label="${escapeHtml(t('delSectionTitle'))}" onclick="event.stopPropagation();askDeleteSection('${escapeHtml(s.id)}')">${TRASH_SVG}</button>` : ''}
         <div class="sec-icon">${escapeHtml((nm||'?').charAt(0))}</div>
         <h3>${escapeHtml(nm)}</h3>
         <div class="cnt">${escapeHtml(t('materialsCount',{n: counts[s.id]||0}))}</div>
@@ -1301,13 +1357,12 @@ function renderSectionsGrid(){
   // Qidiruv faol bo'lsa, surish (drag) o'chiriladi — filtrlangan ro'yxat asl tartibga mos kelmasligi mumkin
   if(!q) initSectionDrag();
 }
-function admin_flag(){ return !!isAdmin; }
 
 function onHomeSearch(val){
   homeSearchQuery = val;
   const row = $('homeSearchRow');
   if(row) row.classList.toggle('has-val', !!val);
-  renderSectionsGrid();
+  updateHomeSearch();
 }
 function clearHomeSearch(){
   homeSearchQuery = '';
@@ -1315,7 +1370,7 @@ function clearHomeSearch(){
   if(input) input.value = '';
   const row = $('homeSearchRow');
   if(row) row.classList.remove('has-val');
-  renderSectionsGrid();
+  updateHomeSearch();
   if(input) input.focus();
 }
 
@@ -1324,7 +1379,9 @@ async function renderHome(){
   wrap.innerHTML = `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2></div><div class="grid" id="sectionsGrid"><div class="empty">${escapeHtml(t('loading'))}</div></div>`;
   try{
     await loadSections();
-    homeCounts = await getBookCountsBySection();
+    const res = await loadAllBooksAndCounts();
+    homeCounts = res.counts;
+    allBooksIndex = res.docs;
     if(currentSectionId || HANDOFF_ID) return;   // foydalanuvchi boshqa sahifaga o'tib ketgan
     drawHome();
   }catch(e){
@@ -1555,7 +1612,7 @@ async function autoTranslateSectionAsync(sectionId, name){
     if(sec){
       if(upd.nameRu) sec.nameRu = upd.nameRu;
       if(upd.nameEn) sec.nameEn = upd.nameEn;
-      if(!currentSectionId) renderSectionsGrid();   // hozir bosh sahifada bo'lsa, ko'rinishni yangilaymiz
+      if(!currentSectionId) updateHomeSearch();   // hozir bosh sahifada bo'lsa, ko'rinishni yangilaymiz
     }
   }catch(e){
     console.warn("Avtomatik tarjima (bo'lim) o'tkazib yuborildi:", e.message);
