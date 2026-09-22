@@ -1198,6 +1198,10 @@ function route(){
   // Telegram Mini App uchun brauzerda ochilgan tasdiqlash sahifasi
   if(HANDOFF_ID){ renderHandoff(); return; }
   const hash = location.hash.replace('#','');
+  // Yangi sahifaga o'tganda har doim eng tepadan boshlansin — brauzer
+  // fragment (#...) uchun avtomatik scroll qilmaydi, shuning uchun
+  // oldingi sahifada qayerda turgan bo'lsak, o'sha joyda qolib ketardi.
+  window.scrollTo(0, 0);
   if(hash.startsWith('section/')){
     currentSectionId = hash.split('/')[1];
     currentTab = 'pdf';
@@ -1454,6 +1458,10 @@ async function switchTab(k){
   const row = $('bookSearchRow'), input = $('bookSearchInput');
   if(input) input.value = '';
   if(row) row.classList.remove('has-val');
+  // Uzun ro'yxatni ko'rib pastga tushib qolgan bo'lsa, tab almashganda
+  // yangi ro'yxat boshidan (tablar joyidan) ko'rinsin
+  const tabsEl = $('tabsRow');
+  if(tabsEl && tabsEl.scrollIntoView) tabsEl.scrollIntoView({block:'start'});
 }
 
 function onBookSearch(val){
