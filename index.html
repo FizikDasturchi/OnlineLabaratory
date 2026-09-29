@@ -45,8 +45,8 @@ img{max-width:100%}
 /* ── ATOM DECORATION (CSS/SVG, logotipdagi uslubga mos) ───────────── */
 /* Sayt foni: fakultet rasmi + o'qish oson bo'lishi uchun och qoplama */
 .site-bg{position:fixed;inset:0;z-index:-2;pointer-events:none;background:url('bg.jpg') center/cover no-repeat}
-.site-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(238,243,251,.80),rgba(238,243,251,.90))}
-.atom-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.site-bg::after{content:"";position:absolute;inset:0;background:rgba(15,23,42,.06)}
+.atom-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;display:none}
 .atom-bg svg{position:absolute;opacity:.07}
 .atom-bg .a1{width:520px;top:-80px;left:-120px}
 .atom-bg .a2{width:420px;bottom:-100px;right:-100px}
@@ -344,6 +344,19 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
 .f-link.tg-ilm{background:#1a7fb5;color:#fff}
 .f-link.tg-club{background:#0f7c8f;color:#fff}
 .f-link.partner{background:#7c3aed;color:#fff}
+/* Rasm ustida turgan yozuvlar aniq o'qilishi uchun yarim shaffof orqa fon */
+.page-head h2,.crumbs,.drag-hint,.search-results-head{
+  background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  border-radius:10px;padding:6px 14px;width:fit-content;max-width:100%;
+}
+.page-head h2{padding:4px 16px}
+.drag-hint,.search-results-head{margin-top:0}
+.empty{background:rgba(255,255,255,.85)}
+/* Hamkorlar bo'limi (kanal tugmalari tagida) */
+.footer-partners{margin-bottom:18px}
+.footer-partners h4{color:#fff;font-size:15px;font-weight:800;margin-bottom:10px}
+.footer-partners .footer-links{margin-bottom:0}
+
 .footer-divider{border:none;border-top:1px solid #1e293b;margin:16px 0 14px}
 .footer-copy{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;font-size:12.5px;font-weight:600;color:#94a3b8;text-align:center}
 .footer-copy .fc-item + .fc-item::before{content:"·";margin:0 9px;color:#64748b;font-weight:400}
@@ -473,10 +486,16 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
         <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
         <span data-i="linkYt">YouTube — Ilmiy &amp; Shaxsiy</span>
       </a>
-      <a class="f-link partner" href="https://t.me/fizika_Enshteyn" target="_blank" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-        <span data-i="linkPartners">Hamkorlar</span>
-      </a>
+    </div>
+
+    <div class="footer-partners">
+      <h4 data-i="linkPartners">Hamkorlar</h4>
+      <div class="footer-links">
+        <a class="f-link partner" href="https://t.me/fizika_Enshteyn" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.018 9.51c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 14.215l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.506.371z"/></svg>
+          Fizika Butun Olam
+        </a>
+      </div>
     </div>
 
     <hr class="footer-divider">
@@ -675,7 +694,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.09.29-1";
+const APP_BUILD = "2026.09.29-2";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
