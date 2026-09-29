@@ -387,53 +387,6 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
   .footer-links{display:grid;grid-template-columns:1fr;gap:9px}
   .f-link{width:100%;justify-content:flex-start;font-size:13px;padding:11px 16px;border-radius:12px}
 }
-
-/* ── BILDIRISHNOMALAR ───────────────────────────────────────────── */
-.notif-wrap{position:relative;display:flex;align-items:center}
-.notif-btn{
-  position:relative;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);
-  background:#fff;color:var(--text);display:inline-flex;align-items:center;justify-content:center;transition:.15s
-}
-.notif-btn:hover{border-color:var(--accent);color:var(--accent)}
-.notif-btn.has-new{border-color:var(--gold);color:#b45309}
-.notif-badge{
-  position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;
-  background:var(--red);color:#fff;font-size:10.5px;font-weight:800;line-height:18px;text-align:center;
-  border:2px solid #fff;box-sizing:content-box
-}
-.notif-panel{
-  display:none;position:fixed;z-index:90;right:12px;top:64px;
-  width:min(430px, calc(100vw - 24px));max-height:72vh;overflow:auto;
-  background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(15,40,90,.22)
-}
-.notif-panel.show{display:block}
-.np-head{
-  position:sticky;top:0;background:#fff;z-index:1;display:flex;align-items:center;justify-content:space-between;
-  padding:13px 16px;border-bottom:1px solid var(--border)
-}
-.np-head h4{font-size:15px;font-weight:800}
-.np-close{border:none;background:transparent;color:var(--sub);font-size:17px;padding:4px 8px;border-radius:6px}
-.np-close:hover{background:var(--accent-l);color:var(--accent)}
-.np-empty{padding:34px 18px;text-align:center;color:var(--sub);font-size:13.5px}
-.nf{padding:13px 16px;border-bottom:1px solid var(--border)}
-.nf:last-child{border-bottom:none}
-.nf.unread{background:var(--accent-l)}
-.nf-title{font-weight:700;font-size:14px;line-height:1.4;word-break:break-word}
-.nf-sub{font-size:12px;color:var(--sub);margin-top:3px}
-.nf-text{margin-top:6px;font-size:13.5px;line-height:1.5;word-break:break-word;white-space:pre-wrap}
-.nf-tag{display:inline-block;background:var(--gold);color:#fff;font-size:9.5px;font-weight:800;border-radius:99px;padding:0 6px;margin-left:5px;vertical-align:1px}
-.nf-status{margin-top:8px;font-size:12.5px;font-weight:700}
-.nf-status.ok{color:var(--green)}
-.nf-status.bad{color:var(--red)}
-.nf-status.wait{color:var(--amber)}
-.nf-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
-.btn-ok{background:var(--green-bg);color:var(--green)}
-.btn-ok:hover{background:var(--green);color:#fff}
-.book-row.flash{animation:bookFlash 1.1s ease-in-out 3;border-color:var(--gold)}
-@keyframes bookFlash{0%,100%{box-shadow:var(--shadow)}50%{box-shadow:0 0 0 4px rgba(231,168,59,.55)}}
-@media (max-width:600px){
-  .notif-panel{left:12px;right:12px;width:auto}
-}
 </style>
 </head>
 <body>
@@ -483,7 +436,6 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
           <path d="M30,0 V40 M0,20 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V40 M0,20 H60" stroke="#C8102E" stroke-width="7"/>
         </svg></button>
       </div>
-      <div class="notif-wrap" id="notifWrap"></div>
       <div class="auth-box" id="authBox"></div>
     </div>
   </div>
@@ -553,26 +505,6 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
     </div>
   </div>
 </footer>
-
-<!-- ======================= BILDIRISHNOMALAR PANELI ======================= -->
-<div class="notif-panel" id="notifPanel" role="dialog" aria-modal="false"></div>
-
-<!-- ======================= MODAL: Yuklovchiga xabar / tasdiqlash / o'chirish (admin) ======================= -->
-<div class="modal-overlay" id="modalNotifMsg">
-  <div class="modal">
-    <h3 id="nmTitle"></h3>
-    <div class="hint" id="nmBook" style="margin:-8px 0 10px;font-weight:700"></div>
-    <div class="field">
-      <label id="nmLbl"></label>
-      <textarea id="nmText" rows="4" maxlength="300"></textarea>
-      <div class="hint" id="nmHint"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="nmCancel" onclick="closeModal('modalNotifMsg')"></button>
-      <button class="btn btn-primary" id="nmSend" onclick="notifSubmit()"></button>
-    </div>
-  </div>
-</div>
 
 <div class="toast-wrap" id="toastWrap"></div>
 
@@ -762,7 +694,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.09.29-3";
+const APP_BUILD = "2026.09.29-2";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -1119,62 +1051,6 @@ en:{
 }
 };
 
-/* ---- Bildirishnomalar matnlari (UZ / RU / EN) ---- */
-const I18N_NOTIF = {
-uz:{
-  nfTitle:"Bildirishnomalar", nfEmptyAdmin:"Hozircha bildirishnomalar yo'q.", nfEmptyUser:"Sizga hali xabar kelmagan.",
-  nfBy:"{name} yukladi", nfPending:"⏳ Tasdiqlash kutilmoqda",
-  nfApprovedBy:"✅ Tasdiqladi: {name}", nfDeletedBy:"🗑 O'chirdi: {name}",
-  nfGo:"📍 Kitobga o'tish", nfApprove:"✅ Tasdiqlash", nfDelete:"🗑 O'chirish", nfMsg:"✉ Xabar",
-  nfModalApprove:"Kitobni tasdiqlash", nfModalDelete:"Kitobni o'chirish", nfModalNote:"Yuklovchiga xabar",
-  nfMsgLbl:"Yuklovchiga qisqa xabar", nfHintOpt:"Ixtiyoriy. Bu xabarni faqat yuklovchining o'zi ko'radi.",
-  nfHintReq:"Bu xabarni faqat yuklovchining o'zi ko'radi.",
-  nfSendApprove:"Tasdiqlash", nfSendDelete:"O'chirish", nfSendNote:"Yuborish",
-  nfThanksTpl:"Rahmat! «{title}» kitobingiz tasdiqlandi va saytda qoldi.",
-  nfDelTpl:"«{title}» kitobingiz o'chirildi. Sababi: ",
-  nfApproved:"Tasdiqlandi", nfDeletedOk:"Kitob o'chirildi", nfMsgSent:"Xabar yuborildi",
-  nfWriteMsg:"Xabar matnini yozing", nfAlready:"Bu bildirishnoma allaqachon ko'rib chiqilgan.",
-  nfBookGone:"Bu kitob saytda topilmadi (o'chirilgan bo'lishi mumkin).",
-  nfNewToast:"🔔 {name} yangi kitob yukladi: {title}", nfNewMsgToast:"🔔 Sizga yangi xabar keldi",
-  nfFrom:"Admin: {name}", nfBellLbl:"Bildirishnomalar"
-},
-ru:{
-  nfTitle:"Уведомления", nfEmptyAdmin:"Пока уведомлений нет.", nfEmptyUser:"Для вас пока нет сообщений.",
-  nfBy:"Загрузил(а): {name}", nfPending:"⏳ Ожидает подтверждения",
-  nfApprovedBy:"✅ Подтвердил(а): {name}", nfDeletedBy:"🗑 Удалил(а): {name}",
-  nfGo:"📍 Перейти к книге", nfApprove:"✅ Подтвердить", nfDelete:"🗑 Удалить", nfMsg:"✉ Сообщение",
-  nfModalApprove:"Подтвердить книгу", nfModalDelete:"Удалить книгу", nfModalNote:"Сообщение загрузившему",
-  nfMsgLbl:"Короткое сообщение загрузившему", nfHintOpt:"Необязательно. Это сообщение увидит только загрузивший.",
-  nfHintReq:"Это сообщение увидит только загрузивший.",
-  nfSendApprove:"Подтвердить", nfSendDelete:"Удалить", nfSendNote:"Отправить",
-  nfThanksTpl:"Спасибо! Ваша книга «{title}» подтверждена и осталась на сайте.",
-  nfDelTpl:"Ваша книга «{title}» удалена. Причина: ",
-  nfApproved:"Подтверждено", nfDeletedOk:"Книга удалена", nfMsgSent:"Сообщение отправлено",
-  nfWriteMsg:"Напишите текст сообщения", nfAlready:"Это уведомление уже обработано.",
-  nfBookGone:"Эта книга не найдена на сайте (возможно, удалена).",
-  nfNewToast:"🔔 {name} загрузил(а) новую книгу: {title}", nfNewMsgToast:"🔔 Вам пришло новое сообщение",
-  nfFrom:"Админ: {name}", nfBellLbl:"Уведомления"
-},
-en:{
-  nfTitle:"Notifications", nfEmptyAdmin:"No notifications yet.", nfEmptyUser:"You have no messages yet.",
-  nfBy:"Uploaded by {name}", nfPending:"⏳ Waiting for approval",
-  nfApprovedBy:"✅ Approved by {name}", nfDeletedBy:"🗑 Deleted by {name}",
-  nfGo:"📍 Go to the book", nfApprove:"✅ Approve", nfDelete:"🗑 Delete", nfMsg:"✉ Message",
-  nfModalApprove:"Approve the book", nfModalDelete:"Delete the book", nfModalNote:"Message to the uploader",
-  nfMsgLbl:"Short message to the uploader", nfHintOpt:"Optional. Only the uploader will see this message.",
-  nfHintReq:"Only the uploader will see this message.",
-  nfSendApprove:"Approve", nfSendDelete:"Delete", nfSendNote:"Send",
-  nfThanksTpl:"Thank you! Your book “{title}” was approved and stays on the site.",
-  nfDelTpl:"Your book “{title}” was deleted. Reason: ",
-  nfApproved:"Approved", nfDeletedOk:"Book deleted", nfMsgSent:"Message sent",
-  nfWriteMsg:"Write the message text", nfAlready:"This notification has already been handled.",
-  nfBookGone:"This book was not found on the site (it may have been deleted).",
-  nfNewToast:"🔔 {name} uploaded a new book: {title}", nfNewMsgToast:"🔔 You have a new message",
-  nfFrom:"Admin: {name}", nfBellLbl:"Notifications"
-}
-};
-Object.keys(I18N_NOTIF).forEach(l => Object.assign(I18N[l], I18N_NOTIF[l]));
-
 function t(k, p){
   let s = (I18N[lang] && I18N[lang][k]) || I18N.uz[k] || k;
   if(p){ for(const key in p){ s = s.split('{' + key + '}').join(p[key]); } }
@@ -1266,8 +1142,6 @@ function setLang(l){
 // Ochiq sahifani yangi tilda qayta chizish (iloji bo'lsa Firestore'ga qayta murojaat qilmasdan)
 function redraw(){
   renderAuthBox();
-  renderNotifBell();
-  if(notifOpen) renderNotifPanel();
   if(HANDOFF_ID){ renderHandoff(); return; }
   if(currentSectionId){
     if(!sections.length){ route(); return; }
@@ -1286,7 +1160,6 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   isAdmin = !!(user && ADMIN_EMAILS.includes(user.email));
   renderAuthBox();
-  startNotifications();
   if(!user) resumeTgLogin();
   try{
     await ensureDefaultSections();
@@ -1360,14 +1233,13 @@ function route(){
     // scroll holatini eslab qolamiz — orqaga qaytganda o'sha joyga tushamiz.
     if(!currentSectionId) homeScrollY = window.scrollY;
     currentSectionId = hash.split('/')[1];
-    currentTab = (pendingFocus && pendingFocus.sectionId === currentSectionId && TYPE_KEYS[pendingFocus.type]) ? pendingFocus.type : 'pdf';
+    currentTab = 'pdf';
     sectionSearchQuery = '';
     window.scrollTo(0, 0);   // yangi bo'lim har doim tepadan boshlansin
     renderSectionPage();
   } else {
     const wasInSection = !!currentSectionId;
     currentSectionId = null;
-    pendingFocus = null;
     renderHome().then(() => {
       // Shu orada foydalanuvchi allaqachon boshqa bo'limga o'tib ketgan bo'lsa
       // (tez-tez navigatsiya holati), bu yerdagi scroll tiklashni bekor qilamiz —
@@ -1657,7 +1529,6 @@ function bookViewUrl(b){
 function drawBookList(){
   const listEl = $('bookList');
   if(!listEl) return;
-  applyPendingFocus();
   const allDocs = bookCache ? bookCache.docs : [];
   const q = normSearch(sectionSearchQuery);
   const docs = q ? allDocs.filter(({data:b}) => normSearch(b.title).includes(q) || normSearch(b.description).includes(q)) : allDocs;
@@ -1691,7 +1562,7 @@ function drawBookList(){
     }
 
     return `
-      <div class="book-row" data-bid="${escapeHtml(id)}">
+      <div class="book-row">
         <div class="book-ic ${currentTab}">${icon}</div>
         <div class="book-body">
           <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
@@ -2401,8 +2272,7 @@ async function submitNewBook(){
     }
     if(hasBannedWords(title)){ toast(t('titleRejected'),'err'); return; }
     try{
-      const newRef = await db.collection('books').add({...base, ...descFields, type: selectedType, title, url: safeUrl(url)});
-      notifyUpload(newRef.id, title, selectedType, base.sectionId);
+      await db.collection('books').add({...base, ...descFields, type: selectedType, title, url: safeUrl(url)});
       finishAddBook(selectedType);
     }catch(e){
       toast(t('saveErr',{msg:e.message}), 'err');
@@ -2488,11 +2358,10 @@ async function submitNewBook(){
         }
         setProgress(job, 100, t('addingToSite'));
         try{
-          const newRef = await db.collection('books').add({
+          await db.collection('books').add({
             ...base, ...descFields, type: it.type, title, url: driveResult.url, driveFileId: driveResult.fileId,
             fileName: it.file.name, fileSize: it.file.size, ...(it.fp ? {fp: it.fp} : {})
           });
-          notifyUpload(newRef.id, title, it.type, base.sectionId);
         }catch(dbErr){
           deleteFromDrive(driveResult.fileId);   // saytda yozuv yo'q — Drive'da yetim fayl qolmasin
           throw new Error(t('driveOkDbFail',{msg:dbErr.message}));
@@ -2577,346 +2446,6 @@ async function deleteBook(id){
     renderBookList();
   }catch(e){ toast(e.message,'err'); }
 }
-
-/* ---------------------------------------------------------------------
-   BILDIRISHNOMALAR
-   - 'notifications' kolleksiyasi: har bir yuklangan material uchun yozuv (faqat adminlar o'qiydi).
-       status: 'pending' (oddiy foydalanuvchi yukladi — adminlar tasdiqlaydi/o'chiradi),
-               'info' (admin yukladi — boshqa adminlarga faqat xabar), 'approved', 'deleted'
-   - 'userMessages' kolleksiyasi: adminning yuklovchiga xabari (faqat shu yuklovchi va adminlar o'qiydi)
---------------------------------------------------------------------- */
-let notifItems = [];          // admin uchun bildirishnomalar
-let myMsgs = [];              // oddiy foydalanuvchi uchun xabarlar
-let notifUnsub = null, notifFirst = true, notifOpen = false, notifKey = '';
-let notifFreshIds = new Set();   // panel ochilganda o'qilmagan bo'lgan yozuvlar (ajratib ko'rsatish uchun)
-let notifModalCtx = null;
-let pendingFocus = null;      // {sectionId, type, bookId, ts} — bildirishnomadan kitobga o'tishda
-
-function notifTime(ts){
-  try{
-    if(!ts || !ts.toDate) return '';
-    const loc = lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-GB' : 'uz-UZ';
-    return ts.toDate().toLocaleString(loc, {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-  }catch(e){ return ''; }
-}
-
-function stopNotifications(){
-  if(notifUnsub){ try{ notifUnsub(); }catch(e){} notifUnsub = null; }
-  notifItems = []; myMsgs = []; notifFirst = true; notifKey = '';
-  closeNotifPanel();
-  renderNotifBell();
-}
-
-function startNotifications(){
-  const key = currentUser ? (currentUser.uid + '|' + (isAdmin ? 'a' : 'u')) : '';
-  if(key === notifKey) return;          // o'zgarmagan bo'lsa, qayta ulanmaymiz
-  stopNotifications();
-  notifKey = key;
-  if(!currentUser) return;
-  const uid = currentUser.uid;
-  const onErr = e => console.warn('Bildirishnoma xatosi:', e.message);
-
-  if(isAdmin){
-    notifUnsub = db.collection('notifications').orderBy('createdAt','desc').limit(60).onSnapshot(snap => {
-      notifItems = snap.docs.map(d => ({id:d.id, ...d.data()})).filter(n => n.uploaderUid !== uid);
-      if(!notifFirst){
-        snap.docChanges().forEach(ch => {
-          if(ch.type !== 'added' || ch.doc.metadata.hasPendingWrites) return;
-          const n = ch.doc.data();
-          if(n.uploaderUid !== uid) toast(t('nfNewToast',{name: n.uploaderName || '?', title: n.bookTitle || ''}), undefined, 6000);
-        });
-      }
-      notifFirst = false;
-      renderNotifBell();
-      if(notifOpen) renderNotifPanel();
-    }, onErr);
-  } else {
-    // Faqat shu foydalanuvchiga yuborilgan xabarlar (toUid == o'zining uid'i)
-    notifUnsub = db.collection('userMessages').where('toUid','==', uid).onSnapshot(snap => {
-      myMsgs = snap.docs.map(d => ({id:d.id, ...d.data()}))
-        .sort((a,b) => ((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
-      if(!notifFirst){
-        snap.docChanges().forEach(ch => {
-          if(ch.type === 'added' && !ch.doc.metadata.hasPendingWrites) toast(t('nfNewMsgToast'), undefined, 6000);
-        });
-      }
-      notifFirst = false;
-      renderNotifBell();
-      if(notifOpen) renderNotifPanel();
-    }, onErr);
-  }
-}
-
-function notifUnreadCount(){
-  if(!currentUser) return 0;
-  const uid = currentUser.uid;
-  return isAdmin
-    ? notifItems.filter(n => !(n.readBy || []).includes(uid)).length
-    : myMsgs.filter(m => !m.read).length;
-}
-
-const BELL_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
-
-function renderNotifBell(){
-  const el = $('notifWrap');
-  if(!el) return;
-  if(!currentUser){ el.innerHTML = ''; return; }
-  const n = notifUnreadCount();
-  el.innerHTML = `<button type="button" class="notif-btn${n ? ' has-new' : ''}" id="notifBtn" title="${escapeHtml(t('nfBellLbl'))}" aria-label="${escapeHtml(t('nfBellLbl'))}" onclick="toggleNotifPanel(event)">${BELL_SVG}${n ? `<span class="notif-badge">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
-}
-
-function toggleNotifPanel(e){
-  if(e) e.stopPropagation();
-  if(notifOpen){ closeNotifPanel(); return; }
-  openNotifPanel();
-}
-
-function openNotifPanel(){
-  if(!currentUser) return;
-  const uid = currentUser.uid;
-  // Ochilgan paytdagi o'qilmaganlarni eslab qolamiz (ajratib ko'rsatiladi), so'ng o'qilgan deb belgilaymiz
-  notifFreshIds = new Set(isAdmin
-    ? notifItems.filter(n => !(n.readBy || []).includes(uid)).map(n => n.id)
-    : myMsgs.filter(m => !m.read).map(m => m.id));
-  notifOpen = true;
-  const btn = $('notifBtn'), panel = $('notifPanel');
-  if(btn){ panel.style.top = Math.round(btn.getBoundingClientRect().bottom + 8) + 'px'; }
-  renderNotifPanel();
-  panel.classList.add('show');
-  markNotifsRead();
-}
-
-function closeNotifPanel(){
-  notifOpen = false;
-  const p = $('notifPanel');
-  if(p) p.classList.remove('show');
-}
-
-async function markNotifsRead(){
-  if(!currentUser) return;
-  try{
-    const uid = currentUser.uid;
-    const batch = db.batch();
-    let cnt = 0;
-    if(isAdmin){
-      notifItems.forEach(n => {
-        if((n.readBy || []).includes(uid)) return;
-        batch.update(db.collection('notifications').doc(n.id), {readBy: firebase.firestore.FieldValue.arrayUnion(uid)});
-        cnt++;
-      });
-    } else {
-      myMsgs.forEach(m => {
-        if(m.read) return;
-        batch.update(db.collection('userMessages').doc(m.id), {read: true});
-        cnt++;
-      });
-    }
-    if(cnt) await batch.commit();
-  }catch(e){ console.warn('O\'qilgan deb belgilashda xato:', e.message); }
-}
-
-function renderNotifPanel(){
-  const p = $('notifPanel');
-  if(!p) return;
-  let body = '';
-  if(isAdmin){
-    body = notifItems.length ? notifItems.map(notifItemHtml).join('') : `<div class="np-empty">${escapeHtml(t('nfEmptyAdmin'))}</div>`;
-  } else {
-    body = myMsgs.length ? myMsgs.map(userMsgHtml).join('') : `<div class="np-empty">${escapeHtml(t('nfEmptyUser'))}</div>`;
-  }
-  p.innerHTML = `
-    <div class="np-head"><h4>🔔 ${escapeHtml(t('nfTitle'))}</h4><button type="button" class="np-close" onclick="closeNotifPanel()" aria-label="✕">✕</button></div>
-    ${body}`;
-}
-
-function notifItemHtml(n){
-  const sec = sections.find(s => s.id === n.sectionId);
-  const secLbl = sec ? secName(sec) : (n.sectionName || '');
-  const typeLbl = TYPE_KEYS[n.bookType] ? t(TYPE_KEYS[n.bookType]) : '';
-  const icon = TYPE_ICONS[n.bookType] || '📚';
-  const fresh = notifFreshIds.has(n.id);
-  const pending = n.status === 'pending';
-  const gone = n.status === 'deleted';
-  const sub = [t('nfBy',{name: n.uploaderName || '?'}), secLbl, typeLbl, notifTime(n.createdAt)].filter(Boolean).map(escapeHtml).join(' · ');
-  const tag = n.byAdmin ? '<span class="nf-tag">ADMIN</span>' : '';
-
-  let status = '';
-  if(pending) status = `<div class="nf-status wait">${escapeHtml(t('nfPending'))}</div>`;
-  else if(n.status === 'approved') status = `<div class="nf-status ok">${escapeHtml(t('nfApprovedBy',{name: n.handledByName || '?'}))}</div>`;
-  else if(gone) status = `<div class="nf-status bad">${escapeHtml(t('nfDeletedBy',{name: n.handledByName || '?'}))}</div>`;
-
-  // Tasdiqlash / o'chirish tugmalari FAQAT oddiy foydalanuvchi yuklagan va hali ko'rilmagan yozuvlarda.
-  // Admin yuklagan yozuvlarda (byAdmin) — faqat "Kitobga o'tish".
-  const acts = [];
-  if(!gone) acts.push(`<button type="button" class="btn btn-outline btn-sm" onclick="notifGo('${n.id}')">${escapeHtml(t('nfGo'))}</button>`);
-  if(pending){
-    acts.push(`<button type="button" class="btn btn-ok btn-sm" onclick="notifOpenModal('${n.id}','approve')">${escapeHtml(t('nfApprove'))}</button>`);
-    acts.push(`<button type="button" class="btn btn-danger btn-sm" onclick="notifOpenModal('${n.id}','delete')">${escapeHtml(t('nfDelete'))}</button>`);
-  }
-  if(!n.byAdmin) acts.push(`<button type="button" class="btn btn-outline btn-sm" onclick="notifOpenModal('${n.id}','note')">${escapeHtml(t('nfMsg'))}</button>`);
-
-  return `<div class="nf${fresh ? ' unread' : ''}">
-    <div class="nf-title">${icon} ${escapeHtml(n.bookTitle || '')}${tag}</div>
-    <div class="nf-sub">${sub}</div>
-    ${status}
-    <div class="nf-actions">${acts.join('')}</div>
-  </div>`;
-}
-
-function userMsgHtml(m){
-  const icon = m.kind === 'thanks' ? '💚' : m.kind === 'removed' ? '🗑' : '✉';
-  const sub = [m.bookTitle ? '📚 ' + m.bookTitle : '', notifTime(m.createdAt)].filter(Boolean).map(escapeHtml).join(' · ');
-  return `<div class="nf${notifFreshIds.has(m.id) ? ' unread' : ''}">
-    <div class="nf-title">${icon} ${escapeHtml(t('nfFrom',{name: m.fromName || 'Admin'}))}</div>
-    <div class="nf-text">${escapeHtml(m.text || '')}</div>
-    ${sub ? `<div class="nf-sub">${sub}</div>` : ''}
-  </div>`;
-}
-
-/* ---- Yuklash paytida bildirishnoma yaratish ---- */
-function notifyUpload(bookId, title, type, sectionId){
-  if(!currentUser || !bookId) return;
-  const sec = sections.find(s => s.id === sectionId);
-  db.collection('notifications').add({
-    kind: 'upload', bookId, bookTitle: String(title || '').slice(0, 200), bookType: type,
-    sectionId: sectionId || '', sectionName: sec ? (sec.name || '') : '',
-    uploaderUid: currentUser.uid, uploaderName: currentUser.displayName || currentUser.email || '',
-    byAdmin: !!isAdmin, status: isAdmin ? 'info' : 'pending',
-    readBy: [currentUser.uid],
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(e => console.warn('Bildirishnoma yaratilmadi:', e.message));
-}
-
-/* ---- Bildirishnomadan kitobga o'tish ---- */
-async function notifGo(id){
-  const n = notifItems.find(x => x.id === id);
-  if(!n) return;
-  try{
-    const snap = await db.collection('books').doc(n.bookId).get();
-    if(!snap.exists){ toast(t('nfBookGone'), 'err'); return; }
-  }catch(e){ /* tekshirib bo'lmasa ham o'tib ko'ramiz */ }
-  closeNotifPanel();
-  const type = TYPE_KEYS[n.bookType] ? n.bookType : 'pdf';
-  pendingFocus = {sectionId: n.sectionId, type, bookId: n.bookId, ts: Date.now()};
-  const target = '#section/' + n.sectionId;
-  if(currentSectionId === n.sectionId && location.hash === target){
-    await switchTab(type);      // shu bo'limda turgan bo'lsak, faqat kerakli bandni ochamiz
-  } else {
-    location.hash = target;     // route() currentTab ni pendingFocus.type ga o'rnatadi
-  }
-}
-
-function applyPendingFocus(){
-  if(!pendingFocus) return;
-  setTimeout(() => {
-    const pf = pendingFocus;
-    if(!pf) return;
-    if(Date.now() - pf.ts > 20000){ pendingFocus = null; return; }
-    if(pf.sectionId !== currentSectionId || pf.type !== currentTab) return;
-    pendingFocus = null;
-    const row = document.querySelector('.book-row[data-bid="' + pf.bookId + '"]');
-    if(!row){ toast(t('nfBookGone'), 'err'); return; }
-    row.scrollIntoView({behavior:'smooth', block:'center'});
-    row.classList.add('flash');
-    setTimeout(() => row.classList.remove('flash'), 4000);
-  }, 200);
-}
-
-/* ---- Tasdiqlash / o'chirish / xabar oynasi ---- */
-function notifOpenModal(id, mode){
-  if(!isAdmin) return;
-  const n = notifItems.find(x => x.id === id);
-  if(!n) return;
-  notifModalCtx = {id, mode};
-  const title = n.bookTitle || '';
-  $('nmTitle').textContent = t(mode === 'approve' ? 'nfModalApprove' : mode === 'delete' ? 'nfModalDelete' : 'nfModalNote');
-  $('nmBook').textContent = title + ' — ' + (n.uploaderName || '');
-  $('nmLbl').textContent = t('nfMsgLbl');
-  $('nmHint').textContent = t(mode === 'note' ? 'nfHintReq' : 'nfHintOpt');
-  $('nmText').value = mode === 'approve' ? t('nfThanksTpl',{title}) : mode === 'delete' ? t('nfDelTpl',{title}) : '';
-  $('nmCancel').textContent = t('cancel');
-  const sb = $('nmSend');
-  sb.textContent = t(mode === 'approve' ? 'nfSendApprove' : mode === 'delete' ? 'nfSendDelete' : 'nfSendNote');
-  sb.className = 'btn ' + (mode === 'delete' ? 'btn-danger-solid' : 'btn-primary');
-  sb.disabled = false;
-  openModal('modalNotifMsg');
-  setTimeout(() => { const ta = $('nmText'); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 60);
-}
-
-// Bir vaqtda ikki admin bosib yubormasligi uchun tranzaksiya: faqat 'pending' holatdagini qabul qiladi
-async function claimNotif(id, status){
-  const ref = db.collection('notifications').doc(id);
-  return db.runTransaction(async tx => {
-    const s = await tx.get(ref);
-    if(!s.exists || s.data().status !== 'pending') return false;
-    tx.update(ref, {
-      status, handledBy: currentUser.uid,
-      handledByName: currentUser.displayName || currentUser.email || '',
-      handledAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    return true;
-  });
-}
-
-function sendUserMessage(n, kind, text){
-  return db.collection('userMessages').add({
-    toUid: n.uploaderUid, kind, text, bookTitle: n.bookTitle || '',
-    fromUid: currentUser.uid, fromName: currentUser.displayName || currentUser.email || 'Admin',
-    read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-}
-
-async function notifSubmit(){
-  const ctx = notifModalCtx;
-  if(!ctx || !isAdmin || !currentUser) return;
-  const n = notifItems.find(x => x.id === ctx.id);
-  if(!n){ closeModal('modalNotifMsg'); return; }
-  const text = $('nmText').value.trim().slice(0, 300);
-  if(text && hasBannedWords(text)){ toast(t('badWord'), 'err'); return; }
-  if(ctx.mode === 'note' && !text){ toast(t('nfWriteMsg'), 'err'); return; }
-
-  const btn = $('nmSend');
-  btn.disabled = true;
-  try{
-    if(ctx.mode === 'note'){
-      await sendUserMessage(n, 'note', text);
-      toast(t('nfMsgSent'), 'ok');
-    } else if(ctx.mode === 'approve'){
-      if(!(await claimNotif(n.id, 'approved'))){ toast(t('nfAlready'), 'err'); closeModal('modalNotifMsg'); return; }
-      if(text) await sendUserMessage(n, 'thanks', text);
-      toast(t('nfApproved'), 'ok');
-    } else {
-      if(!(await claimNotif(n.id, 'deleted'))){ toast(t('nfAlready'), 'err'); closeModal('modalNotifMsg'); return; }
-      try{
-        const bref = db.collection('books').doc(n.bookId);
-        const snap = await bref.get();
-        const data = snap.exists ? snap.data() : null;
-        if(snap.exists) await bref.delete();
-        if(data && data.driveFileId) deleteFromDrive(data.driveFileId);
-      }catch(delErr){
-        // O'chirib bo'lmadi — holatni qaytaramiz, admin qayta urinib ko'rsin
-        try{ await db.collection('notifications').doc(n.id).update({status:'pending', handledBy:null, handledByName:null, handledAt:null}); }catch(e){}
-        throw delErr;
-      }
-      if(text) await sendUserMessage(n, 'removed', text);
-      toast(t('nfDeletedOk'), 'ok');
-      if(currentSectionId) renderBookList();
-    }
-    closeModal('modalNotifMsg');
-    notifModalCtx = null;
-  }catch(e){
-    toast(e.message, 'err');
-  }finally{
-    btn.disabled = false;
-  }
-}
-
-document.addEventListener('click', e => {
-  if(!notifOpen) return;
-  const p = $('notifPanel');
-  if(p && !p.contains(e.target) && !e.target.closest('#notifWrap') && !e.target.closest('.modal-overlay')) closeNotifPanel();
-});
-document.addEventListener('keydown', e => { if(e.key === 'Escape' && notifOpen && !document.querySelector('.modal-overlay.show')) closeNotifPanel(); });
 
 /* ---------------------------------------------------------------------
    TELEGRAM MINI APP: Google kirishni oddiy brauzer orqali bajarish
