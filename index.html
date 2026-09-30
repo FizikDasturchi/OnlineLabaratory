@@ -1136,7 +1136,8 @@ uz:{
   nfWriteMsg:"Xabar matnini yozing", nfAlready:"Bu bildirishnoma allaqachon ko'rib chiqilgan.",
   nfBookGone:"Bu kitob saytda topilmadi (o'chirilgan bo'lishi mumkin).",
   nfNewToast:"🔔 {name} yangi kitob yukladi: {title}", nfNewMsgToast:"🔔 Sizga yangi xabar keldi",
-  nfFrom:"Admin: {name}", nfBellLbl:"Bildirishnomalar"
+  nfFrom:"Admin: {name}", nfBellLbl:"Bildirishnomalar", nfHide:"Yashirish",
+  nfWriteErr:"Bildirishnoma yuborilmadi: {msg}. Firestore Rules ni tekshiring.", nfReadErr:"Bildirishnomalarni o'qib bo'lmadi: {msg}. Firestore Rules ni tekshiring."
 },
 ru:{
   nfTitle:"Уведомления", nfEmptyAdmin:"Пока уведомлений нет.", nfEmptyUser:"Для вас пока нет сообщений.",
@@ -1153,7 +1154,8 @@ ru:{
   nfWriteMsg:"Напишите текст сообщения", nfAlready:"Это уведомление уже обработано.",
   nfBookGone:"Эта книга не найдена на сайте (возможно, удалена).",
   nfNewToast:"🔔 {name} загрузил(а) новую книгу: {title}", nfNewMsgToast:"🔔 Вам пришло новое сообщение",
-  nfFrom:"Админ: {name}", nfBellLbl:"Уведомления"
+  nfFrom:"Админ: {name}", nfBellLbl:"Уведомления", nfHide:"Скрыть",
+  nfWriteErr:"Уведомление не отправлено: {msg}. Проверьте Firestore Rules.", nfReadErr:"Не удалось прочитать уведомления: {msg}. Проверьте Firestore Rules."
 },
 en:{
   nfTitle:"Notifications", nfEmptyAdmin:"No notifications yet.", nfEmptyUser:"You have no messages yet.",
@@ -1170,7 +1172,8 @@ en:{
   nfWriteMsg:"Write the message text", nfAlready:"This notification has already been handled.",
   nfBookGone:"This book was not found on the site (it may have been deleted).",
   nfNewToast:"🔔 {name} uploaded a new book: {title}", nfNewMsgToast:"🔔 You have a new message",
-  nfFrom:"Admin: {name}", nfBellLbl:"Notifications"
+  nfFrom:"Admin: {name}", nfBellLbl:"Notifications", nfHide:"Hide",
+  nfWriteErr:"Notification was not sent: {msg}. Check Firestore Rules.", nfReadErr:"Could not read notifications: {msg}. Check Firestore Rules."
 }
 };
 Object.keys(I18N_NOTIF).forEach(l => Object.assign(I18N[l], I18N_NOTIF[l]));
@@ -2614,11 +2617,15 @@ function startNotifications(){
   notifKey = key;
   if(!currentUser) return;
   const uid = currentUser.uid;
-  const onErr = e => console.warn('Bildirishnoma xatosi:', e.message);
+  let errShown = false;
+  const onErr = e => {
+    console.warn('Bildirishnoma xatosi:', e.message);
+    if(!errShown){ errShown = true; toast(t('nfReadErr',{msg: e.message}), 'err', 12000); }
+  };
 
   if(isAdmin){
-    notifUnsub = db.collection('notifications').orderBy('createdAt','desc').limit(60).onSnapshot(snap => {
-      notifItems = snap.docs.map(d => ({id:d.id, ...d.data()})).filter(n => n.uploaderUid !== uid);
+    notifUnsub = db.collection('notifications').orderBy('createdAt','desc').limit(100).onSnapshot(snap => {
+      notifItems = snap.docs.map(d => ({id:d.id, ...d.data()})).filter(n => n.uploaderUid !== uid && !(n.hiddenBy || []).includes(uid));
       if(!notifFirst){
         snap.docChanges().forEach(ch => {
           if(ch.type !== 'added' || ch.doc.metadata.hasPendingWrites) return;
@@ -2754,6 +2761,7 @@ function notifItemHtml(n){
     acts.push(`<button type="button" class="btn btn-danger btn-sm" onclick="notifOpenModal('${n.id}','delete')">${escapeHtml(t('nfDelete'))}</button>`);
   }
   if(!n.byAdmin) acts.push(`<button type="button" class="btn btn-outline btn-sm" onclick="notifOpenModal('${n.id}','note')">${escapeHtml(t('nfMsg'))}</button>`);
+  else acts.push(`<button type="button" class="btn btn-ghost btn-sm" onclick="notifHide('${n.id}')">${escapeHtml(t('nfHide'))}</button>`);
 
   return `<div class="nf${fresh ? ' unread' : ''}">
     <div class="nf-title">${icon} ${escapeHtml(n.bookTitle || '')}${tag}</div>
@@ -2784,7 +2792,10 @@ function notifyUpload(bookId, title, type, sectionId){
     byAdmin: !!isAdmin, status: isAdmin ? 'info' : 'pending',
     readBy: [currentUser.uid],
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(e => console.warn('Bildirishnoma yaratilmadi:', e.message));
+  }).catch(e => {
+    console.warn('Bildirishnoma yaratilmadi:', e.message);
+    toast(t('nfWriteErr',{msg: e.message}), 'err', 12000);
+  });
 }
 
 /* ---- Bildirishnomadan kitobga o'tish ---- */
@@ -2843,19 +2854,24 @@ function notifOpenModal(id, mode){
   setTimeout(() => { const ta = $('nmText'); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 60);
 }
 
-// Bir vaqtda ikki admin bosib yubormasligi uchun tranzaksiya: faqat 'pending' holatdagini qabul qiladi
-async function claimNotif(id, status){
+// Bir vaqtda ikki admin bosib yubormasligi uchun tranzaksiya: faqat 'pending' bo'lsa qabul qiladi
+// va bildirishnomani o'chiradi (shunda u barcha adminlarda ro'yxatdan yo'qoladi). Asl ma'lumotni qaytaradi.
+async function claimNotif(id){
   const ref = db.collection('notifications').doc(id);
   return db.runTransaction(async tx => {
     const s = await tx.get(ref);
-    if(!s.exists || s.data().status !== 'pending') return false;
-    tx.update(ref, {
-      status, handledBy: currentUser.uid,
-      handledByName: currentUser.displayName || currentUser.email || '',
-      handledAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    return true;
+    if(!s.exists || s.data().status !== 'pending') return null;
+    tx.delete(ref);
+    return s.data();
   });
+}
+
+// Admin yuklagan (faqat ma'lumot) bildirishnomani o'zi uchun yashirish
+async function notifHide(id){
+  if(!currentUser) return;
+  try{
+    await db.collection('notifications').doc(id).update({hiddenBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)});
+  }catch(e){ toast(e.message, 'err'); }
 }
 
 function sendUserMessage(n, kind, text){
@@ -2882,11 +2898,12 @@ async function notifSubmit(){
       await sendUserMessage(n, 'note', text);
       toast(t('nfMsgSent'), 'ok');
     } else if(ctx.mode === 'approve'){
-      if(!(await claimNotif(n.id, 'approved'))){ toast(t('nfAlready'), 'err'); closeModal('modalNotifMsg'); return; }
+      if(!(await claimNotif(n.id))){ toast(t('nfAlready'), 'err'); closeModal('modalNotifMsg'); return; }
       if(text) await sendUserMessage(n, 'thanks', text);
       toast(t('nfApproved'), 'ok');
     } else {
-      if(!(await claimNotif(n.id, 'deleted'))){ toast(t('nfAlready'), 'err'); closeModal('modalNotifMsg'); return; }
+      const orig = await claimNotif(n.id);
+      if(!orig){ toast(t('nfAlready'), 'err'); closeModal('modalNotifMsg'); return; }
       try{
         const bref = db.collection('books').doc(n.bookId);
         const snap = await bref.get();
@@ -2894,8 +2911,8 @@ async function notifSubmit(){
         if(snap.exists) await bref.delete();
         if(data && data.driveFileId) deleteFromDrive(data.driveFileId);
       }catch(delErr){
-        // O'chirib bo'lmadi — holatni qaytaramiz, admin qayta urinib ko'rsin
-        try{ await db.collection('notifications').doc(n.id).update({status:'pending', handledBy:null, handledByName:null, handledAt:null}); }catch(e){}
+        // Kitobni o'chirib bo'lmadi — bildirishnomani joyiga qaytaramiz, admin qayta urinib ko'rsin
+        try{ await db.collection('notifications').doc(n.id).set(orig); }catch(e){}
         throw delErr;
       }
       if(text) await sendUserMessage(n, 'removed', text);
