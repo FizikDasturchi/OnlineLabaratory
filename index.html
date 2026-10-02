@@ -762,7 +762,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.09.29-3";
+const APP_BUILD = "2026.10.02-1";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -2370,7 +2370,15 @@ function deleteFromDrive(fileId){
 
 function warnUnload(e){ e.preventDefault(); e.returnValue = ''; }
 
+let submittingBook = false;
 async function submitNewBook(){
+  if(submittingBook) return;      // ikki marta bosish / ikki marta ishga tushish — ikkinchisi e'tiborsiz
+  submittingBook = true;
+  try{ await submitNewBookInner(); }
+  finally{ submittingBook = false; }
+}
+
+async function submitNewBookInner(){
   if(!requireAuth()) return;
   if(currentJob && !currentJob.done) return;   // ikki marta bosilmasin
   if(!selectedType){ toast(t('pickType'),'err'); return; }
@@ -2403,12 +2411,24 @@ async function submitNewBook(){
       try{ title = new URL(safeUrl(url)).hostname.replace(/^www\./, ''); }catch(e){ title = url; }
     }
     if(hasBannedWords(title)){ toast(t('titleRejected'),'err'); return; }
+    const addBtn = $('submitBookBtn');
+    addBtn.disabled = true;
     try{
-      const newRef = await db.collection('books').add({...base, ...descFields, type: selectedType, title, url: safeUrl(url)});
+      // Shu bo'limda aynan shu havola shu turda allaqachon bo'lsa, ikkinchi marta qo'shilmaydi
+      const safe = safeUrl(url);
+      const exist = await db.collection('books').where('sectionId','==', base.sectionId).where('type','==', selectedType).get();
+      if(exist.docs.some(d => (d.data().url || '') === safe)){
+        closeModal('modalBook');
+        toast(t('dupToast',{d: 1, names: title}), undefined, 6000);
+        return;
+      }
+      const newRef = await db.collection('books').add({...base, ...descFields, type: selectedType, title, url: safe});
       notifyUpload(newRef.id, title, selectedType, base.sectionId);
       finishAddBook(selectedType);
     }catch(e){
       toast(t('saveErr',{msg:e.message}), 'err');
+    }finally{
+      addBtn.disabled = false;
     }
     return;
   }
@@ -2591,6 +2611,7 @@ async function deleteBook(id){
 let notifItems = [];          // admin uchun bildirishnomalar
 let myMsgs = [];              // oddiy foydalanuvchi uchun xabarlar
 let notifUnsub = null, notifFirst = true, notifOpen = false, notifKey = '';
+let notifShown = [];             // foydalanuvchi panelni ochganda ko'rsatilayotgan xabarlar (bazadan o'chsa ham panel yopilgunча turadi)
 let notifFreshIds = new Set();   // panel ochilganda o'qilmagan bo'lgan yozuvlar (ajratib ko'rsatish uchun)
 let notifModalCtx = null;
 let pendingFocus = null;      // {sectionId, type, bookId, ts} — bildirishnomadan kitobga o'tishda
@@ -2644,8 +2665,13 @@ function startNotifications(){
         .sort((a,b) => ((b.createdAt && b.createdAt.seconds) || 9e15) - ((a.createdAt && a.createdAt.seconds) || 9e15));
       if(!notifFirst){
         snap.docChanges().forEach(ch => {
-          if(ch.type === 'added' && !ch.doc.metadata.hasPendingWrites) toast(t('nfNewMsgToast'), undefined, 6000);
+          if(ch.type === 'added' && !ch.doc.metadata.hasPendingWrites && !notifOpen) toast(t('nfNewMsgToast'), undefined, 6000);
         });
+      }
+      if(notifOpen){
+        let added = false;
+        myMsgs.forEach(m => { if(!notifShown.some(x => x.id === m.id)){ notifShown.unshift(m); notifFreshIds.add(m.id); added = true; } });
+        if(added) markNotifsRead();
       }
       notifFirst = false;
       renderNotifBell();
@@ -2686,6 +2712,7 @@ function openNotifPanel(){
     ? notifItems.filter(n => !(n.readBy || []).includes(uid)).map(n => n.id)
     : myMsgs.filter(m => !m.read).map(m => m.id));
   notifOpen = true;
+  notifShown = isAdmin ? [] : myMsgs.slice();
   const btn = $('notifBtn'), panel = $('notifPanel');
   if(btn){ panel.style.top = Math.round(btn.getBoundingClientRect().bottom + 8) + 'px'; }
   renderNotifPanel();
@@ -2695,6 +2722,7 @@ function openNotifPanel(){
 
 function closeNotifPanel(){
   notifOpen = false;
+  notifShown = [];
   const p = $('notifPanel');
   if(p) p.classList.remove('show');
 }
@@ -2712,9 +2740,9 @@ async function markNotifsRead(){
         cnt++;
       });
     } else {
+      // Yuklovchi xabarni ochib ko'rdi — bazadan o'chiramiz (panelda yopilgunча ko'rinib turadi)
       myMsgs.forEach(m => {
-        if(m.read) return;
-        batch.update(db.collection('userMessages').doc(m.id), {read: true});
+        batch.delete(db.collection('userMessages').doc(m.id));
         cnt++;
       });
     }
@@ -2729,7 +2757,7 @@ function renderNotifPanel(){
   if(isAdmin){
     body = notifItems.length ? notifItems.map(notifItemHtml).join('') : `<div class="np-empty">${escapeHtml(t('nfEmptyAdmin'))}</div>`;
   } else {
-    body = myMsgs.length ? myMsgs.map(userMsgHtml).join('') : `<div class="np-empty">${escapeHtml(t('nfEmptyUser'))}</div>`;
+    body = notifShown.length ? notifShown.map(userMsgHtml).join('') : `<div class="np-empty">${escapeHtml(t('nfEmptyUser'))}</div>`;
   }
   p.innerHTML = `
     <div class="np-head"><h4>🔔 ${escapeHtml(t('nfTitle'))}</h4><button type="button" class="np-close" onclick="closeNotifPanel()" aria-label="✕">✕</button></div>
