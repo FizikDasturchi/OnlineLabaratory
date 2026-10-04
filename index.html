@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0d1f2b">
+<script>
+/* Kun/tun mavzusi: saqlangan tanlov, bo'lmasa qurilma sozlamasi */
+(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+</script>
 <title>Fizika Fakulteti — Onlayn Kutubxona</title>
 <link rel="icon" href="favicon.ico">
 
@@ -589,8 +593,7 @@ body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,'He
 
 /* ── Telefon ── */
 @media (max-width:600px){
-  .hero{min-height:240px;padding:14px 2px 20px}
-  .hero-atom{opacity:.4;right:-60px;width:230px;height:230px;margin-top:-135px}
+  .hero{min-height:300px;padding:14px 2px 20px}
   .sec-card.add-card{flex-direction:row;min-height:84px}
   .sec-card.add-card .plus{width:48px;height:48px;font-size:30px}
   .page-head .btn-gold{width:100%}
@@ -602,11 +605,133 @@ body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,'He
   .modal{animation:none}
   .sec-card,.book-row,.btn{transition:none}
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   DIZAYN 3.0 — kun/tun mavzusi, jonli fon, aniq o'qiladigan yozuvlar
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  color-scheme:light;
+  --surface:#fff; --surface-2:#fff;
+  --pill:rgba(255,255,255,.86); --pill-strong:rgba(255,255,255,.92);
+  --btn-bg:rgba(255,255,255,.92); --top-bg:rgba(255,255,255,.78);
+}
+html{overflow-x:clip}
+[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#07111a; --border:rgba(255,255,255,.14);
+  --accent:#43c887; --accent-l:rgba(67,200,135,.16); --accent-ring:rgba(67,200,135,.6);
+  --text:#e9f3f0; --sub:#9fb6bb;
+  --glass:rgba(12,26,38,.74); --glass-line:rgba(255,255,255,.13);
+  --surface:#10212e; --surface-2:#172c3b;
+  --pill:rgba(10,23,34,.80); --pill-strong:rgba(10,23,34,.88);
+  --btn-bg:rgba(255,255,255,.08); --top-bg:rgba(8,19,29,.80);
+  --red-bg:rgba(239,68,68,.16); --green-bg:rgba(34,197,94,.14); --amber-bg:rgba(217,119,6,.18);
+  --shadow:0 4px 22px rgba(0,0,0,.45);
+}
+
+/* ── Jonli fon ── */
+.fx-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.site-bg{transform-origin:62% 38%;animation:kenBurns 70s ease-in-out infinite alternate}
+@keyframes kenBurns{from{transform:scale(1.02)}to{transform:scale(1.1)}}
+/* Kunduzi: yuqori o'ng burchakda quyosh nuri */
+.site-bg::before{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;mix-blend-mode:screen;
+  background:radial-gradient(circle at 90% 4%, rgba(255,214,120,.60), rgba(255,214,120,0) 36%);
+}
+/* Kechasi: osmon chuqurlashadi, oy nuri va yashil shafaq */
+[data-theme="dark"] .site-bg::before{
+  background:
+    radial-gradient(circle at 90% 6%, rgba(196,220,255,.50), rgba(196,220,255,0) 26%),
+    radial-gradient(ellipse at 10% 100%, rgba(40,210,140,.26), rgba(40,210,140,0) 52%);
+}
+[data-theme="dark"] .site-bg::after{
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(2,8,20,.55), transparent 65%),
+    linear-gradient(180deg, rgba(3,10,22,.80) 0%, rgba(4,12,24,.70) 45%, rgba(3,16,14,.82) 100%);
+}
+
+/* ── Mavzu tugmasi: hilol ↔ quyosh ── */
+.theme-toggle{
+  width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);
+  background:var(--btn-bg);color:#33508a;display:inline-flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:border-color .2s,box-shadow .3s,color .4s,background .3s;
+  filter:drop-shadow(0 0 0 transparent);
+}
+.theme-toggle:hover{border-color:var(--accent);box-shadow:0 0 0 4px rgba(51,80,138,.15)}
+.theme-toggle svg{transition:transform .7s cubic-bezier(.5,0,.2,1);overflow:visible}
+.tg-cut{transition:transform .7s cubic-bezier(.5,0,.2,1)}
+.tg-rays{transform-origin:16px 16px;opacity:0;transform:rotate(-90deg) scale(.35);transition:transform .7s cubic-bezier(.5,0,.2,1),opacity .45s}
+[data-theme="dark"] .theme-toggle{color:#ffd25e}
+[data-theme="dark"] .theme-toggle:hover{box-shadow:0 0 0 4px rgba(255,210,94,.18)}
+[data-theme="dark"] .theme-toggle svg{transform:rotate(180deg);filter:drop-shadow(0 0 5px rgba(255,200,80,.75))}
+[data-theme="dark"] .tg-cut{transform:translate(16px,-16px)}
+[data-theme="dark"] .tg-rays{opacity:1;transform:none}
+
+/* Mavzu almashganda yoyilib o'tadigan to'lqin */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1}
+::view-transition-new(root){z-index:2}
+
+/* ── Mavzuga bog'liq yuzalar ── */
+.topbar{background:linear-gradient(90deg,transparent,var(--sun) 20%,var(--accent) 60%,transparent) bottom/100% 2px no-repeat, var(--top-bg)}
+.btn-outline{background:var(--btn-bg);color:var(--text);border-color:var(--border)}
+.lang-btn,.notif-btn{background:var(--btn-bg);color:var(--text)}
+.sec-del,.sec-edit{background:var(--surface)}
+.modal{background:var(--surface);color:var(--text)}
+.field input[type=text],.field input[type=url],.field select,.field textarea{background:var(--surface-2);color:var(--text)}
+.field input::placeholder,.field textarea::placeholder,.search-input::placeholder{color:var(--sub);opacity:.8}
+.type-choice button{background:var(--surface-2);color:var(--text)}
+.frow{background:var(--surface-2)}
+.notif-panel,.np-head{background:var(--surface)}
+.notif-badge{border-color:var(--surface)}
+.signin-card{background:var(--surface)}
+.search-input{background:var(--pill-strong);color:var(--text)}
+.page-head h2,.crumbs,.drag-hint,.search-results-head{background:var(--pill)}
+.tabs{background:var(--pill)}
+.empty{background:var(--pill-strong)}
+.book-desc{color:var(--sub)}
+.book-row{position:relative}
+[data-theme="dark"] .tab:hover{background:rgba(255,255,255,.08)}
+[data-theme="dark"] .btn-primary{box-shadow:0 6px 18px rgba(0,0,0,.4)}
+
+/* ── Sichqoncha ostida yoriladigan yorug'lik ── */
+.sec-card::after,.book-row::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .25s;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.55), transparent 65%);
+}
+[data-theme="dark"] .sec-card::after,[data-theme="dark"] .book-row::after{background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.12), transparent 65%)}
+.sec-card:hover::after,.book-row:hover::after{opacity:1}
+
+/* ── Bo'lim belgisi: fizik harflar ── */
+.sec-icon{font-family:'Cambria Math','STIX Two Math','Times New Roman',serif;font-weight:700;font-style:italic;font-size:22px;letter-spacing:0}
+.sec-icon.sm{font-size:16px}
+.sec-icon.xs{font-size:12px}
+
+/* ── Hero: yozuvlar aniq o'qiladi, atom sahifadan chiqib ketmaydi ── */
+.hero-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.hero-title{text-shadow:0 2px 6px rgba(3,10,20,.55),0 4px 40px rgba(3,10,20,.7)}
+.hero-sub{
+  display:inline-block;align-self:flex-start;padding:10px 18px;border-radius:14px;font-weight:600;color:#f3f9f7;
+  background:rgba(6,16,26,.58);border:1px solid rgba(255,255,255,.2);text-shadow:none;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(3,10,20,.3);
+}
+.hero-count{background:rgba(6,16,26,.58);border-color:rgba(255,255,255,.28);box-shadow:0 8px 24px rgba(3,10,20,.3)}
+.hero-atom{right:0;top:50%}
+.hero-atom svg{filter:drop-shadow(0 0 10px rgba(255,255,255,.45))}
+@media (max-width:600px){
+  .hero-atom{right:4px;top:6px;margin-top:0;width:150px;height:150px;opacity:1}
+  .hero-title{max-width:10em}
+}
+@media (prefers-reduced-motion:reduce){
+  .site-bg{animation:none}
+  .theme-toggle svg,.tg-cut,.tg-rays{transition:none}
+}
 </style>
 </head>
 <body>
 
 <div class="site-bg"></div>
+<canvas id="fxCanvas" class="fx-canvas" aria-hidden="true"></canvas>
 
 <div class="atom-bg">
   <svg class="a1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -651,6 +776,16 @@ body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,'He
           <path d="M30,0 V40 M0,20 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V40 M0,20 H60" stroke="#C8102E" stroke-width="7"/>
         </svg></button>
       </div>
+      <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme(event)" aria-label="Theme">
+        <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+          <defs><mask id="tgMask"><rect width="32" height="32" fill="#fff"/><circle class="tg-cut" cx="23" cy="11" r="8" fill="#000"/></mask></defs>
+          <circle class="tg-core" cx="16" cy="16" r="9" fill="currentColor" mask="url(#tgMask)"/>
+          <g class="tg-rays" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M16 2.5v3"/><path d="M16 26.5v3"/><path d="M2.5 16h3"/><path d="M26.5 16h3"/>
+            <path d="M6.4 6.4l2.1 2.1"/><path d="M23.5 23.5l2.1 2.1"/><path d="M6.4 25.6l2.1-2.1"/><path d="M23.5 8.5l2.1-2.1"/>
+          </g>
+        </svg>
+      </button>
       <div class="notif-wrap" id="notifWrap"></div>
       <div class="auth-box" id="authBox"></div>
     </div>
@@ -930,7 +1065,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.10.04-1";
+const APP_BUILD = "2026.10.04-2";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -1346,9 +1481,9 @@ en:{
 };
 Object.keys(I18N_NOTIF).forEach(l => Object.assign(I18N[l], I18N_NOTIF[l]));
 const I18N_UI = {
-  uz:{heroCount:"{s} ta bo'lim, {m} ta material"},
-  ru:{heroCount:"Разделов: {s}, материалов: {m}"},
-  en:{heroCount:"{s} sections, {m} materials"}
+  uz:{heroCount:"{s} ta bo'lim, {m} ta material", themeToDark:"Tungi rejimga o'tish", themeToLight:"Kunduzgi rejimga o'tish"},
+  ru:{heroCount:"Разделов: {s}, материалов: {m}", themeToDark:"Включить тёмную тему", themeToLight:"Включить светлую тему"},
+  en:{heroCount:"{s} sections, {m} materials", themeToDark:"Switch to dark mode", themeToLight:"Switch to light mode"}
 };
 Object.keys(I18N_UI).forEach(l => Object.assign(I18N[l], I18N_UI[l]));
 
@@ -1429,6 +1564,7 @@ function applyStatic(){
   document.querySelectorAll('[data-i]').forEach(el => { el.textContent = t(el.getAttribute('data-i')); });
   document.querySelectorAll('[data-i-ph]').forEach(el => { el.setAttribute('placeholder', t(el.getAttribute('data-i-ph'))); });
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  if(typeof syncThemeUi === 'function') syncThemeUi();
 }
 
 function setLang(l){
@@ -1631,7 +1767,9 @@ function normSearch(str){
 function heroHtml(){
   const nSec = sections.length;
   const nMat = Object.values(homeCounts || {}).reduce((a, b) => a + b, 0);
-  const orbit = '<g fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6">' +
+  const orbit = '<defs><radialGradient id="nucGlow"><stop offset="0" stop-color="#ffe08a" stop-opacity=".95"/><stop offset="1" stop-color="#e3b23c" stop-opacity="0"/></radialGradient></defs>' +
+    '<circle cx="100" cy="100" r="34" fill="url(#nucGlow)"/>' +
+    '<g fill="none" stroke="rgba(255,255,255,.88)" stroke-width="2">' +
       '<ellipse cx="100" cy="100" rx="90" ry="34"/>' +
       '<ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(60 100 100)"/>' +
       '<ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(120 100 100)"/></g>' +
@@ -1641,11 +1779,25 @@ function heroHtml(){
       '<g transform="rotate(120 100 100)"><circle class="el" r="4.5"><animateMotion dur="11s" repeatCount="indefinite" path="M10,100 a90,34 0 1,0 180,0 a90,34 0 1,0 -180,0"/></circle></g>' +
     '</g><circle cx="100" cy="100" r="11" fill="#e3b23c"/><circle cx="100" cy="100" r="18" fill="none" stroke="rgba(227,178,60,.45)" stroke-width="2"/>';
   return `<section class="hero">
-    <div class="hero-atom" aria-hidden="true"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${orbit}</svg></div>
+    <div class="hero-fx" aria-hidden="true"><div class="hero-atom"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${orbit}</svg></div></div>
     <h2 class="hero-title">${escapeHtml(t('topTitle'))}</h2>
     <p class="hero-sub">${escapeHtml(t('topSub'))}</p>
     <p class="hero-count">${escapeHtml(t('heroCount',{s:nSec, m:nMat}))}</p>
   </section>`;
+}
+
+/* Bo'lim belgisi: fan bo'yicha mos fizik/matematik harf (topilmasa — nomning bosh harfi) */
+const SEC_GLYPHS = [
+  ['kvant','ψ'],['nazariy mexanika','L'],['mexanika','F'],['molekulyar','kT'],['elektrodinamika','E'],
+  ['elektromagnet','B'],['optika','λ'],['atom','⚛'],['yadro','α'],['radio','∿'],['kompyuterda','</>'],
+  ['umumiy nisbiylik','G'],['maxsus nisbiylik','c'],['matematik fizika','∇'],['matematik analiz','∫'],
+  ['chiziqli algebra','Σ'],['metodika','✎'],['kimyo','H₂O'],['psixologiya','Ψ'],['falsafa','φ'],
+  ['dinshunoslik','◈'],['pedagogika','✎']
+];
+function secGlyph(s){
+  const key = normSearch(s && s.name);
+  for(const [k, g] of SEC_GLYPHS){ if(key.includes(k)) return g; }
+  return String(secName(s) || '?').charAt(0).toUpperCase();
 }
 
 function drawHome(){
@@ -1715,7 +1867,7 @@ function updateHomeSearch(){
       <div class="sec-card${(isAdmin && !q) ? ' draggable' : ''}" data-id="${escapeHtml(s.id)}" onclick="openSection('${escapeHtml(s.id)}')">
         ${isAdmin ? `<button class="sec-edit" title="${escapeHtml(t('edit'))}" aria-label="${escapeHtml(t('edit'))}" onclick="event.stopPropagation();openEditSection('${escapeHtml(s.id)}')">${PENCIL_SVG}</button>` : ''}
         ${isAdmin ? `<button class="sec-del" title="${escapeHtml(t('delSectionTitle'))}" aria-label="${escapeHtml(t('delSectionTitle'))}" onclick="event.stopPropagation();askDeleteSection('${escapeHtml(s.id)}')">${TRASH_SVG}</button>` : ''}
-        <div class="sec-icon">${escapeHtml((nm||'?').charAt(0))}</div>
+        ${(() => { const g = secGlyph(s); return `<div class="sec-icon${g.length > 2 ? ' xs' : g.length > 1 ? ' sm' : ''}">${escapeHtml(g)}</div>`; })()}
         <h3>${escapeHtml(nm)}</h3>
         <div class="cnt">${escapeHtml(t('materialsCount',{n: counts[s.id]||0}))}</div>
       </div>`;
@@ -3779,6 +3931,140 @@ function safeUrl(u){
     return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : '#';
   }catch(e){ return '#'; }
 }
+
+/* ---------------------------------------------------------------------
+   KUN / TUN MAVZUSI (hilol <-> quyosh)
+--------------------------------------------------------------------- */
+function currentTheme(){ return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+function syncThemeUi(){
+  const th = currentTheme();
+  const b = document.getElementById('themeToggle');
+  if(b){
+    const lbl = t(th === 'dark' ? 'themeToLight' : 'themeToDark');
+    b.title = lbl; b.setAttribute('aria-label', lbl); b.setAttribute('aria-pressed', th === 'dark' ? 'true' : 'false');
+  }
+  const color = th === 'dark' ? '#07111a' : '#0d1f2b';
+  const m = document.querySelector('meta[name="theme-color"]');
+  if(m) m.setAttribute('content', color);
+  try{ if(TGWA){ TGWA.setHeaderColor(color); TGWA.setBackgroundColor(color); } }catch(e){}
+}
+function setTheme(next){
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('theme', next); }catch(e){}
+  syncThemeUi();
+  if(window.fxSetMode) window.fxSetMode(next);
+}
+function toggleTheme(){
+  const next = currentTheme() === 'dark' ? 'light' : 'dark';
+  const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if(!document.startViewTransition || reduce){ setTheme(next); return; }
+  // Tugma markazidan kengayib boradigan to'lqin
+  const b = document.getElementById('themeToggle');
+  const r0 = b ? b.getBoundingClientRect() : null;
+  const x = r0 ? r0.left + r0.width / 2 : window.innerWidth - 40;
+  const y = r0 ? r0.top + r0.height / 2 : 30;
+  const rad = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+  const vt = document.startViewTransition(() => setTheme(next));
+  vt.ready.then(() => {
+    document.documentElement.animate(
+      {clipPath: ['circle(0px at ' + x + 'px ' + y + 'px)', 'circle(' + rad + 'px at ' + x + 'px ' + y + 'px)']},
+      {duration: 700, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)'}
+    );
+  }).catch(() => {});
+}
+
+/* ---------------------------------------------------------------------
+   JONLI FON: kechasi miltillovchi yulduzlar va uchar yulduz, kunduzi oltin changlar.
+   Yengil: 30 kadr/s, sahifa yashirinsa to'xtaydi, "harakatni kamaytirish" yoqilgan bo'lsa qotib turadi.
+--------------------------------------------------------------------- */
+(function(){
+  const cv = document.getElementById('fxCanvas');
+  if(!cv || !cv.getContext) return;
+  const ctx = cv.getContext('2d');
+  const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  let W = 0, H = 0, dpr = 1, mode = 'light', parts = [], meteor = null, nextMeteor = 0, raf = 0, last = 0, running = false;
+
+  function seed(){
+    const dark = mode === 'dark';
+    const n = dark ? Math.min(140, Math.round(W * H / 8500)) : Math.min(36, Math.round(W * H / 38000));
+    parts = [];
+    for(let i = 0; i < n; i++){
+      parts.push({
+        x: Math.random() * W, y: Math.random() * H * (dark ? .62 : 1),
+        r: dark ? Math.random() * 1.25 + .3 : Math.random() * 2.3 + .8,
+        ph: Math.random() * 6.28, sp: .6 + Math.random() * 1.6,
+        vx: (Math.random() - .5) * .12, vy: dark ? 0 : -(.1 + Math.random() * .22)
+      });
+    }
+  }
+  function resize(force){
+    const w = window.innerWidth, h = window.innerHeight;
+    // telefonda manzil paneli yig'ilib-ochilganda qayta chizmaslik
+    if(!force && Math.abs(w - W) < 1 && Math.abs(h - H) < 150) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = w; H = h;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    seed(); draw(performance.now());
+  }
+  function draw(ts){
+    ctx.clearRect(0, 0, W, H);
+    const dark = mode === 'dark', tt = ts / 1000;
+    for(const p of parts){
+      if(!reduce){
+        p.x += p.vx; p.y += p.vy;
+        if(p.y < -8){ p.y = H + 8; p.x = Math.random() * W; }
+        if(p.x < -8) p.x = W + 8; else if(p.x > W + 8) p.x = -8;
+      }
+      const tw = .5 + .5 * Math.sin(tt * p.sp + p.ph);
+      if(dark){
+        ctx.globalAlpha = .25 + .75 * tw; ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+      } else {
+        const a = .25 + .45 * tw, rr = p.r * 3.2;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr);
+        g.addColorStop(0, 'rgba(255,236,170,' + a + ')'); g.addColorStop(1, 'rgba(255,236,170,0)');
+        ctx.globalAlpha = 1; ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, 6.283); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    if(dark && !reduce){
+      if(!meteor && ts > nextMeteor){
+        meteor = {x: Math.random() * W * .8 + W * .1, y: Math.random() * H * .25, vx: 7 + Math.random() * 4, vy: 3 + Math.random() * 2.5, life: 0};
+      }
+      if(meteor){
+        const m = meteor; m.x += m.vx; m.y += m.vy; m.life++;
+        const tx = m.x - m.vx * 9, ty = m.y - m.vy * 9;
+        const g = ctx.createLinearGradient(m.x, m.y, tx, ty);
+        g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
+        if(m.x > W + 90 || m.y > H * .7 || m.life > 130){ meteor = null; nextMeteor = ts + 5000 + Math.random() * 7000; }
+      }
+    }
+  }
+  function loop(ts){ raf = requestAnimationFrame(loop); if(ts - last < 32) return; last = ts; draw(ts); }
+  function start(){ if(running || reduce) return; running = true; raf = requestAnimationFrame(loop); }
+  function stop(){ running = false; cancelAnimationFrame(raf); }
+
+  window.fxSetMode = m => { mode = m; meteor = null; nextMeteor = performance.now() + 3000; seed(); draw(performance.now()); };
+  document.addEventListener('visibilitychange', () => { if(document.hidden) stop(); else start(); });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => resize(false), 150); });
+  mode = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  nextMeteor = performance.now() + 4000;
+  resize(true); start();
+})();
+
+/* Sichqoncha ostidagi kartochkada yorug'lik dog'i kursorga ergashadi (faqat kompyuterda) */
+document.addEventListener('pointermove', e => {
+  if(e.pointerType !== 'mouse' || !e.target || !e.target.closest) return;
+  const c = e.target.closest('.sec-card, .book-row');
+  if(!c) return;
+  const r = c.getBoundingClientRect();
+  c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+}, {passive: true});
 
 /* ---------------------------------------------------------------------
    INIT
