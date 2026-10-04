@@ -95,6 +95,18 @@ var css2 = `
 [data-theme="light"] .sec-card:nth-child(6n+4):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(234,231,252,.93),rgba(220,224,248,.92))}
 [data-theme="light"] .sec-card:nth-child(6n+5):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(255,246,218,.93),rgba(248,230,192,.92))}
 [data-theme="light"] .sec-card:nth-child(6n+6):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(220,236,248,.93),rgba(205,221,240,.92))}
+/* tezlik: og'ir effektlarni yengillashtirish */
+.sec-card,.book-row,.tabs,.empty,.page-head h2,.crumbs,.drag-hint,.search-results-head,.search-input,.hero-sub,.hero-count,.hero-sub{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.night-fx{display:none!important}
+.rays{mix-blend-mode:normal;will-change:transform}
+.cloud{will-change:transform}
+@media (max-width:700px){.site-bg{animation:none}}
+/* tungi fon: qora emas, chuqur "ko'k soat" osmoni */
+[data-theme="dark"]{--bg:#0f1a40;--glass:rgba(24,38,88,.64);--pill:rgba(22,36,84,.74);--pill-strong:rgba(22,36,84,.86);
+ --surface:#182550;--surface-2:#213164;--top-bg:rgba(18,30,76,.84);--btn-bg:rgba(255,255,255,.10);--border:rgba(160,185,255,.20)}
+[data-theme="dark"] .site-bg::after{background:
+ radial-gradient(90% 55% at 82% 0%,rgba(150,180,255,.22),transparent 60%),
+ linear-gradient(180deg,rgba(18,30,110,.66) 0%,rgba(24,50,128,.46) 42%,rgba(22,70,120,.40) 72%,rgba(255,150,90,.22) 100%)}
 `;
 var st = document.createElement('style'); st.id = 'design-pro'; st.textContent = css + css2; document.head.appendChild(st);
 
@@ -176,14 +188,14 @@ var cM = mkCanvas(-1), cS = mkCanvas(500), xM = cM.getContext('2d'), xS = cS.get
 var ca = document.createElement('canvas'), xa = ca.getContext('2d'), lastA = 0, stars = [], W = 0, H = 0, dpr = 1, meteors = [], sparks = [], next = 0, nextShower = 0, run = false, raf = 0;
 function buildStars(){ca.width=Math.max(2,W>>1);ca.height=Math.max(2,H>>1);var n=Math.min(420,Math.round(W*H/2600)),C=['255,255,255','200,225,255','255,236,190'];stars=[];for(var i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.88,r:.4+Math.random()*1.2,ph:Math.random()*6.28,sp:.5+Math.random()*2,big:Math.random()<.06,c:C[(Math.random()*3)|0]});}
 function size(){ setTimeout(buildStars,0);
-  dpr = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight;
+  dpr = Math.min(window.devicePixelRatio || 1, innerWidth < 700 ? 1 : 1.5); W = innerWidth; H = innerHeight;
   [cM, cS].forEach(function(c){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); c.getContext('2d').setTransform(dpr,0,0,dpr,0,0); });
 }
 var rt; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(size, 150); }); size();
 var isDark = function(){ return document.documentElement.getAttribute('data-theme') === 'dark'; };
 var MC = ['255,255,255','150,225,255','255,215,120','160,200,255'];
 function spawnMeteor(){
-  var dir = Math.random() < .25 ? -1 : 1, a = .35 + Math.random() * .5, sp = 9 + Math.random() * 10;
+  var dir = Math.random() < .25 ? -1 : 1, a = .35 + Math.random() * .5, sp = 16 + Math.random() * 14;
   meteors.push({x: dir > 0 ? Math.random() * W * .9 : W * .1 + Math.random() * W * .9, y: -20 + Math.random() * H * .3,
     vx: Math.cos(a) * sp * dir, vy: Math.sin(a) * sp, len: 12 + Math.random() * 16, w: 1 + Math.random() * 1.7,
     c: MC[(Math.random() * MC.length) | 0], life: 0});
@@ -222,6 +234,7 @@ function drawAurora(ts){
 }
 function frame(ts){
   raf = requestAnimationFrame(frame);
+  if(ts - (window.__lf || 0) < 30) return; window.__lf = ts;
   xM.clearRect(0,0,W,H); xS.clearRect(0,0,W,H);
   if(isDark()){
     if(ts > next){ spawnMeteor(); if(Math.random() < .4) spawnMeteor(); next = ts + 450 + Math.random() * 1100; }
@@ -253,6 +266,31 @@ function start(){ if(run || reduce) return; run = true; next = performance.now()
 function stop(){ run = false; cancelAnimationFrame(raf); }
 document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
 start();
+
+/* ───────────── Orqaga qaytish: sakramasdan, darhol ───────────── */
+(function(){
+  var _st = window.scrollTo;
+  window.scrollTo = function(){
+    var h = document.documentElement, old = h.style.scrollBehavior;
+    h.style.scrollBehavior = 'auto';
+    try{ return _st.apply(window, arguments); } finally { h.style.scrollBehavior = old; }
+  };
+  var _rh = window.renderHome;
+  if(typeof _rh !== 'function') return;
+  function sig(){ return JSON.stringify(sections.map(function(x){ return [x.id,x.name,x.nameRu,x.nameEn,x.order]; })) + JSON.stringify(homeCounts); }
+  window.renderHome = function(){
+    if(sections && sections.length && homeCounts){
+      drawHome();                                   // keshdan darhol
+      var before = sig();
+      Promise.all([loadSections(), loadAllBooksAndCounts()]).then(function(r){
+        homeCounts = r[1].counts; allBooksIndex = r[1].docs;
+        if(sig() !== before && !currentSectionId && !drag) drawHome();   // faqat o'zgargan bo'lsa
+      }).catch(function(){});
+      return Promise.resolve();
+    }
+    return _rh();
+  };
+})();
 
 /* ───────────── Inglizcha nomlar ───────────── */
 try{ if(typeof I18N!=='undefined' && I18N.en){
