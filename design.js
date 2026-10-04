@@ -72,7 +72,30 @@ var css = `
 @keyframes dsAur{from{transform:translate3d(-4vw,0,0) scale(1)}to{transform:translate3d(6vw,5vh,0) scale(1.18)}}
 @media (prefers-reduced-motion:reduce){.rays,.rainbow,.cloud,.aur{animation:none}}
 `;
-var st = document.createElement('style'); st.id = 'design-pro'; st.textContent = css; document.head.appendChild(st);
+
+var css2 = `
+/* kamalak: katta, yorqin yoy (telefonda ham ko'rinadi) */
+.rainbow{right:auto;bottom:auto;left:calc(50vw - 70vmin);top:calc(76vh - 70vmin);width:140vmin;height:140vmin;border-radius:0;
+ background:radial-gradient(circle closest-side,transparent 78%,rgba(255,70,90,.55) 79.5%,rgba(255,150,40,.55) 82%,rgba(255,226,60,.55) 84.5%,rgba(70,210,120,.5) 87%,rgba(50,160,255,.55) 89.5%,rgba(120,80,255,.55) 92%,rgba(220,80,220,.45) 94.5%,transparent 96.5%);
+ -webkit-mask-image:linear-gradient(to bottom,#000 49%,transparent 50%);mask-image:linear-gradient(to bottom,#000 49%,transparent 50%);
+ filter:blur(1.2px) saturate(1.25);animation:dsBreath 7s ease-in-out infinite alternate}
+/* telefonda atom yozuv ustida emas, tepada */
+@media (max-width:600px){.hero{min-height:410px}.hero-atom{top:2px;right:6px;margin-top:0;width:128px;height:128px}}
+/* kunduzi: oq o'rniga iliq-sovuq pastel ranglar */
+[data-theme="light"]{--btn-bg:linear-gradient(135deg,#fff4e0,#e8eeff);
+ --pill:linear-gradient(90deg,rgba(255,238,210,.93),rgba(236,226,255,.93) 55%,rgba(255,228,244,.93));
+ --pill-strong:linear-gradient(90deg,rgba(255,244,224,.95),rgba(230,238,255,.95) 55%,rgba(255,232,246,.95))}
+[data-theme="light"] .topbar{background:linear-gradient(90deg,transparent,var(--sun) 18%,#ff6ea8 52%,var(--accent) 80%,transparent) bottom/100% 2px no-repeat,linear-gradient(90deg,rgba(255,240,214,.9),rgba(232,238,255,.9) 50%,rgba(255,228,244,.9))}
+[data-theme="light"] .book-row{background:linear-gradient(110deg,rgba(255,244,228,.92),rgba(234,240,255,.92) 55%,rgba(255,232,244,.9))}
+[data-theme="light"] .sec-card:not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(255,240,222,.9),rgba(232,236,255,.9) 60%,rgba(255,228,242,.88))}
+[data-theme="light"] .sec-card:nth-child(6n+1):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(255,236,214,.92),rgba(255,212,226,.9))}
+[data-theme="light"] .sec-card:nth-child(6n+2):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(219,240,255,.92),rgba(226,222,255,.9))}
+[data-theme="light"] .sec-card:nth-child(6n+3):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(255,243,205,.92),rgba(255,224,194,.9))}
+[data-theme="light"] .sec-card:nth-child(6n+4):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(238,226,255,.92),rgba(255,220,240,.9))}
+[data-theme="light"] .sec-card:nth-child(6n+5):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(212,246,252,.92),rgba(218,230,255,.9))}
+[data-theme="light"] .sec-card:nth-child(6n+6):not(.add-card):not(.drag-source){background:linear-gradient(135deg,rgba(255,224,230,.92),rgba(255,240,204,.9))}
+`;
+var st = document.createElement('style'); st.id = 'design-pro'; st.textContent = css + css2; document.head.appendChild(st);
 
 /* ───────────── Kunduzgi / tungi fon qatlamlari ───────────── */
 var bg = document.querySelector('.site-bg');
@@ -149,8 +172,9 @@ applyIcons();
 var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 function mkCanvas(z){ var c = document.createElement('canvas'); c.setAttribute('aria-hidden','true'); c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:' + z; document.body.appendChild(c); return c; }
 var cM = mkCanvas(-1), cS = mkCanvas(500), xM = cM.getContext('2d'), xS = cS.getContext('2d');
-var W = 0, H = 0, dpr = 1, meteors = [], sparks = [], next = 0, nextShower = 0, run = false, raf = 0;
-function size(){
+var stars = [], W = 0, H = 0, dpr = 1, meteors = [], sparks = [], next = 0, nextShower = 0, run = false, raf = 0;
+function buildStars(){var n=Math.min(420,Math.round(W*H/2600)),C=['255,255,255','200,225,255','255,236,190'];stars=[];for(var i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.88,r:.4+Math.random()*1.2,ph:Math.random()*6.28,sp:.5+Math.random()*2,big:Math.random()<.06,c:C[(Math.random()*3)|0]});}
+function size(){ setTimeout(buildStars,0);
   dpr = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight;
   [cM, cS].forEach(function(c){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); c.getContext('2d').setTransform(dpr,0,0,dpr,0,0); });
 }
@@ -183,6 +207,9 @@ function frame(ts){
     if(ts > next){ spawnMeteor(); if(Math.random() < .4) spawnMeteor(); next = ts + 450 + Math.random() * 1100; }
     if(ts > nextShower){ for(var k = 0; k < 9; k++) setTimeout(spawnMeteor, k * 140); nextShower = ts + 22000 + Math.random() * 16000; }
   }
+  if(isDark()){var tt=ts/1000;for(var s2=0;s2<stars.length;s2++){var q=stars[s2],tw=.35+.65*(.5+.5*Math.sin(tt*q.sp+q.ph));
+    xM.fillStyle='rgba('+q.c+','+tw.toFixed(2)+')';xM.beginPath();xM.arc(q.x,q.y,q.r,0,6.283);xM.fill();
+    if(q.big){xM.strokeStyle='rgba('+q.c+','+(tw*.7).toFixed(2)+')';xM.lineWidth=.8;var L=3+q.r*3*tw;xM.beginPath();xM.moveTo(q.x-L,q.y);xM.lineTo(q.x+L,q.y);xM.moveTo(q.x,q.y-L);xM.lineTo(q.x,q.y+L);xM.stroke();}}}
   xM.lineCap = 'round';
   for(var i = meteors.length - 1; i >= 0; i--){
     var m = meteors[i]; m.x += m.vx; m.y += m.vy; m.life++;
@@ -206,6 +233,12 @@ function start(){ if(run || reduce) return; run = true; next = performance.now()
 function stop(){ run = false; cancelAnimationFrame(raf); }
 document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
 start();
+
+/* ───────────── Inglizcha nomlar ───────────── */
+try{ if(typeof I18N!=='undefined' && I18N.en){
+  I18N.en.topTitle='Library of the Faculty of Physics'; I18N.en.footTitle='Online Library of the Faculty of Physics';
+  I18N.en.siteTitle='Library of the Faculty of Physics \u2014 Online'; if(window.applyStatic) applyStatic();
+} }catch(e){}
 
 /* ───────────── Birinchi kirishda tungi rejim ───────────── */
 try{
