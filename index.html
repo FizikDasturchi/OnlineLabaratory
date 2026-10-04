@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d1f2b">
 <title>Fizika Fakulteti — Onlayn Kutubxona</title>
 <link rel="icon" href="favicon.ico">
 
@@ -434,6 +435,173 @@ body.dragging,body.dragging *{cursor:grabbing !important;-webkit-user-select:non
 @media (max-width:600px){
   .notif-panel{left:12px;right:12px;width:auto}
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   DIZAYN 2.0 — fakultet binosi suratidagi ranglar:
+   quyuq bulut ko'k-kulrangi, barg yashili, beton oqi, quyoshli sariq.
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#e9f1ec; --border:#d3e3da;
+  --accent:#1d7a4a; --accent-l:#e8f5ed; --accent-ring:#8fd1a8;
+  --text:#11222d; --sub:#566b76;
+  --sky:#1b2c3b; --forest:#0c2620;
+  --sun:#e3b23c; --sun-l:#f7d46e; --sun-ink:#2a2007;
+  --glass:rgba(255,255,255,.80); --glass-line:rgba(255,255,255,.65);
+  --r:16px; --shadow:0 4px 22px rgba(8,28,24,.12);
+}
+body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;letter-spacing:.005em}
+
+/* Fon surati: tepasi (osmon) chuqurroq, pasti yashil — yozuvlar o'qilishi uchun */
+.site-bg::after{
+  background:
+    radial-gradient(130% 70% at 50% 0%, rgba(10,22,34,.62), transparent 62%),
+    linear-gradient(180deg, rgba(10,24,36,.30) 0%, rgba(10,24,36,.05) 38%, rgba(6,32,24,.42) 100%);
+}
+
+/* ── Tepa panel ── */
+.topbar{
+  background:linear-gradient(90deg,transparent,var(--sun) 20%,var(--accent) 60%,transparent) bottom/100% 2px no-repeat, rgba(255,255,255,.78);
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+  border-bottom:1px solid rgba(255,255,255,.7);
+  box-shadow:0 6px 28px rgba(6,24,30,.16);
+}
+.topbar-title h1{font-weight:800;letter-spacing:-.01em}
+
+/* ── Tugmalar ── */
+.btn{border-radius:11px}
+.btn-primary{background:linear-gradient(145deg,#2a9a61,#1d7a4a);box-shadow:0 6px 16px rgba(29,122,74,.32)}
+.btn-primary:hover{background:linear-gradient(145deg,#25885a,#16603a);transform:translateY(-1px)}
+.btn-primary:disabled{background:#93c9a9;box-shadow:none;transform:none}
+.btn-outline{background:rgba(255,255,255,.92)}
+.btn-gold{background:linear-gradient(145deg,var(--sun-l),var(--sun));color:var(--sun-ink);box-shadow:0 8px 20px rgba(210,154,31,.4),inset 0 1px 0 rgba(255,255,255,.6)}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(210,154,31,.55),inset 0 1px 0 rgba(255,255,255,.7)}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* ── Bosh sahifa: sarlavha bevosita osmon ustida ── */
+.hero{
+  position:relative;min-height:clamp(230px,36vh,360px);padding:24px 4px 26px;margin-bottom:22px;
+  display:flex;flex-direction:column;justify-content:flex-end;color:#fff;
+  animation:heroIn .9s cubic-bezier(.2,.8,.2,1) both;
+}
+.hero-title{
+  position:relative;z-index:1;max-width:11em;
+  font-size:clamp(36px,7.4vw,70px);line-height:1.04;font-weight:900;letter-spacing:-.025em;
+  color:#fff;text-shadow:0 2px 34px rgba(4,14,24,.55);
+  background:none;padding:0;border-radius:0;width:auto;
+}
+.hero-sub{position:relative;z-index:1;max-width:34em;margin-top:12px;font-size:clamp(14px,2.2vw,17px);color:#e1eee9;text-shadow:0 1px 18px rgba(4,14,24,.6)}
+.hero-count{
+  position:relative;z-index:1;align-self:flex-start;margin-top:18px;padding:7px 16px;border-radius:99px;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.38);color:#fff;font-size:13.5px;font-weight:700;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+.hero-atom{position:absolute;right:0;top:50%;width:min(300px,46vw);height:min(300px,46vw);margin-top:calc(min(300px,46vw) / -2 - 10px);pointer-events:none;opacity:.9}
+.hero-atom svg{width:100%;height:100%;animation:orbitSpin 60s linear infinite}
+@keyframes orbitSpin{to{transform:rotate(360deg)}}
+@keyframes heroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+.page-head{align-items:center}
+.page-head h2,.crumbs,.drag-hint,.search-results-head{
+  background:rgba(255,255,255,.86);box-shadow:0 4px 18px rgba(6,24,30,.12);border:1px solid var(--glass-line);
+  border-radius:99px;
+}
+.page-head h2{padding:5px 20px}
+.crumbs{padding:7px 16px}
+.drag-hint{border-radius:14px}
+
+/* ── Qidiruv ── */
+.search-input{
+  padding:13px 18px 13px 46px;border-radius:99px;border:1.5px solid rgba(255,255,255,.7);
+  background:rgba(255,255,255,.9);box-shadow:0 8px 26px rgba(6,24,30,.16);font-size:15px;
+}
+.search-row .search-ic{left:18px}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(29,122,74,.22),0 8px 26px rgba(6,24,30,.16)}
+
+/* ── Bo'lim kartochkalari ── */
+.sec-card{
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--r);
+  -webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
+  box-shadow:0 6px 22px rgba(6,24,30,.14);
+  padding:20px 20px 18px;
+}
+.sec-card:hover{border-color:var(--accent-ring);box-shadow:0 14px 36px rgba(12,60,44,.28)}
+.sec-card::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:4px;border-radius:0 4px 4px 0;background:linear-gradient(180deg,var(--sun),var(--accent));opacity:0;transition:.2s}
+.sec-card:not(.add-card):hover::before{opacity:1}
+.sec-card.holding:hover{transform:scale(.96)}
+.sec-card.drag-source:hover{transform:none}
+.sec-icon{
+  width:42px;height:42px;border-radius:12px;color:#fff;font-size:19px;
+  background:linear-gradient(145deg,#2f9e66,#14583a);box-shadow:0 6px 14px rgba(20,88,58,.35),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.sec-card h3{font-size:15.5px;font-weight:750;letter-spacing:-.005em}
+.sec-card .cnt{font-size:12.5px;font-weight:600;color:var(--sub)}
+
+/* "Bo'lim qo'shish" — sariq, aniq ko'rinadigan tugma */
+.sec-card.add-card{
+  border:1px solid rgba(255,255,255,.7);
+  background:linear-gradient(145deg,var(--sun-l) 0%,var(--sun) 58%,#d29a1f 100%);
+  color:var(--sun-ink);gap:12px;overflow:hidden;
+  box-shadow:0 14px 34px rgba(210,154,31,.45),inset 0 1px 0 rgba(255,255,255,.65);
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+}
+.sec-card.add-card:hover{color:var(--sun-ink);border-color:#fff;box-shadow:0 20px 44px rgba(210,154,31,.62),inset 0 1px 0 rgba(255,255,255,.75)}
+.sec-card.add-card .plus{
+  width:56px;height:56px;border-radius:50%;background:var(--sun-ink);color:var(--sun-l);
+  font-size:34px;font-weight:400;line-height:1;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 18px rgba(42,32,7,.38);transition:transform .25s cubic-bezier(.3,1.5,.5,1);
+}
+.sec-card.add-card:hover .plus{transform:rotate(90deg) scale(1.08)}
+.sec-card.add-card > div:last-child{font-size:15.5px;font-weight:800}
+
+/* ── Tablar ── */
+.tabs{
+  background:rgba(255,255,255,.78);border:1px solid var(--glass-line);border-radius:18px;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 6px 22px rgba(6,24,30,.14);
+}
+.tab{border-radius:12px;transition:.15s}
+.tab:hover{background:var(--accent-l);color:var(--accent)}
+.tab.active{background:linear-gradient(145deg,#2a9a61,#1d7a4a);color:#fff;box-shadow:0 6px 14px rgba(29,122,74,.38)}
+
+/* ── Materiallar ro'yxati ── */
+.book-row{
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 5px 18px rgba(6,24,30,.12);transition:transform .15s,box-shadow .15s;
+}
+.book-row:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(12,60,44,.22)}
+.book-ic{border-radius:12px}
+.empty{background:rgba(255,255,255,.88);border-color:rgba(29,122,74,.35);border-radius:18px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+
+/* ── Oynalar ── */
+.modal-overlay{background:rgba(6,18,28,.62);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+.modal{border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.4);animation:modalIn .26s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes modalIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.type-choice button.active{border-color:var(--accent);background:var(--accent-l);color:var(--accent)}
+.toast{border-radius:12px}
+
+/* ── Pastki qism ── */
+.site-footer{
+  position:relative;background:linear-gradient(180deg,#0d1f2b 0%,var(--forest) 100%);
+  border-top:1px solid rgba(255,255,255,.1);
+}
+.site-footer::before{content:"";position:absolute;left:0;right:0;top:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--sun) 25%,var(--accent) 65%,transparent)}
+.footer-about,.footer-authors,.fa-item + .fa-item{border-color:rgba(255,255,255,.1)}
+
+/* ── Telefon ── */
+@media (max-width:600px){
+  .hero{min-height:240px;padding:14px 2px 20px}
+  .hero-atom{opacity:.4;right:-60px;width:230px;height:230px;margin-top:-135px}
+  .sec-card.add-card{flex-direction:row;min-height:84px}
+  .sec-card.add-card .plus{width:48px;height:48px;font-size:30px}
+  .page-head .btn-gold{width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero{animation:none}
+  .hero-atom svg{animation:none}
+  .hero-atom .el{display:none}
+  .modal{animation:none}
+  .sec-card,.book-row,.btn{transition:none}
+}
 </style>
 </head>
 <body>
@@ -762,7 +930,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.10.02-1";
+const APP_BUILD = "2026.10.04-1";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -1177,6 +1345,12 @@ en:{
 }
 };
 Object.keys(I18N_NOTIF).forEach(l => Object.assign(I18N[l], I18N_NOTIF[l]));
+const I18N_UI = {
+  uz:{heroCount:"{s} ta bo'lim, {m} ta material"},
+  ru:{heroCount:"Разделов: {s}, материалов: {m}"},
+  en:{heroCount:"{s} sections, {m} materials"}
+};
+Object.keys(I18N_UI).forEach(l => Object.assign(I18N[l], I18N_UI[l]));
 
 function t(k, p){
   let s = (I18N[lang] && I18N[lang][k]) || I18N.uz[k] || k;
@@ -1453,10 +1627,32 @@ function normSearch(str){
   return toLatinKey(s);
 }
 
+// Bosh sahifa yuqori qismi: sarlavha bevosita fakultet suratidagi osmon ustida
+function heroHtml(){
+  const nSec = sections.length;
+  const nMat = Object.values(homeCounts || {}).reduce((a, b) => a + b, 0);
+  const orbit = '<g fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6">' +
+      '<ellipse cx="100" cy="100" rx="90" ry="34"/>' +
+      '<ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(60 100 100)"/>' +
+      '<ellipse cx="100" cy="100" rx="90" ry="34" transform="rotate(120 100 100)"/></g>' +
+    '<g fill="#f7d46e">' +
+      '<circle class="el" r="4.5"><animateMotion dur="7s" repeatCount="indefinite" path="M10,100 a90,34 0 1,0 180,0 a90,34 0 1,0 -180,0"/></circle>' +
+      '<g transform="rotate(60 100 100)"><circle class="el" r="4.5"><animateMotion dur="9s" repeatCount="indefinite" path="M10,100 a90,34 0 1,0 180,0 a90,34 0 1,0 -180,0"/></circle></g>' +
+      '<g transform="rotate(120 100 100)"><circle class="el" r="4.5"><animateMotion dur="11s" repeatCount="indefinite" path="M10,100 a90,34 0 1,0 180,0 a90,34 0 1,0 -180,0"/></circle></g>' +
+    '</g><circle cx="100" cy="100" r="11" fill="#e3b23c"/><circle cx="100" cy="100" r="18" fill="none" stroke="rgba(227,178,60,.45)" stroke-width="2"/>';
+  return `<section class="hero">
+    <div class="hero-atom" aria-hidden="true"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${orbit}</svg></div>
+    <h2 class="hero-title">${escapeHtml(t('topTitle'))}</h2>
+    <p class="hero-sub">${escapeHtml(t('topSub'))}</p>
+    <p class="hero-count">${escapeHtml(t('heroCount',{s:nSec, m:nMat}))}</p>
+  </section>`;
+}
+
 function drawHome(){
   const admin = !!isAdmin;
   $('mainWrap').innerHTML =
-    `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2></div>` +
+    heroHtml() +
+    `<div class="page-head"><h2>${escapeHtml(t('sections'))}</h2><button type="button" class="btn btn-gold" onclick="openModal('modalSection')">+ ${escapeHtml(t('addSection'))}</button></div>` +
     `<div class="search-row" id="homeSearchRow">
       <span class="search-ic">${SEARCH_SVG}</span>
       <input type="text" id="homeSearchInput" class="search-input" data-i-ph="searchHomePh" placeholder="${escapeHtml(t('searchHomePh'))}" value="${escapeHtml(homeSearchQuery)}" oninput="onHomeSearch(this.value)">
