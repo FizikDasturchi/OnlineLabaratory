@@ -56,7 +56,7 @@ var css = `
   -webkit-mask-image:radial-gradient(circle,#000 0,transparent 60%);mask-image:radial-gradient(circle,#000 0,transparent 60%);animation:dsSpin 140s linear infinite}
 .rainbow{left:-22vw;bottom:-46vw;width:84vw;height:84vw;border-radius:50%;
   background:radial-gradient(circle,transparent 57%,rgba(255,90,90,.20) 58%,rgba(255,170,60,.20) 60%,rgba(255,235,90,.20) 62%,rgba(90,220,130,.17) 64%,rgba(70,160,255,.20) 66%,rgba(150,90,255,.20) 68%,transparent 70%);animation:dsBreath 9s ease-in-out infinite alternate}
-.cloud{height:64px;border-radius:99px;background:rgba(255,255,255,.62);filter:blur(13px);animation:dsDrift linear infinite}
+.cloud{aspect-ratio:2.4/1;height:auto;opacity:.9;filter:blur(2.5px);animation:dsDrift linear infinite;background:radial-gradient(circle at 22% 66%,rgba(255,255,255,.95) 0 19%,transparent 20%),radial-gradient(circle at 42% 44%,rgba(255,255,255,.95) 0 26%,transparent 27%),radial-gradient(circle at 64% 40%,rgba(255,255,255,.95) 0 23%,transparent 24%),radial-gradient(circle at 80% 65%,rgba(255,255,255,.95) 0 18%,transparent 19%),radial-gradient(ellipse 47% 23% at 50% 72%,rgba(255,255,255,.95) 0 96%,transparent 100%)}
 .c1{top:11%;width:240px;animation-duration:95s;animation-delay:-30s}
 .c2{top:30%;width:320px;animation-duration:140s;animation-delay:-90s;opacity:.7}
 .c3{top:5%;width:200px;animation-duration:180s;animation-delay:-10s;opacity:.8}
