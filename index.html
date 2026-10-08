@@ -109,9 +109,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 .page-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
 .page-head h2{font-size:22px;font-weight:800}
 .head-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.ask-opt{border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px}
-.ask-opt p{font-size:13px;color:var(--sub);margin:6px 0 10px;line-height:1.5}
-.ask-opt .btn{text-decoration:none;display:inline-block}
 
 /* ── QIDIRUV ────────────────────────────────────────────────────── */
 .search-row{position:relative;margin-bottom:18px}
@@ -961,17 +958,6 @@ html{overflow-x:clip}
   </div>
 </div>
 
-<!-- ======================= MODAL: AI dan so'rash (NotebookLM) ======================= -->
-<div class="modal-overlay" id="modalAskAi">
-  <div class="modal">
-    <h3 data-i="askAiTitle">Kitoblardan AI orqali so'rash</h3>
-    <div id="askAiBody"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalAskAi')" data-i="cancel">Bekor qilish</button>
-    </div>
-  </div>
-</div>
-
 <!-- ======================= MODAL: Bo'lim nomini tahrirlash (admin) ======================= -->
 <div class="modal-overlay" id="modalEditSection">
   <div class="modal">
@@ -991,8 +977,7 @@ html{overflow-x:clip}
     </div>
     <div class="field">
       <label data-i="secAiTitle">AI (NotebookLM) havolalari</label>
-      <input type="url" id="editSecNb" maxlength="500" placeholder="https://notebooklm.google.com/notebook/..." style="margin-bottom:8px" aria-label="Notebook">
-      <input type="url" id="editSecDrive" maxlength="500" placeholder="https://drive.google.com/drive/folders/..." aria-label="Drive">
+      <input type="url" id="editSecNb" maxlength="500" placeholder="https://notebooklm.google.com/notebook/..." aria-label="Notebook">
       <div class="hint" data-i="secAiHint"></div>
     </div>
     <button type="button" class="btn btn-outline btn-sm" id="autoTrBtn" onclick="autoTranslateEditFields()" style="margin-top:-6px;margin-bottom:14px" data-i="autoTrBtn">🌐 Avtomatik tarjima qilish</button>
@@ -1232,15 +1217,10 @@ uz:{
   orderSaved:"Tartib saqlandi", orderErr:"Tartibni saqlab bo'lmadi: {msg}",
   autoTrHint:"Ruscha va inglizcha nomlar avtomatik tarjima qilinadi.",
   autoTrBtn:"🌐 Avtomatik tarjima qilish", autoTrWorking:"Tarjima qilinmoqda…", autoTrDone:"Tarjima qilindi",
-  askAi:"🤖 AI dan so'rash", askAiTitle:"Kitoblardan AI orqali so'rash",
-  askAiIntro:"Bu bo'limdagi kitoblar asosida savollaringizga javob oluvchi NotebookLM (Google AI) dan foydalaning. Hech narsa ko'chirilmaydi va Drive'da joy egallamaydi.",
-  askAiOpenNb:"Tayyor notebook'ni ochish", askAiOpt1:"1-usul (tez)", askAiOpt2:"2-usul: o'zingizning notebook'ingiz",
-  askAiNbNote:"Google akkauntingiz bilan kiring — notebook ochilganda savol bera boshlaysiz.",
-  askAiSteps:"Papkani oching va «Add shortcut to Drive» (Diskka yorliq qo'shish) ni bosing. Keyin notebooklm.google.com saytida yangi notebook yarating → Add source → Drive → shu papkadagi fayllarni belgilang.",
-  askAiOpenFolder:"Kitoblar papkasini ochish", askAiOpenNbHome:"NotebookLM ni ochish",
-  secAiTitle:"AI (NotebookLM) havolalari", secNbUrl:"Notebook havolasi", secDriveUrl:"Drive papka havolasi",
-  secAiHint:"Notebook: notebooklm.google.com/notebook/… (Share → Anyone with the link → Viewer). Papka: drive.google.com/… (Anyone with the link → Viewer). Bo'sh qoldirsangiz, tugma ko'rinmaydi.",
-  secNbBad:"Notebook havolasi notebooklm.google.com yoki notebook.google.com dan boshlanishi kerak.", secDriveBad:"Drive havolasi drive.google.com dan boshlanishi kerak.",
+  askAi:"🤖 AI dan so'rash",
+  secAiTitle:"AI (NotebookLM) havolasi", secNbUrl:"Notebook havolasi",
+  secAiHint:"notebooklm.google.com/notebook/… yoki notebook.google.com/notebook/… (Share → Anyone with the link → Viewer). Bo'sh qoldirsangiz, tugma ko'rinmaydi.",
+  secNbBad:"Notebook havolasi notebooklm.google.com yoki notebook.google.com dan boshlanishi kerak.",
   autoTrFail:"Avtomatik tarjima qilib bo'lmadi — qo'lda kiriting.",
   searchHomePh:"Bo'lim yoki material qidirish…", searchBooksPh:"Ushbu bo'limdan qidirish…",
   noSearchResults:"Hech narsa topilmadi.", searchResultsCount:"{n} ta natija topildi",
@@ -1342,15 +1322,10 @@ ru:{
   orderSaved:"Порядок сохранён", orderErr:"Не удалось сохранить порядок: {msg}",
   autoTrHint:"Русское и английское названия будут переведены автоматически.",
   autoTrBtn:"🌐 Перевести автоматически", autoTrWorking:"Переводим…", autoTrDone:"Переведено",
-  askAi:"🤖 Спросить у ИИ", askAiTitle:"Задать вопрос по книгам через ИИ",
-  askAiIntro:"Используйте NotebookLM (ИИ от Google): он отвечает на вопросы по книгам этого раздела. Ничего не копируется и место на Диске не занимается.",
-  askAiOpenNb:"Открыть готовый notebook", askAiOpt1:"Способ 1 (быстрый)", askAiOpt2:"Способ 2: свой notebook",
-  askAiNbNote:"Войдите в аккаунт Google — после открытия notebook можно сразу задавать вопросы.",
-  askAiSteps:"Откройте папку и нажмите «Add shortcut to Drive» (Добавить ярлык на Диск). Затем на notebooklm.google.com создайте новый notebook → Add source → Drive → отметьте файлы из этой папки.",
-  askAiOpenFolder:"Открыть папку с книгами", askAiOpenNbHome:"Открыть NotebookLM",
-  secAiTitle:"Ссылки ИИ (NotebookLM)", secNbUrl:"Ссылка на notebook", secDriveUrl:"Ссылка на папку Drive",
-  secAiHint:"Notebook: notebooklm.google.com/notebook/… (Share → Anyone with the link → Viewer). Папка: drive.google.com/… (Anyone with the link → Viewer). Если пусто, кнопка не показывается.",
-  secNbBad:"Ссылка на notebook должна начинаться с notebooklm.google.com или notebook.google.com.", secDriveBad:"Ссылка на Drive должна начинаться с drive.google.com.",
+  askAi:"🤖 Спросить у ИИ",
+  secAiTitle:"Ссылка ИИ (NotebookLM)", secNbUrl:"Ссылка на notebook",
+  secAiHint:"notebooklm.google.com/notebook/… или notebook.google.com/notebook/… (Share → Anyone with the link → Viewer). Если пусто, кнопка не показывается.",
+  secNbBad:"Ссылка на notebook должна начинаться с notebooklm.google.com или notebook.google.com.",
   autoTrFail:"Не удалось перевести автоматически — введите вручную.",
   searchHomePh:"Поиск раздела или материала…", searchBooksPh:"Поиск в этом разделе…",
   noSearchResults:"Ничего не найдено.", searchResultsCount:"Найдено результатов: {n}",
@@ -1452,15 +1427,10 @@ en:{
   orderSaved:"Order saved", orderErr:"Couldn't save the order: {msg}",
   autoTrHint:"Russian and English names are translated automatically.",
   autoTrBtn:"🌐 Auto-translate", autoTrWorking:"Translating…", autoTrDone:"Translated",
-  askAi:"🤖 Ask AI", askAiTitle:"Ask questions about the books with AI",
-  askAiIntro:"Use NotebookLM (Google's AI) to get answers based on the books in this section. Nothing is copied and no Drive storage is used.",
-  askAiOpenNb:"Open the ready-made notebook", askAiOpt1:"Option 1 (quick)", askAiOpt2:"Option 2: your own notebook",
-  askAiNbNote:"Sign in with your Google account — once the notebook opens you can start asking questions.",
-  askAiSteps:"Open the folder and click “Add shortcut to Drive”. Then at notebooklm.google.com create a new notebook → Add source → Drive → select the files from that folder.",
-  askAiOpenFolder:"Open the books folder", askAiOpenNbHome:"Open NotebookLM",
-  secAiTitle:"AI (NotebookLM) links", secNbUrl:"Notebook link", secDriveUrl:"Drive folder link",
-  secAiHint:"Notebook: notebooklm.google.com/notebook/… (Share → Anyone with the link → Viewer). Folder: drive.google.com/… (Anyone with the link → Viewer). Leave empty to hide the button.",
-  secNbBad:"The notebook link must start with notebooklm.google.com or notebook.google.com.", secDriveBad:"The Drive link must start with drive.google.com.",
+  askAi:"🤖 Ask AI",
+  secAiTitle:"AI (NotebookLM) link", secNbUrl:"Notebook link",
+  secAiHint:"notebooklm.google.com/notebook/… or notebook.google.com/notebook/… (Share → Anyone with the link → Viewer). Leave empty to hide the button.",
+  secNbBad:"The notebook link must start with notebooklm.google.com or notebook.google.com.",
   autoTrFail:"Couldn't auto-translate — please enter it manually.",
   searchHomePh:"Search sections or materials…", searchBooksPh:"Search in this section…",
   noSearchResults:"No results found.", searchResultsCount:"{n} results found",
@@ -1985,7 +1955,7 @@ function drawSectionShell(){
     <div class="page-head">
       <h2>${escapeHtml(secName(sec))}</h2>
       <div class="head-actions">
-        ${(sec.notebookUrl || sec.driveFolderUrl) ? `<button class="btn btn-gold" onclick="openAskAi()">${escapeHtml(t('askAi'))}</button>` : ''}
+        ${sec.notebookUrl ? `<button class="btn btn-gold" onclick="openAskAi()">${escapeHtml(t('askAi'))}</button>` : ''}
         <button class="btn btn-primary" onclick="openAddBook()">${escapeHtml(t('addBook'))}</button>
       </div>
     </div>
@@ -3804,26 +3774,9 @@ function isAllowedUrl(u, hosts){
 }
 function openAskAi(){
   const sec = sections.find(s => s.id === currentSectionId);
-  if(!sec) return;
-  const nb = (sec.notebookUrl && isAllowedUrl(sec.notebookUrl, ['notebooklm.google.com','notebook.google.com'])) ? sec.notebookUrl : '';
-  const dr = (sec.driveFolderUrl && isAllowedUrl(sec.driveFolderUrl, ['drive.google.com'])) ? sec.driveFolderUrl : '';
-  if(nb && !dr){ window.open(nb, '_blank', 'noopener'); return; }   // faqat notebook bo'lsa — darrov ochamiz
-  let html = `<p style="font-size:14px;line-height:1.5;margin-bottom:14px">${escapeHtml(t('askAiIntro'))}</p>`;
-  if(nb){
-    html += `<div class="ask-opt"><b>${escapeHtml(t('askAiOpt1'))}</b>
-      <p>${escapeHtml(t('askAiNbNote'))}</p>
-      <a class="btn btn-gold" href="${escapeHtml(nb)}" target="_blank" rel="noopener">${escapeHtml(t('askAiOpenNb'))}</a></div>`;
-  }
-  if(dr){
-    html += `<div class="ask-opt"><b>${escapeHtml(nb ? t('askAiOpt2') : t('askAiTitle'))}</b>
-      <p>${escapeHtml(t('askAiSteps'))}</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn btn-outline btn-sm" href="${escapeHtml(dr)}" target="_blank" rel="noopener">${escapeHtml(t('askAiOpenFolder'))}</a>
-        <a class="btn btn-outline btn-sm" href="https://notebooklm.google.com/" target="_blank" rel="noopener">${escapeHtml(t('askAiOpenNbHome'))}</a>
-      </div></div>`;
-  }
-  $('askAiBody').innerHTML = html;
-  openModal('modalAskAi');
+  if(!sec || !sec.notebookUrl) return;
+  if(!isAllowedUrl(sec.notebookUrl, ['notebooklm.google.com','notebook.google.com'])) return;
+  window.open(sec.notebookUrl, '_blank', 'noopener');
 }
 
 /* ---- Bo'lim nomini tahrirlash (faqat adminlar) ----
@@ -3841,7 +3794,6 @@ function openEditSection(id){
   $('editSecRu').value = sec.nameRu || tr.ru || '';   // hozirgi tarjima oldindan to'ldiriladi — nom o'zgarganda yo'qolib ketmasin
   $('editSecEn').value = sec.nameEn || tr.en || '';
   $('editSecNb').value = sec.notebookUrl || '';
-  $('editSecDrive').value = sec.driveFolderUrl || '';
   $('editSecBtn').disabled = false;
   $('autoTrBtn').disabled = false;
   $('autoTrBtn').textContent = t('autoTrBtn');
@@ -3853,9 +3805,8 @@ async function saveEditSection(){
   const clean = v => String(v || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   const uz = clean($('editSecUz').value), ru = clean($('editSecRu').value), en = clean($('editSecEn').value);
   if(!uz){ toast(t('enterSectionName'),'err'); return; }
-  const nbUrl = String($('editSecNb').value || '').trim(), drUrl = String($('editSecDrive').value || '').trim();
+  const nbUrl = String($('editSecNb').value || '').trim();
   if(nbUrl && !isAllowedUrl(nbUrl, ['notebooklm.google.com','notebook.google.com'])){ toast(t('secNbBad'),'err'); return; }
-  if(drUrl && !isAllowedUrl(drUrl, ['drive.google.com'])){ toast(t('secDriveBad'),'err'); return; }
   const id = editSecId;
   const sec = sections.find(s => s.id === id);
   if(!sec) return;
@@ -3878,14 +3829,12 @@ async function saveEditSection(){
       name: uz,
       nameRu: ru || F.delete(),
       nameEn: en || F.delete(),
-      notebookUrl: nbUrl || F.delete(),
-      driveFolderUrl: drUrl || F.delete()
+      notebookUrl: nbUrl || F.delete()
     });
     sec.name = uz;
     if(ru) sec.nameRu = ru; else delete sec.nameRu;
     if(en) sec.nameEn = en; else delete sec.nameEn;
     if(nbUrl) sec.notebookUrl = nbUrl; else delete sec.notebookUrl;
-    if(drUrl) sec.driveFolderUrl = drUrl; else delete sec.driveFolderUrl;
     closeModal('modalEditSection');
     editSecId = null;
     toast(t('sectionRenamed'), 'ok');
