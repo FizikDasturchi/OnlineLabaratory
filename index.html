@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0d1f2b">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
 <script>
 /* Kun/tun mavzusi: saqlangan tanlov, bo'lmasa qurilma sozlamasi */
 (function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
@@ -4116,7 +4114,6 @@ document.addEventListener('pointermove', e => {
 --------------------------------------------------------------------- */
 applyStatic();
 </script>
-<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
-<script src="design.js?v=8"></script>
+<script src="design.js?v=1"></script>
 </body>
 </html>
