@@ -298,57 +298,6 @@ try{ if(typeof I18N!=='undefined' && I18N.en){
   I18N.en.siteTitle='Library of the Faculty of Physics \u2014 Online'; if(window.applyStatic) applyStatic();
 } }catch(e){}
 
-/* ───────────── APK (WebView) uchun tuzatishlar ───────────── */
-(function(){
-  var ua = navigator.userAgent || '';
-  var isWV = /Android/.test(ua) && (/; wv\)/.test(ua) || /Version\/\d+\.\d+.*Chrome\//.test(ua));
-  var fine = !!(window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches);
-
-  /* 1) Mavzu almashganda "siqilish": to'lqin effekti faqat kompyuterda, telefon/APK da oddiy almashtirish */
-  var _tt = window.toggleTheme;
-  window.toggleTheme = function(){
-    if(fine && !isWV && _tt) return _tt.apply(this, arguments);
-    setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
-  };
-
-  /* 2) Google orqali kirish: APK ichida Chrome orqali (tayyor akkauntlar ro'yxati bilan) */
-  if(!isWV || (typeof IS_TG !== 'undefined' && IS_TG)) return;
-  var _si = window.signIn;
-  var L = {
-    uz:{t:'Google orqali kirish', p:"Qulay kirish uchun havolani Chrome brauzerida oching: u yerda Google hisobingizni bir bosishda tanlaysiz. Kirib bo'lgach, shu ilovaga qayting, avtomatik kirasiz.", o:"Chrome'da ochish", c:'Havolani nusxalash', h:'Bu yerda kirish (gmail va parol)', x:'Yopish', k:'Havola nusxalandi'},
-    ru:{t:'Вход через Google', p:'Откройте ссылку в Chrome: там вы выберете свой аккаунт Google одним нажатием. После входа вернитесь в это приложение — вход выполнится автоматически.', o:'Открыть в Chrome', c:'Скопировать ссылку', h:'Войти здесь (почта и пароль)', x:'Закрыть', k:'Ссылка скопирована'},
-    en:{t:'Sign in with Google', p:'Open the link in Chrome to pick your Google account in one tap. Then come back to this app and you will be signed in automatically.', o:'Open in Chrome', c:'Copy link', h:'Sign in here (email and password)', x:'Close', k:'Link copied'}
-  };
-  function T(k){ return (L[lang] || L.uz)[k]; }
-  function close(){ var d = document.getElementById('modalApk'); if(d) d.remove(); }
-  window.signIn = function(){
-    var nonce = newNonce(), url = location.origin + location.pathname + '?tglogin=' + nonce;
-    try{ localStorage.setItem('tgLogin', JSON.stringify({n:nonce, t:Date.now()})); }catch(e){}
-    startTgPolling(nonce);
-    close();
-    var d = document.createElement('div'); d.id = 'modalApk'; d.className = 'modal-overlay show';
-    d.innerHTML = '<div class="modal"><h3></h3><p style="font-size:14px;line-height:1.6;margin-bottom:16px"></p><div style="display:flex;flex-direction:column;gap:8px">' +
-      '<button class="btn btn-primary" data-a="o"></button><button class="btn btn-outline" data-a="c"></button><button class="btn btn-ghost" data-a="h"></button><button class="btn btn-ghost" data-a="x"></button></div></div>';
-    d.querySelector('h3').textContent = T('t'); d.querySelector('p').textContent = T('p');
-    ['o','c','h','x'].forEach(function(k){ d.querySelector('[data-a="' + k + '"]').textContent = T(k); });
-    d.addEventListener('click', function(e){
-      var a = e.target.getAttribute && e.target.getAttribute('data-a'); if(!a) return;
-      if(a === 'o'){ var w = null; try{ w = window.open(url, '_system'); }catch(er){} if(!w){ try{ window.open(url, '_blank'); }catch(er){} } }
-      else if(a === 'c'){
-        var ok = function(){ toast(T('k'), 'ok'); };
-        if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, function(){ prompt('', url); }); else prompt('', url);
-      }
-      else if(a === 'h'){ stopTgPolling(); close(); _si(); }
-      else { stopTgPolling(); close(); }
-    });
-    document.body.appendChild(d);
-  };
-  auth.onAuthStateChanged(function(u){ if(u) close(); });
-  setTimeout(function(){   /* ilova qayta ochilsa, kutishni davom ettiramiz */
-    try{ if(auth.currentUser) return; var s = JSON.parse(localStorage.getItem('tgLogin') || 'null'); if(s && Date.now() - s.t < 600000) startTgPolling(s.n); }catch(e){}
-  }, 1500);
-})();
-
 /* ───────────── Birinchi kirishda tungi rejim ───────────── */
 try{
   if(!localStorage.getItem('theme')){
