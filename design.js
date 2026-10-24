@@ -107,6 +107,23 @@ var css2 = `
 [data-theme="dark"] .site-bg::after{background:
  radial-gradient(90% 55% at 82% 0%,rgba(150,180,255,.22),transparent 60%),
  linear-gradient(180deg,rgba(18,30,110,.66) 0%,rgba(24,50,128,.46) 42%,rgba(22,70,120,.40) 72%,rgba(255,150,90,.22) 100%)}
+
+/* ── QOTISHNI OLDINI OLISH: og'ir effektlarni olib tashlash ── */
+.site-bg{animation:none!important;transform:none!important}
+.topbar{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.hero-atom svg{filter:none!important}
+.modal-overlay{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+/* ── skroll paytida hamma fon animatsiyalari to'xtaydi ── */
+.is-scrolling .rays,
+.is-scrolling .cloud,
+.is-scrolling .rainbow,
+.is-scrolling .aur,
+.is-scrolling .hero-atom svg{animation-play-state:paused!important}
+.is-scrolling .sec-card,
+.is-scrolling .book-row{pointer-events:none;transition:none!important}
+.is-scrolling .sec-card::after,
+.is-scrolling .book-row::after{display:none}
 `;
 var st = document.createElement('style'); st.id = 'design-pro'; st.textContent = css + css2; document.head.appendChild(st);
 
@@ -207,26 +224,26 @@ function burst(x, y, n){
     sparks.push({x:x, y:y, vx:Math.cos(a)*s, vy:Math.sin(a)*s - .6, r:1 + Math.random()*2.2, life:0, max:35 + Math.random()*30, c:pal[(Math.random()*pal.length)|0]});
   }
 }
-addEventListener('pointerdown', function(e){ if(!reduce) burst(e.clientX, e.clientY, 16); }, {passive:true});
+addEventListener('pointerdown', function(e){ if(!reduce && !window.__scrolling) burst(e.clientX, e.clientY, 16); }, {passive:true});
 var lastMove = 0;
 addEventListener('pointermove', function(e){
   if(reduce || e.pointerType !== 'mouse') return;
   var n = performance.now(); if(n - lastMove < 40) return; lastMove = n; burst(e.clientX, e.clientY, 1);
 }, {passive:true});
 function drawAurora(ts){
-  if(ts - lastA > 60 && ca.width > 2){
+  if(ts - lastA > 100 && ca.width > 2){
     lastA = ts; var t = ts / 1000;
     xa.setTransform(.5,0,0,.5,0,0); xa.clearRect(0,0,W,H); xa.globalCompositeOperation = 'lighter';
     var P = [[60,255,160],[70,190,255],[180,110,255]];
     for(var b = 0; b < 3; b++){
       var c = P[b], base = H * (.17 + .08 * b);
-      for(var x = 0; x < W; x += 8){
+      for(var x = 0; x < W; x += 16){
         var y = base + Math.sin(x/(W*.17) + t*.35 + b*2) * H*.05 + Math.sin(x/(W*.07) - t*.5 + b) * H*.02,
             h = H * (.24 + .1 * Math.sin(x/(W*.11) + t*.3 + b*1.7)),
             a = (.16 + .1 * Math.sin(x/(W*.2) + t*.6 + b)).toFixed(3),
             g = xa.createLinearGradient(0, y - h, 0, y + h*.2);
         g.addColorStop(0,'rgba(' + c + ',0)'); g.addColorStop(.75,'rgba(' + c + ',' + a + ')'); g.addColorStop(1,'rgba(' + c + ',0)');
-        xa.fillStyle = g; xa.fillRect(x, y - h, 8, h * 1.2);
+        xa.fillStyle = g; xa.fillRect(x, y - h, 16, h * 1.2);
       }
     }
   }
@@ -234,7 +251,7 @@ function drawAurora(ts){
 }
 function frame(ts){
   raf = requestAnimationFrame(frame);
-  if(ts - (window.__lf || 0) < 30) return; window.__lf = ts;
+  if(window.__scrolling || ts - (window.__lf || 0) < 33) return; window.__lf = ts;
   xM.clearRect(0,0,W,H); xS.clearRect(0,0,W,H);
   if(isDark()){
     if(ts > next){ spawnMeteor(); if(Math.random() < .4) spawnMeteor(); next = ts + 450 + Math.random() * 1100; }
@@ -266,6 +283,25 @@ function start(){ if(run || reduce) return; run = true; next = performance.now()
 function stop(){ run = false; cancelAnimationFrame(raf); }
 document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
 start();
+
+/* ───────────── Skroll paytida animatsiyalarni to'xtatish ───────────── */
+(function(){
+  var root = document.documentElement, t;
+  function heroSvg(){ return document.querySelector('.hero-atom svg'); }
+  addEventListener('scroll', function(){
+    if(!window.__scrolling){
+      window.__scrolling = 1;
+      root.classList.add('is-scrolling');
+      var s = heroSvg(); if(s && s.pauseAnimations) s.pauseAnimations();
+    }
+    clearTimeout(t);
+    t = setTimeout(function(){
+      window.__scrolling = 0;
+      root.classList.remove('is-scrolling');
+      var s = heroSvg(); if(s && s.unpauseAnimations) s.unpauseAnimations();
+    }, 140);
+  }, {passive:true});
+})();
 
 /* ───────────── Orqaga qaytish: sakramasdan, darhol ───────────── */
 (function(){
