@@ -114,16 +114,6 @@ var css2 = `
 .hero-atom svg{filter:none!important}
 .modal-overlay{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
-/* ── skroll paytida hamma fon animatsiyalari to'xtaydi ── */
-.is-scrolling .rays,
-.is-scrolling .cloud,
-.is-scrolling .rainbow,
-.is-scrolling .aur,
-.is-scrolling .hero-atom svg{animation-play-state:paused!important}
-.is-scrolling .sec-card,
-.is-scrolling .book-row{pointer-events:none;transition:none!important}
-.is-scrolling .sec-card::after,
-.is-scrolling .book-row::after{display:none}
 `;
 var st = document.createElement('style'); st.id = 'design-pro'; st.textContent = css + css2; document.head.appendChild(st);
 
@@ -194,21 +184,67 @@ function applyIcons(){
 }
 var mw = document.getElementById('mainWrap'), tm;
 if(mw){
-  new MutationObserver(function(){ clearTimeout(tm); tm = setTimeout(applyIcons, 30); }).observe(mw, {childList:true, subtree:true});
+  new MutationObserver(function(){ clearTimeout(tm); tm = setTimeout(function(){ applyIcons(); if(window.__watchHero) window.__watchHero(); }, 30); }).observe(mw, {childList:true, subtree:true});
 }
 applyIcons();
 
-/* ───────────── Uchar yulduzlar + bosganda uchqunlar ───────────── */
+/* ───────────── Uchar yulduzlar + bosganda uchqunlar ─────────────
+   Muhim: skroll paytida hech narsa to'xtamaydi. Yulduzlar, shafaq va meteorlar doim yurib turadi,
+   lekin juda yengil: yulduzlar guruhlab (bir necha chaqiriqda) chiziladi, shafaq alohida past
+   aniqlikdagi qatlamda, uchqunlar esa faqat kerak bo'lganda chiziladi. */
 var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-function mkCanvas(z){ var c = document.createElement('canvas'); c.setAttribute('aria-hidden','true'); c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:' + z; document.body.appendChild(c); return c; }
-var cM = mkCanvas(-1), cS = mkCanvas(500), xM = cM.getContext('2d'), xS = cS.getContext('2d');
-var ca = document.createElement('canvas'), xa = ca.getContext('2d'), lastA = 0, stars = [], W = 0, H = 0, dpr = 1, meteors = [], sparks = [], next = 0, nextShower = 0, run = false, raf = 0;
-function buildStars(){ca.width=Math.max(2,W>>1);ca.height=Math.max(2,H>>1);var n=Math.min(420,Math.round(W*H/2600)),C=['255,255,255','200,225,255','255,236,190'];stars=[];for(var i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.88,r:.4+Math.random()*1.2,ph:Math.random()*6.28,sp:.5+Math.random()*2,big:Math.random()<.06,c:C[(Math.random()*3)|0]});}
-function size(){ setTimeout(buildStars,0);
-  dpr = Math.min(window.devicePixelRatio || 1, innerWidth < 700 ? 1 : 1.5); W = innerWidth; H = innerHeight;
-  [cM, cS].forEach(function(c){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); c.getContext('2d').setTransform(dpr,0,0,dpr,0,0); });
+
+/* Telefonda skroll paytida manzil paneli yig'iladi va oyna balandligi o'zgaradi. Avval shu sababli fon
+   qayta yaratilib, yulduzlar sakrab (pirpirab) qolardi. Endi "katta ko'rinish" (lvh) balandligi olinadi. */
+var probe = document.createElement('div');
+probe.setAttribute('aria-hidden','true');
+probe.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:0;height:100lvh;visibility:hidden;pointer-events:none';
+document.body.appendChild(probe);
+var hasLvh = probe.offsetHeight > 0;
+function vh(){ var h = hasLvh ? probe.offsetHeight : 0; return h > 0 ? h : innerHeight; }
+
+function mkCanvas(z){
+  var c = document.createElement('canvas'); c.setAttribute('aria-hidden','true');
+  c.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;height:100lvh;pointer-events:none;z-index:' + z;
+  document.body.appendChild(c); return c;
 }
-var rt; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(size, 150); }); size();
+var cA = mkCanvas(-1), cM = mkCanvas(-1), cS = mkCanvas(500);      // shafaq | yulduz+meteor | uchqun
+var xA = cA.getContext('2d'), xM = cM.getContext('2d'), xS = cS.getContext('2d');
+var stars = [], W = 0, H = 0, dpr = 1, meteors = [], sparks = [], next = 0, nextShower = 0, run = false, raf = 0;
+var lastTs = 0, gap = 33, ema = 3, lastDark = null, lastA = 0, sparksDrawn = false;
+
+/* yulduz porlashi: 3 rang x 8 yorqinlik darajasi = 24 ta guruh (har kadrda 420 emas, ~24 ta chizish) */
+var NB = 8, NC = 3, SC = ['255,255,255','200,225,255','255,236,190'];
+var FILL = [], STROKE = [], grp = [], grpBig = [];
+for(var gi = 0; gi < NC * NB; gi++){
+  var gc = SC[(gi / NB) | 0], ga = .35 + .65 * (((gi % NB) + .5) / NB);
+  FILL.push('rgba(' + gc + ',' + ga.toFixed(2) + ')'); STROKE.push('rgba(' + gc + ',' + (ga * .7).toFixed(2) + ')');
+  grp.push([]); grpBig.push([]);
+}
+/* shafaq: bitta birlik gradient qayta-qayta ishlatiladi (avval har ustun uchun yangi gradient yaratilardi) */
+var AUR = [[60,255,160],[70,190,255],[180,110,255]];
+var auroraGrad = AUR.map(function(c){
+  var g = xA.createLinearGradient(0, 0, 0, 1);
+  g.addColorStop(0, 'rgba(' + c + ',0)'); g.addColorStop(.75, 'rgba(' + c + ',1)'); g.addColorStop(1, 'rgba(' + c + ',0)');
+  return g;
+});
+
+function buildStars(){
+  var n = Math.min(420, Math.round(W * H / 2600)); stars = [];
+  for(var i = 0; i < n; i++) stars.push({x:Math.random()*W, y:Math.random()*H*.88, r:.4+Math.random()*1.2, ph:Math.random()*6.28,
+    sp:.5+Math.random()*2, big:Math.random()<.06, ci:(Math.random()*NC)|0, tw:1});
+}
+function size(force){
+  var w = innerWidth, h = vh();
+  /* manzil paneli yig'ilishi-ochilishi (balandlik biroz o'zgarishi) fonni qayta yaratmasin */
+  if(!force && Math.abs(w - W) < 1 && Math.abs(h - H) < (hasLvh ? 2 : 150)) return;
+  W = w; H = h;
+  dpr = Math.min(window.devicePixelRatio || 1, W < 700 ? 1 : 1.5);
+  [cM, cS].forEach(function(c){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); c.getContext('2d').setTransform(dpr,0,0,dpr,0,0); });
+  cA.width = Math.max(2, Math.ceil(W / 2)); cA.height = Math.max(2, Math.ceil(H / 2));   // shafaq yarim aniqlikda, CSS kattalashtiradi
+  lastA = 0; buildStars();
+}
+var rt; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(size, 150); }); size(true);
 var isDark = function(){ return document.documentElement.getAttribute('data-theme') === 'dark'; };
 var MC = ['255,255,255','150,225,255','255,215,120','160,200,255'];
 function spawnMeteor(){
@@ -224,45 +260,69 @@ function burst(x, y, n){
     sparks.push({x:x, y:y, vx:Math.cos(a)*s, vy:Math.sin(a)*s - .6, r:1 + Math.random()*2.2, life:0, max:35 + Math.random()*30, c:pal[(Math.random()*pal.length)|0]});
   }
 }
-addEventListener('pointerdown', function(e){ if(!reduce && !window.__scrolling) burst(e.clientX, e.clientY, 16); }, {passive:true});
+/* Sichqoncha: bosilganda uchqun. Telefon: faqat tegib qo'yib yuborilganda (skroll boshlanishida emas) */
+var tapX = 0, tapY = 0, tapT = 0;
+addEventListener('pointerdown', function(e){
+  if(reduce) return;
+  if(e.pointerType === 'mouse'){ burst(e.clientX, e.clientY, 16); return; }
+  tapX = e.clientX; tapY = e.clientY; tapT = performance.now();
+}, {passive:true});
+addEventListener('pointerup', function(e){
+  if(reduce || e.pointerType === 'mouse') return;
+  if(Math.abs(e.clientX - tapX) < 10 && Math.abs(e.clientY - tapY) < 10 && performance.now() - tapT < 500) burst(e.clientX, e.clientY, 16);
+}, {passive:true});
 var lastMove = 0;
 addEventListener('pointermove', function(e){
   if(reduce || e.pointerType !== 'mouse') return;
   var n = performance.now(); if(n - lastMove < 40) return; lastMove = n; burst(e.clientX, e.clientY, 1);
 }, {passive:true});
+
 function drawAurora(ts){
-  if(ts - lastA > 100 && ca.width > 2){
-    lastA = ts; var t = ts / 1000;
-    xa.setTransform(.5,0,0,.5,0,0); xa.clearRect(0,0,W,H); xa.globalCompositeOperation = 'lighter';
-    var P = [[60,255,160],[70,190,255],[180,110,255]];
-    for(var b = 0; b < 3; b++){
-      var c = P[b], base = H * (.17 + .08 * b);
-      for(var x = 0; x < W; x += 16){
-        var y = base + Math.sin(x/(W*.17) + t*.35 + b*2) * H*.05 + Math.sin(x/(W*.07) - t*.5 + b) * H*.02,
-            h = H * (.24 + .1 * Math.sin(x/(W*.11) + t*.3 + b*1.7)),
-            a = (.16 + .1 * Math.sin(x/(W*.2) + t*.6 + b)).toFixed(3),
-            g = xa.createLinearGradient(0, y - h, 0, y + h*.2);
-        g.addColorStop(0,'rgba(' + c + ',0)'); g.addColorStop(.75,'rgba(' + c + ',' + a + ')'); g.addColorStop(1,'rgba(' + c + ',0)');
-        xa.fillStyle = g; xa.fillRect(x, y - h, 16, h * 1.2);
-      }
+  var t = ts / 1000;
+  xA.setTransform(1,0,0,1,0,0); xA.clearRect(0, 0, cA.width, cA.height); xA.globalCompositeOperation = 'lighter';
+  for(var b = 0; b < 3; b++){
+    xA.fillStyle = auroraGrad[b];
+    var base = H * (.17 + .08 * b);
+    for(var x = 0; x < W; x += 16){
+      var y = base + Math.sin(x/(W*.17) + t*.35 + b*2) * H*.05 + Math.sin(x/(W*.07) - t*.5 + b) * H*.02,
+          h = H * (.24 + .1 * Math.sin(x/(W*.11) + t*.3 + b*1.7));
+      xA.globalAlpha = .16 + .1 * Math.sin(x/(W*.2) + t*.6 + b);
+      xA.setTransform(.5, 0, 0, .6 * h, 0, .5 * (y - h));      // birlik gradient: balandligi 1.2*h, yuqorisi y-h
+      xA.fillRect(x, 0, 16, 1);
     }
   }
-  xM.drawImage(ca, 0, 0, W, H);
+  xA.globalAlpha = 1; xA.setTransform(1,0,0,1,0,0);
 }
-function frame(ts){
-  raf = requestAnimationFrame(frame);
-  if(window.__scrolling || ts - (window.__lf || 0) < 33) return; window.__lf = ts;
-  xM.clearRect(0,0,W,H); xS.clearRect(0,0,W,H);
-  if(isDark()){
-    if(ts > next){ spawnMeteor(); if(Math.random() < .4) spawnMeteor(); next = ts + 450 + Math.random() * 1100; }
-    if(ts > nextShower){ for(var k = 0; k < 9; k++) setTimeout(spawnMeteor, k * 140); nextShower = ts + 22000 + Math.random() * 16000; }
+function drawStars(tt){
+  var i, g, q, n, bi, L, a;
+  for(g = 0; g < grp.length; g++){ grp[g].length = 0; grpBig[g].length = 0; }
+  for(i = 0; i < stars.length; i++){
+    q = stars[i]; n = .5 + .5 * Math.sin(tt * q.sp + q.ph);
+    bi = (n * NB) | 0; if(bi >= NB) bi = NB - 1;
+    g = q.ci * NB + bi; grp[g].push(i);
+    if(q.big){ q.tw = .35 + .65 * n; grpBig[g].push(i); }
   }
-  if(isDark()){drawAurora(ts);var tt=ts/1000;for(var s2=0;s2<stars.length;s2++){var q=stars[s2],tw=.35+.65*(.5+.5*Math.sin(tt*q.sp+q.ph));
-    xM.fillStyle='rgba('+q.c+','+tw.toFixed(2)+')';xM.beginPath();xM.arc(q.x,q.y,q.r,0,6.283);xM.fill();
-    if(q.big){xM.strokeStyle='rgba('+q.c+','+(tw*.7).toFixed(2)+')';xM.lineWidth=.8;var L=3+q.r*3*tw;xM.beginPath();xM.moveTo(q.x-L,q.y);xM.lineTo(q.x+L,q.y);xM.moveTo(q.x,q.y-L);xM.lineTo(q.x,q.y+L);xM.stroke();}}}
+  for(g = 0; g < grp.length; g++){
+    a = grp[g]; if(!a.length) continue;
+    xM.fillStyle = FILL[g]; xM.beginPath();
+    for(i = 0; i < a.length; i++){ q = stars[a[i]]; xM.moveTo(q.x + q.r, q.y); xM.arc(q.x, q.y, q.r, 0, 6.283); }
+    xM.fill();
+  }
+  xM.lineWidth = .8;
+  for(g = 0; g < grpBig.length; g++){
+    a = grpBig[g]; if(!a.length) continue;
+    xM.strokeStyle = STROKE[g]; xM.beginPath();
+    for(i = 0; i < a.length; i++){
+      q = stars[a[i]]; L = 3 + q.r * 3 * q.tw;
+      xM.moveTo(q.x - L, q.y); xM.lineTo(q.x + L, q.y); xM.moveTo(q.x, q.y - L); xM.lineTo(q.x, q.y + L);
+    }
+    xM.stroke();
+  }
+}
+function drawMeteors(k){
   xM.lineCap = 'round';
   for(var i = meteors.length - 1; i >= 0; i--){
-    var m = meteors[i]; m.x += m.vx; m.y += m.vy; m.life++;
+    var m = meteors[i]; m.x += m.vx * k; m.y += m.vy * k; m.life += k;
     var tx = m.x - m.vx * m.len / 4, ty = m.y - m.vy * m.len / 4;
     var g = xM.createLinearGradient(m.x, m.y, tx, ty);
     g.addColorStop(0, 'rgba(' + m.c + ',1)'); g.addColorStop(1, 'rgba(' + m.c + ',0)');
@@ -272,35 +332,64 @@ function frame(ts){
     xM.fillStyle = gl; xM.beginPath(); xM.arc(m.x, m.y, 7, 0, 6.283); xM.fill();
     if(m.x < -120 || m.x > W + 120 || m.y > H * .85 || m.life > 220) meteors.splice(i, 1);
   }
+}
+function drawSparks(k){
+  xS.clearRect(0, 0, W, H);
   for(var j = sparks.length - 1; j >= 0; j--){
-    var p = sparks[j]; p.x += p.vx; p.y += p.vy; p.vy += .05; p.life++;
+    var p = sparks[j]; p.x += p.vx * k; p.y += p.vy * k; p.vy += .05 * k; p.life += k;
     var al = 1 - p.life / p.max; if(al <= 0){ sparks.splice(j, 1); continue; }
     xS.fillStyle = 'rgba(' + p.c + ',' + al.toFixed(2) + ')';
     xS.beginPath(); xS.arc(p.x, p.y, p.r * (.5 + al), 0, 6.283); xS.fill();
   }
+  sparksDrawn = sparks.length > 0;
+}
+function frame(ts){
+  raf = requestAnimationFrame(frame);
+  var dt = ts - lastTs;
+  if(dt < gap - 2) return;                         // ~30 kadr/s (qurilma sekinlashsa o'zi kamayadi)
+  lastTs = ts;
+  var k = dt > 100 ? 3 : dt / 33.33;               // harakat tezligi kadr oralig'iga bog'liq bo'lmasin
+  var t0 = performance.now(), dark = isDark();
+  if(dark !== lastDark){                           // mavzu almashganda bir marta tozalaymiz
+    lastDark = dark; meteors.length = 0; xM.clearRect(0, 0, W, H);
+    cA.style.display = dark ? 'block' : 'none'; if(!dark) xA.clearRect(0, 0, cA.width, cA.height);
+    lastA = 0;
+  }
+  if(dark){
+    if(ts > next){ spawnMeteor(); if(Math.random() < .4) spawnMeteor(); next = ts + 450 + Math.random() * 1100; }
+    if(ts > nextShower){ for(var kk = 0; kk < 9; kk++) setTimeout(spawnMeteor, kk * 140); nextShower = ts + 22000 + Math.random() * 16000; }
+    if(ts - lastA > 66){ lastA = ts; drawAurora(ts); }   // shafaq sekin o'zgaradi, 15 marta/s yetarli
+    xM.clearRect(0, 0, W, H);
+    drawStars(ts / 1000);
+    drawMeteors(k);
+  }
+  if(sparks.length || sparksDrawn) drawSparks(k);  // uchqun yo'q bo'lsa, ustki qatlamga tegmaymiz
+  var wt = performance.now() - t0; ema = ema * .9 + wt * .1;
+  gap = ema > 12 ? 66 : ema > 7 ? 50 : ema < 4 ? 33 : gap;   // juda sekin qurilmada kadr tezligini o'zi kamaytiradi
 }
 function start(){ if(run || reduce) return; run = true; next = performance.now() + 800; nextShower = performance.now() + 9000; raf = requestAnimationFrame(frame); }
 function stop(){ run = false; cancelAnimationFrame(raf); }
 document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
 start();
 
-/* ───────────── Skroll paytida animatsiyalarni to'xtatish ───────────── */
+/* ───────────── Hero atom (SVG) faqat ko'rinib turganda yuradi ─────────────
+   Skrollni to'xtatmaydi: atom ekrandan chiqib ketsa, uning animatsiyasi to'xtab, protsessorni bo'shatadi. */
 (function(){
-  var root = document.documentElement, t;
-  function heroSvg(){ return document.querySelector('.hero-atom svg'); }
-  addEventListener('scroll', function(){
-    if(!window.__scrolling){
-      window.__scrolling = 1;
-      root.classList.add('is-scrolling');
-      var s = heroSvg(); if(s && s.pauseAnimations) s.pauseAnimations();
-    }
-    clearTimeout(t);
-    t = setTimeout(function(){
-      window.__scrolling = 0;
-      root.classList.remove('is-scrolling');
-      var s = heroSvg(); if(s && s.unpauseAnimations) s.unpauseAnimations();
-    }, 140);
-  }, {passive:true});
+  if(!('IntersectionObserver' in window)) return;
+  var watched = null;
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(en){
+      var s = en.target; if(!s.pauseAnimations) return;
+      if(en.isIntersecting) s.unpauseAnimations(); else s.pauseAnimations();
+    });
+  });
+  window.__watchHero = function(){
+    var s = document.querySelector('.hero-atom svg');
+    if(s === watched) return;
+    if(watched) io.unobserve(watched);
+    watched = s; if(s) io.observe(s);
+  };
+  window.__watchHero();
 })();
 
 /* ───────────── Orqaga qaytish: sakramasdan, darhol ───────────── */
