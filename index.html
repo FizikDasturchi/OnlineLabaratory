@@ -4087,7 +4087,7 @@ function toggleTheme(){
       }
     }
   }
-  function loop(ts){ raf = requestAnimationFrame(loop); if(window.__scrolling || mode === 'dark' || ts - last < 32) return; last = ts; draw(ts); }
+  function loop(ts){ raf = requestAnimationFrame(loop); if(mode === 'dark' || ts - last < 32) return; last = ts; draw(ts); }
   function start(){ if(running || reduce) return; running = true; raf = requestAnimationFrame(loop); }
   function stop(){ running = false; cancelAnimationFrame(raf); }
 
@@ -4114,6 +4114,6 @@ document.addEventListener('pointermove', e => {
 --------------------------------------------------------------------- */
 applyStatic();
 </script>
-<script src="design.js?v=2"></script>
+<script src="design.js?v=3"></script>
 </body>
 </html>
