@@ -237,7 +237,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;white-space:
 .sec-card .mv{margin-top:4px}
 /* Bo'limlarni ushlab turib surish (faqat admin) */
 .sec-card.draggable{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
-.sec-card.holding{transform:scale(.96);transition:transform .9s ease;box-shadow:0 6px 22px rgba(29,78,216,.22)}
+.sec-card.holding{transform:scale(.96);transition:transform .75s ease;box-shadow:0 6px 22px rgba(29,78,216,.22)}
 .sec-card.drag-source{opacity:.35;border:2px dashed var(--accent);background:rgba(239,246,255,.7);box-shadow:none;transform:none}
 .drag-ghost{
   position:fixed;left:0;top:0;margin:0;z-index:300;pointer-events:none;
@@ -1073,7 +1073,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.10.24-1";
+const APP_BUILD = "2026.10.25-1";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -3462,6 +3462,7 @@ function sortBooks(docs){
    Sichqoncha va barmoq ikkalasida ishlaydi. Pastga/tepaga yaqinlashsangiz,
    sahifa o'zi scroll bo'ladi. */
 const HOLD_MS = 1000;        // necha millisekund ushlab turish kerak
+const HOLD_VISUAL_MS = 250;  // kichrayish belgisi faqat barmoq shuncha turib qolgandagina chiqadi (oddiy scroll/bosishda kartochka pirpiramasin)
 const HOLD_TOLERANCE = 8;    // ushlab turish paytida shuncha pikseldan ko'p siljisa — bu oddiy scroll, surish emas
 let drag = null;
 let suppressClickUntil = 0;
@@ -3491,10 +3492,10 @@ function onSecPointerDown(e){
   drag = {
     card, id: card.dataset.id, pid: e.pointerId,
     sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY,
-    active: false, settling: false, timer: null, raf: 0,
+    active: false, settling: false, timer: null, vis: null, raf: 0,
     ghost: null, order: null, byId: null, rects: null, lastHit: null, offX: 0, offY: 0
   };
-  card.classList.add('holding');
+  drag.vis = setTimeout(() => { if(drag && drag.card === card && !drag.active) card.classList.add('holding'); }, HOLD_VISUAL_MS);
   drag.timer = setTimeout(activateDrag, HOLD_MS);
   window.addEventListener('pointermove', onDragMove);
   window.addEventListener('pointerup', onDragUp);
@@ -3510,7 +3511,7 @@ function dragUnlisten(){
 // Ushlab turish tugamasdan qo'yib yuborilsa yoki siljitilsa (oddiy bosish / scroll)
 function abortDrag(){
   if(!drag) return;
-  clearTimeout(drag.timer);
+  clearTimeout(drag.timer); clearTimeout(drag.vis);
   drag.card.classList.remove('holding');
   dragUnlisten();
   drag = null;
@@ -4087,7 +4088,7 @@ function toggleTheme(){
       }
     }
   }
-  function loop(ts){ raf = requestAnimationFrame(loop); if(mode === 'dark' || ts - last < 32) return; last = ts; draw(ts); }
+  function loop(ts){ raf = requestAnimationFrame(loop); if(mode === 'dark' || window.__fxFreeze || ts - last < 32) return; last = ts; draw(ts); }
   function start(){ if(running || reduce) return; running = true; raf = requestAnimationFrame(loop); }
   function stop(){ running = false; cancelAnimationFrame(raf); }
 
@@ -4114,6 +4115,6 @@ document.addEventListener('pointermove', e => {
 --------------------------------------------------------------------- */
 applyStatic();
 </script>
-<script src="design.js?v=3"></script>
+<script src="design.js?v=4"></script>
 </body>
 </html>
