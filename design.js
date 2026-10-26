@@ -114,6 +114,9 @@ var css2 = `
 .hero-atom svg{filter:none!important}
 .modal-overlay{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
+/* ── Kompyuter: skroll paytida kartochkalar hover va yorug'lik dog'iga javob bermaydi (pirpirash va qotishni oldini oladi) ── */
+html.is-scrolling .sec-card,html.is-scrolling .book-row{pointer-events:none;transition:none!important}
+
 /* ── Sensorli ekran (telefon, Telegram): hover effektlari yo'q ──
    Barmoq tekkan kartochka "yopishib" qolmasin, skroll boshlanganda kartochkalar sakramasin, pirpiramasin */
 @media (hover:none){
@@ -225,19 +228,22 @@ var lastTs = 0, gap = 33, ema = 3, lastDark = null, lastA = 0, sparksDrawn = fal
 /* ── Skroll paytida silliqlik nazorati ──
    Fon animatsiyasi skroll paytida ham yuradi. Lekin qurilma qiynalib, sahifa silliq skroll bo'lmasa
    (kartochkalar pirpirasa), fon o'zi yengillashadi. Darajalar:
-   0 = to'liq | 1 = yengil (yulduzlar sekinroq, yangi meteor va shafaq to'xtaydi) | 2 = skroll paytida to'xtab turadi.
-   Qaror brauzerning HAQIQIY kadr tezligiga qarab olinadi va bir necha kunga eslab qolinadi. */
-var scrolling = false, scrollTimer = 0, lastTick = 0, sdt = 16, sN = 0, level = 0;
-try{ var sv = JSON.parse(localStorage.getItem('fxLvl') || 'null'); if(sv && Date.now() - sv.t < 3 * 864e5) level = sv.l | 0; }catch(e){}
+   0 = to'liq | 1 = yengil (yulduzlar va shafaq sekinroq yangilanadi, uchar yulduzlar davom etadi) | 2 = faqat juda og'ir holatda: skroll paytida to'xtab turadi.
+   Qaror brauzerning HAQIQIY kadr tezligiga qarab olinadi, hech qayerga yozilmaydi va qurilma silliq bo'lsa o'zi qaytadi. */
+var scrolling = false, scrollTimer = 0, lastTick = 0, sdt = 16, sN = 0, level = 0, stuck = false, recovered = false;
+try{ localStorage.removeItem('fxLvl'); }catch(e){}   // eski versiya eslab qolgan sekin rejimni o'chiramiz
 /* Hub (iframe) ichida ochilganda: yengilroq rejim; hub "to'xtat" desa — hamma animatsiya to'xtaydi */
 var parked = false, embedded = false;
 try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
-if(embedded && level < 1) level = 1;       // iframe ichida skroll paytida fon yengilroq ishlaydi
-function setLevel(l){ level = l; try{ localStorage.setItem('fxLvl', JSON.stringify({l:l, t:Date.now()})); }catch(e){} }
+/* Sichqonchali qurilmada skroll paytida kartochkalar hover/yorug'lik dog'ini qayta chizmasin (pirpirash shundan) */
+var canHover = !!(window.matchMedia && matchMedia('(hover:hover)').matches), rootEl = document.documentElement;
 addEventListener('scroll', function(){
-  if(!scrolling){ sN = 0; sdt = 16; }
-  scrolling = true; clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(function(){ scrolling = false; window.__fxFreeze = false; }, 150);
+  if(!scrolling){ sN = 0; sdt = 16; if(canHover) rootEl.classList.add('is-scrolling'); }
+  scrolling = true; window.__scrollingNow = true; clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(function(){
+    scrolling = false; window.__scrollingNow = false; window.__fxFreeze = false;
+    if(canHover) rootEl.classList.remove('is-scrolling');
+  }, 150);
 }, {passive:true, capture:true});
 
 /* yulduz porlashi: 3 rang x 8 yorqinlik darajasi = 24 ta guruh (har kadrda 420 emas, ~24 ta chizish) */
@@ -373,18 +379,22 @@ function drawSparks(k){
 function frame(ts){
   raf = requestAnimationFrame(frame);
   var tick = ts - lastTick; lastTick = ts;
-  if(scrolling && level < 2 && tick < 200){          // skroll paytida brauzerning haqiqiy kadr oralig'ini o'lchaymiz
+  if(scrolling && tick < 200){                       // skroll paytida brauzerning haqiqiy kadr oralig'ini o'lchaymiz
     sN++;
     if(sN > 5){
-      sdt = sdt * .88 + tick * .12;
-      if(sN > 30 && sdt > 40){ setLevel(level + 1); sN = 0; sdt = 16; }   // ~25 kadr/s dan past — yengillashtiramiz
+      sdt = sdt * .9 + tick * .1;
+      if(level < 2 && sN > 45 && sdt > (level ? 70 : 45)){          // 0->1: ~22 kadr/s dan past; 1->2: ~14 kadr/s dan past
+        if(recovered) stuck = true; level++; sN = 0; sdt = 16;
+      } else if(level > 0 && !stuck && sN > 90 && sdt < 20){        // qurilma silliq: bir daraja qaytamiz
+        level--; recovered = true; sN = 0; sdt = 16;
+      }
     }
   }
-  window.__fxFreeze = scrolling && level >= 1;       // index.html dagi kunduzgi zarrachalar ham shunga qaraydi
+  window.__fxFreeze = scrolling && level >= 2;       // index.html dagi kunduzgi zarrachalar ham shunga qaraydi
   if(scrolling && level >= 2) return;                // 2-daraja: skroll tugaguncha fon to'xtab turadi
   var slow = scrolling && level === 1;
   var dt = ts - lastTs;
-  if(dt < (slow ? Math.max(gap, 66) : gap) - 2) return;   // ~30 kadr/s (yengil rejimda ~15)
+  if(dt < (slow ? Math.max(gap, 50) : gap) - 2) return;   // ~30 kadr/s (yengil rejimda ~20)
   lastTs = ts;
   var k = dt > 100 ? 3 : dt / 33.33;               // harakat tezligi kadr oralig'iga bog'liq bo'lmasin
   var t0 = performance.now(), dark = isDark();
@@ -394,11 +404,10 @@ function frame(ts){
     lastA = 0;
   }
   if(dark){
-    if(!slow){
-      if(ts > next){ spawnMeteor(); if(Math.random() < .4) spawnMeteor(); next = ts + 450 + Math.random() * 1100; }
-      if(ts > nextShower){ for(var kk = 0; kk < 9; kk++) setTimeout(spawnMeteor, kk * 140); nextShower = ts + 22000 + Math.random() * 16000; }
-      if(ts - lastA > 66){ lastA = ts; drawAurora(ts); }   // shafaq sekin o'zgaradi, 15 marta/s yetarli
-    }
+    /* uchar yulduzlar skroll paytida ham davom etadi (yengil rejimda ozroq) */
+    if(ts > next){ spawnMeteor(); if(!slow && Math.random() < .4) spawnMeteor(); next = ts + (slow ? 900 : 450) + Math.random() * 1100; }
+    if(ts > nextShower && !slow){ for(var kk = 0; kk < 9; kk++) setTimeout(spawnMeteor, kk * 140); nextShower = ts + 22000 + Math.random() * 16000; }
+    if(ts - lastA > (slow ? 150 : 66)){ lastA = ts; drawAurora(ts); }   // shafaq sekin o'zgaradi
     xM.clearRect(0, 0, W, H);
     drawStars(ts / 1000);
     drawMeteors(k);
