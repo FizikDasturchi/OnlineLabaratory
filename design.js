@@ -114,12 +114,19 @@ var css2 = `
 .hero-atom svg{filter:none!important}
 .modal-overlay{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
+/* ── Telefon brauzeri: yuqori panel (manzil/asboblar) skrollda chiqib-yashirinadi ──
+   Fon qatlamlari shu panelga qarab o'lchamini o'zgartirmasin: doim "katta ko'rinish" balandligida turadi.
+   (Aks holda pastda qorong'i tasma paydo bo'lib, fon rasmi sakraydi — yarim shaffof kartochkalar pirpiragandek ko'rinadi.) */
+.site-bg,.day-fx,.night-fx,.atom-bg,.fx-canvas{bottom:auto!important;height:100vh!important;height:100lvh!important}
+
 /* ── Kompyuter: skroll paytida kartochkalar hover va yorug'lik dog'iga javob bermaydi (pirpirash va qotishni oldini oladi) ── */
 html.is-scrolling .sec-card,html.is-scrolling .book-row{pointer-events:none;transition:none!important}
 
 /* ── Sensorli ekran (telefon, Telegram): hover effektlari yo'q ──
    Barmoq tekkan kartochka "yopishib" qolmasin, skroll boshlanganda kartochkalar sakramasin, pirpiramasin */
 @media (hover:none){
+  /* katta xira soya skrollda har kadrda qayta chiziladi — telefonda yengilini ishlatamiz */
+  .sec-card:not(.add-card):not(.holding):not(.drag-source),.book-row{box-shadow:0 3px 10px rgba(6,24,30,.2)}
   .sec-card:not(.holding):not(.drag-source),.book-row{transition:none!important}
   .sec-card:not(.holding):hover,.book-row:hover{transform:none!important}
   .sec-card:hover .sec-icon,.sec-card.add-card:hover .plus{transform:none!important}
