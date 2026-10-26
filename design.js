@@ -229,6 +229,10 @@ var lastTs = 0, gap = 33, ema = 3, lastDark = null, lastA = 0, sparksDrawn = fal
    Qaror brauzerning HAQIQIY kadr tezligiga qarab olinadi va bir necha kunga eslab qolinadi. */
 var scrolling = false, scrollTimer = 0, lastTick = 0, sdt = 16, sN = 0, level = 0;
 try{ var sv = JSON.parse(localStorage.getItem('fxLvl') || 'null'); if(sv && Date.now() - sv.t < 3 * 864e5) level = sv.l | 0; }catch(e){}
+/* Hub (iframe) ichida ochilganda: yengilroq rejim; hub "to'xtat" desa — hamma animatsiya to'xtaydi */
+var parked = false, embedded = false;
+try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
+if(embedded && level < 1) level = 1;       // iframe ichida skroll paytida fon yengilroq ishlaydi
 function setLevel(l){ level = l; try{ localStorage.setItem('fxLvl', JSON.stringify({l:l, t:Date.now()})); }catch(e){} }
 addEventListener('scroll', function(){
   if(!scrolling){ sN = 0; sdt = 16; }
@@ -253,7 +257,7 @@ var auroraGrad = AUR.map(function(c){
 });
 
 function buildStars(){
-  var n = Math.min(420, Math.round(W * H / 2600)); stars = [];
+  var n = Math.min(embedded ? 260 : 420, Math.round(W * H / 2600)); stars = [];
   for(var i = 0; i < n; i++) stars.push({x:Math.random()*W, y:Math.random()*H*.88, r:.4+Math.random()*1.2, ph:Math.random()*6.28,
     sp:.5+Math.random()*2, big:Math.random()<.06, ci:(Math.random()*NC)|0, tw:1});
 }
@@ -262,7 +266,7 @@ function size(force){
   /* manzil paneli yig'ilishi-ochilishi (balandlik biroz o'zgarishi) fonni qayta yaratmasin */
   if(!force && Math.abs(w - W) < 1 && Math.abs(h - H) < (hasLvh ? 2 : 150)) return;
   W = w; H = h;
-  dpr = Math.min(window.devicePixelRatio || 1, W < 700 ? 1 : 1.5);
+  dpr = embedded ? 1 : Math.min(window.devicePixelRatio || 1, W < 700 ? 1 : 1.5);
   [cM, cS].forEach(function(c){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); c.getContext('2d').setTransform(dpr,0,0,dpr,0,0); });
   cA.width = Math.max(2, Math.ceil(W / 2)); cA.height = Math.max(2, Math.ceil(H / 2));   // shafaq yarim aniqlikda, CSS kattalashtiradi
   lastA = 0; buildStars();
@@ -403,9 +407,14 @@ function frame(ts){
   var wt = performance.now() - t0; ema = ema * .9 + wt * .1;
   gap = ema > 12 ? 66 : ema > 7 ? 50 : ema < 4 ? 33 : gap;   // juda sekin qurilmada kadr tezligini o'zi kamaytiradi
 }
-function start(){ if(run || reduce) return; run = true; next = performance.now() + 800; nextShower = performance.now() + 9000; raf = requestAnimationFrame(frame); }
+function start(){ if(run || reduce || parked) return; run = true; next = performance.now() + 800; nextShower = performance.now() + 9000; raf = requestAnimationFrame(frame); }
 function stop(){ run = false; cancelAnimationFrame(raf); }
 document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
+addEventListener('message', function(e){
+  var d = e.data; if(!d || typeof d !== 'object' || e.source !== window.parent) return;
+  if(d.tsHub === 'pause'){ parked = true; window.__fxPaused = true; stop(); }
+  else if(d.tsHub === 'resume'){ parked = false; window.__fxPaused = false; size(); start(); }
+});
 start();
 
 /* ───────────── Hero atom (SVG) faqat ko'rinib turganda yuradi ─────────────
