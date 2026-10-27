@@ -114,10 +114,16 @@ var css2 = `
 .hero-atom svg{filter:none!important}
 .modal-overlay{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
-/* ── Telefon brauzeri: yuqori panel (manzil/asboblar) skrollda chiqib-yashirinadi ──
-   Fon qatlamlari shu panelga qarab o'lchamini o'zgartirmasin: doim "katta ko'rinish" balandligida turadi.
-   (Aks holda pastda qorong'i tasma paydo bo'lib, fon rasmi sakraydi — yarim shaffof kartochkalar pirpiragandek ko'rinadi.) */
-.site-bg,.day-fx,.night-fx,.atom-bg,.fx-canvas{bottom:auto!important;height:100vh!important;height:100lvh!important}
+/* ── Diagnostika (?debug=1): har bir qatlamni alohida o'chirib ko'rish uchun. Oddiy holatda hech narsa qilmaydi ── */
+html.d-nostars .fxc,html.d-nostars .fx-canvas{display:none!important}
+html.d-nobg .site-bg,html.d-nobg .day-fx,html.d-nobg .night-fx{display:none!important}
+html.d-nobg body{background:#0c1233!important}
+html[data-theme="light"].d-nobg body{background:#eef3fb!important}
+html.d-noglass .sec-card,html.d-noglass .book-row{background:#162050!important}
+html[data-theme="light"].d-noglass .sec-card,html[data-theme="light"].d-noglass .book-row{background:#fff!important}
+html.d-noshadow .sec-card,html.d-noshadow .book-row,html.d-noshadow .sec-icon{box-shadow:none!important}
+html.d-nomotion *,html.d-nomotion *::before,html.d-nomotion *::after{transition:none!important;animation:none!important}
+html.d-lvh .site-bg,html.d-lvh .day-fx,html.d-lvh .night-fx,html.d-lvh .atom-bg,html.d-lvh .fx-canvas{bottom:auto!important;height:100vh!important;height:100lvh!important}
 
 /* ── Kompyuter: skroll paytida kartochkalar hover va yorug'lik dog'iga javob bermaydi (pirpirash va qotishni oldini oladi) ── */
 html.is-scrolling .sec-card,html.is-scrolling .book-row{pointer-events:none;transition:none!important}
@@ -125,8 +131,6 @@ html.is-scrolling .sec-card,html.is-scrolling .book-row{pointer-events:none;tran
 /* ── Sensorli ekran (telefon, Telegram): hover effektlari yo'q ──
    Barmoq tekkan kartochka "yopishib" qolmasin, skroll boshlanganda kartochkalar sakramasin, pirpiramasin */
 @media (hover:none){
-  /* katta xira soya skrollda har kadrda qayta chiziladi — telefonda yengilini ishlatamiz */
-  .sec-card:not(.add-card):not(.holding):not(.drag-source),.book-row{box-shadow:0 3px 10px rgba(6,24,30,.2)}
   .sec-card:not(.holding):not(.drag-source),.book-row{transition:none!important}
   .sec-card:not(.holding):hover,.book-row:hover{transform:none!important}
   .sec-card:hover .sec-icon,.sec-card.add-card:hover .plus{transform:none!important}
@@ -223,7 +227,7 @@ var hasLvh = probe.offsetHeight > 0;
 function vh(){ var h = hasLvh ? probe.offsetHeight : 0; return h > 0 ? h : innerHeight; }
 
 function mkCanvas(z){
-  var c = document.createElement('canvas'); c.setAttribute('aria-hidden','true');
+  var c = document.createElement('canvas'); c.setAttribute('aria-hidden','true'); c.className = 'fxc';
   c.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;height:100lvh;pointer-events:none;z-index:' + z;
   document.body.appendChild(c); return c;
 }
@@ -386,7 +390,7 @@ function drawSparks(k){
 function frame(ts){
   raf = requestAnimationFrame(frame);
   var tick = ts - lastTick; lastTick = ts;
-  if(scrolling && tick < 200){                       // skroll paytida brauzerning haqiqiy kadr oralig'ini o'lchaymiz
+  if(scrolling && tick < 200 && !window.__benchLock){   // skroll paytida brauzerning haqiqiy kadr oralig'ini o'lchaymiz
     sN++;
     if(sN > 5){
       sdt = sdt * .9 + tick * .1;
@@ -432,6 +436,100 @@ addEventListener('message', function(e){
   else if(d.tsHub === 'resume'){ parked = false; window.__fxPaused = false; size(); start(); }
 });
 start();
+
+/* ───────────── Diagnostika paneli (faqat manzilga ?debug=1 qo'shilganda) ─────────────
+   Qaysi qatlam skrollni sekinlashtirayotganini telefonning o'zida o'lchaydi: har bir qatlamni navbat bilan o'chirib,
+   bir xil avtomatik skroll qiladi va kadr tezligini taqqoslaydi. Oddiy foydalanuvchilarga ko'rinmaydi. */
+if(/[?&]debug=1/.test(location.search)){ (function(){
+  var flags = {stars:true, bg:true, glass:true, shadow:true, motion:true, lvh:false};
+  var CLS = {stars:'d-nostars', bg:'d-nobg', glass:'d-noglass', shadow:'d-noshadow', motion:'d-nomotion', lvh:'d-lvh'};
+  var NAMES = {stars:'Yulduz+shafaq', bg:'Fon rasmi', glass:'Shaffof kartochka', shadow:'Soyalar', motion:'Animatsiya/hover', lvh:'Barqaror fon (lvh)'};
+  var CFG = [
+    ['Hozirgi holat', {}],
+    ['Yulduz+shafaq o\'chiq', {stars:false}],
+    ['Fon rasmi o\'chiq', {bg:false}],
+    ['Shaffof kartochka o\'chiq', {glass:false}],
+    ['Soyalar o\'chiq', {shadow:false}],
+    ['Animatsiya/hover o\'chiq', {motion:false}],
+    ['Barqaror fon (lvh)', {lvh:true}],
+    ['HAMMASI o\'chiq', {stars:false, bg:false, glass:false, shadow:false, motion:false}],
+    ['Hozirgi holat (qayta)', {}]
+  ];
+  var benching = false, longs = [];
+  try{ new PerformanceObserver(function(l){ l.getEntries().forEach(function(e){ longs.push({t:performance.now(), d:e.duration}); }); }).observe({entryTypes:['longtask']}); }catch(e){}
+
+  function apply(){
+    for(var k in flags) rootEl.classList.toggle(CLS[k], k === 'lvh' ? flags[k] : !flags[k]);
+    if(flags.stars) start(); else stop();
+  }
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:6px;z-index:2147483000;background:rgba(0,0,0,.88);color:#fff;font:11px/1.4 system-ui,sans-serif;padding:8px;border-radius:10px;max-height:58vh;overflow:auto';
+  var live = document.createElement('div'); live.style.cssText = 'font-weight:700;margin-bottom:6px';
+  var chips = document.createElement('div'); chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px';
+  var out = document.createElement('div'); out.style.cssText = 'white-space:pre-wrap;font:10.5px/1.45 monospace';
+  box.appendChild(live); box.appendChild(chips); box.appendChild(out); document.body.appendChild(box);
+  var btns = {};
+  function refresh(){ for(var k in btns){ var on = flags[k]; btns[k].textContent = NAMES[k] + ': ' + (on ? 'ON' : 'OFF'); btns[k].style.background = on ? '#1d6b3a' : '#7a2323'; } }
+  function chip(label, fn, bg){ var b = document.createElement('button'); b.textContent = label; b.style.cssText = 'border:0;border-radius:7px;padding:5px 8px;color:#fff;font:inherit;background:' + (bg || '#333'); b.addEventListener('click', fn); chips.appendChild(b); return b; }
+  Object.keys(flags).forEach(function(k){ btns[k] = chip('', function(){ flags[k] = !flags[k]; apply(); refresh(); }); });
+  refresh();
+  chip('▶ Avto-test (~35 s)', function(){ bench(); }, '#0b5cad');
+  chip('✕', function(){ box.style.display = 'none'; }, '#555');
+
+  var dts = [], lastT = 0;
+  requestAnimationFrame(function loop(t){ if(lastT){ dts.push(t - lastT); if(dts.length > 60) dts.shift(); } lastT = t; requestAnimationFrame(loop); });
+  setInterval(function(){
+    if(benching || !dts.length) return;
+    var s = 0, m = 0; dts.forEach(function(d){ s += d; if(d > m) m = d; });
+    var now = performance.now(), lt = longs.filter(function(x){ return now - x.t < 5000; }).length;
+    live.textContent = 'Jonli: ' + Math.round(1000 * dts.length / s) + ' kadr/s | eng uzoq kadr ' + Math.round(m) + ' ms | uzun vazifalar (5 s): ' + lt + ' | daraja ' + level;
+  }, 500);
+
+  function stats(a){
+    var s = a.slice().sort(function(x,y){ return x - y; }), n = s.length, sum = 0, bad = 0;
+    for(var i = 0; i < n; i++){ sum += a[i]; if(a[i] > 33.5) bad++; }
+    return {fps: Math.round(1000 * n / sum), p95: s[Math.floor(n * .95)] || 0, max: s[n - 1] || 0, bad: Math.round(100 * bad / n)};
+  }
+  function jump(y){ try{ window.scrollTo({top:y, behavior:'instant'}); }catch(e){ window.scrollTo(0, y); } }
+  function runOne(cfg, done){
+    for(var k in flags) flags[k] = (k === 'lvh') ? false : true;
+    for(var c in cfg) flags[c] = cfg[c];
+    apply(); refresh(); jump(0);
+    setTimeout(function(){
+      var max = Math.min(document.documentElement.scrollHeight - innerHeight, 7000), dur = 3000, speed = 2200, t0 = 0, last = 0, a = [], l0 = longs.length;
+      requestAnimationFrame(function step(t){
+        if(!t0){ t0 = t; last = t; requestAnimationFrame(step); return; }
+        a.push(t - last); last = t;
+        var el = t - t0, p = (el / 1000 * speed) % (2 * max);
+        jump(p < max ? p : 2 * max - p);
+        if(el < dur) requestAnimationFrame(step); else { var s = stats(a); s.lt = longs.length - l0; done(s); }
+      });
+    }, 700);
+  }
+  function bench(){
+    if(benching) return;
+    if(document.documentElement.scrollHeight - innerHeight < 900){ out.textContent = "Sahifa juda qisqa. Bo'limlar ro'yxati to'liq ochiq bosh sahifada ishga tushiring."; return; }
+    benching = true; window.__benchLock = true;
+    var i = 0, res = [];
+    (function next(){
+      if(i >= CFG.length){ finish(); return; }
+      var c = CFG[i++]; live.textContent = "O'lchanmoqda (" + i + '/' + CFG.length + '): ' + c[0] + " — ekranga tegmang";
+      runOne(c[1], function(s){ res.push([c[0], s]); next(); });
+    })();
+    function finish(){
+      for(var k in flags) flags[k] = (k === 'lvh') ? false : true;
+      apply(); refresh(); jump(0); window.__benchLock = false; benching = false;
+      var best = 1e9; res.forEach(function(r){ if(r[1].p95 < best) best = r[1].p95; });
+      var lines = ['QATLAM                    kadr/s  p95(ms)  >33ms  eng uzoq  uzun-vaz.'];
+      res.forEach(function(r){
+        var s = r[1], nm = (r[0] + '                          ').slice(0, 25);
+        lines.push(nm + ' ' + ('   ' + s.fps).slice(-5) + '  ' + ('     ' + s.p95.toFixed(0)).slice(-6) + '  ' + ('   ' + s.bad + '%').slice(-5) + '  ' + ('      ' + s.max.toFixed(0)).slice(-7) + '  ' + ('    ' + s.lt).slice(-7) + (s.p95 === best ? '  ★' : ''));
+      });
+      lines.push('', "Kichik p95 va kam '>33ms' — yaxshi. Shu jadvalning skrinshotini yuboring.");
+      live.textContent = 'Tayyor'; out.textContent = lines.join('\n');
+    }
+  }
+})(); }
 
 /* ───────────── Hero atom (SVG) faqat ko'rinib turganda yuradi ─────────────
    Skrollni to'xtatmaydi: atom ekrandan chiqib ketsa, uning animatsiyasi to'xtab, protsessorni bo'shatadi. */
