@@ -114,6 +114,14 @@ var css2 = `
 .hero-atom svg{filter:none!important}
 .modal-overlay{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
+/* ── YENGIL REJIM: telefondagi oddiy brauzer (Telegram mini-app emas) ──
+   Kartochkalar yaxlit rangda, soyasiz, animatsiyasiz: skrollda brauzer ularni qayta aralashtirib/chizib o'tirmaydi. */
+html.lite .sec-card,html.lite .book-row{box-shadow:none!important;transition:none!important}
+html.lite .sec-icon{box-shadow:inset 0 1px 0 rgba(255,255,255,.45)!important;transition:none!important}
+html.lite .sec-card::before,html.lite .sec-card::after,html.lite .book-row::after{display:none!important}
+html.lite .sec-card:hover,html.lite .book-row:hover{transform:none!important}
+html.lite[data-theme="dark"] .sec-card:not(.add-card):not(.drag-source),html.lite[data-theme="dark"] .book-row{background:#1b2759!important}
+
 /* ── Diagnostika (?debug=1): har bir qatlamni alohida o'chirib ko'rish uchun. Oddiy holatda hech narsa qilmaydi ── */
 html.d-nostars .fxc,html.d-nostars .fx-canvas{display:none!important}
 html.d-nobg .site-bg,html.d-nobg .day-fx,html.d-nobg .night-fx{display:none!important}
@@ -217,6 +225,17 @@ applyIcons();
    aniqlikdagi qatlamda, uchqunlar esa faqat kerak bo'lganda chiziladi. */
 var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+/* Yengil rejim: telefon/planshet brauzerida (Telegram mini-app'dan tashqari) yoqiladi.
+   Skrollda yulduzlar to'xtab turadi, kartochkalar soddalashadi. Tekshirish uchun: ?lite=1 (majburan yoqish), ?full=1 (o'chirish). */
+var inTG = false;
+try{
+  inTG = /tgWebApp/.test(location.hash + location.search) || !!window.TelegramWebviewProxy || !!(window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || sessionStorage.getItem('tgMode') === '1';
+  if(inTG) sessionStorage.setItem('tgMode', '1');
+}catch(e){}
+var coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches);
+var lite = /[?&]lite=1/.test(location.search) || (coarse && !inTG && !/[?&]full=1/.test(location.search));
+if(lite) document.documentElement.classList.add('lite');
+
 /* Telefonda skroll paytida manzil paneli yig'iladi va oyna balandligi o'zgaradi. Avval shu sababli fon
    qayta yaratilib, yulduzlar sakrab (pirpirab) qolardi. Endi "katta ko'rinish" (lvh) balandligi olinadi. */
 var probe = document.createElement('div');
@@ -233,6 +252,7 @@ function mkCanvas(z){
 }
 var cA = mkCanvas(-1), cM = mkCanvas(-1), cS = mkCanvas(500);      // shafaq | yulduz+meteor | uchqun
 var xA = cA.getContext('2d'), xM = cM.getContext('2d'), xS = cS.getContext('2d');
+if(lite) cS.style.display = 'none';   // uchqun qatlami yengil rejimda kerak emas
 var stars = [], W = 0, H = 0, dpr = 1, meteors = [], sparks = [], next = 0, nextShower = 0, run = false, raf = 0;
 var lastTs = 0, gap = 33, ema = 3, lastDark = null, lastA = 0, sparksDrawn = false;
 
@@ -242,6 +262,7 @@ var lastTs = 0, gap = 33, ema = 3, lastDark = null, lastA = 0, sparksDrawn = fal
    0 = to'liq | 1 = yengil (yulduzlar va shafaq sekinroq yangilanadi, uchar yulduzlar davom etadi) | 2 = faqat juda og'ir holatda: skroll paytida to'xtab turadi.
    Qaror brauzerning HAQIQIY kadr tezligiga qarab olinadi, hech qayerga yozilmaydi va qurilma silliq bo'lsa o'zi qaytadi. */
 var scrolling = false, scrollTimer = 0, lastTick = 0, sdt = 16, sN = 0, level = 0, stuck = false, recovered = false;
+if(lite){ level = 2; stuck = true; }   // yengil rejim: skroll paytida fon animatsiyasi to'xtab turadi
 try{ localStorage.removeItem('fxLvl'); }catch(e){}   // eski versiya eslab qolgan sekin rejimni o'chiramiz
 /* Hub (iframe) ichida ochilganda: yengilroq rejim; hub "to'xtat" desa — hamma animatsiya to'xtaydi */
 var parked = false, embedded = false;
@@ -274,7 +295,7 @@ var auroraGrad = AUR.map(function(c){
 });
 
 function buildStars(){
-  var n = Math.min(embedded ? 260 : 420, Math.round(W * H / 2600)); stars = [];
+  var n = Math.min(lite ? 180 : (embedded ? 260 : 420), Math.round(W * H / 2600)); stars = [];
   for(var i = 0; i < n; i++) stars.push({x:Math.random()*W, y:Math.random()*H*.88, r:.4+Math.random()*1.2, ph:Math.random()*6.28,
     sp:.5+Math.random()*2, big:Math.random()<.06, ci:(Math.random()*NC)|0, tw:1});
 }
@@ -298,6 +319,7 @@ function spawnMeteor(){
     c: MC[(Math.random() * MC.length) | 0], life: 0});
 }
 function burst(x, y, n){
+  if(lite) return;
   var pal = isDark() ? ['255,255,255','150,225,255','255,215,120','160,200,255'] : ['255,190,60','40,190,200','80,160,255','255,140,60'];
   for(var i = 0; i < n; i++){
     var a = Math.random() * 6.283, s = .8 + Math.random() * 3.2;
@@ -425,7 +447,7 @@ function frame(ts){
   }
   if(sparks.length || sparksDrawn) drawSparks(k);  // uchqun yo'q bo'lsa, ustki qatlamga tegmaymiz
   var wt = performance.now() - t0; ema = ema * .9 + wt * .1;
-  gap = ema > 12 ? 66 : ema > 7 ? 50 : ema < 4 ? 33 : gap;   // juda sekin qurilmada kadr tezligini o'zi kamaytiradi
+  gap = Math.max(lite ? 50 : 0, ema > 12 ? 66 : ema > 7 ? 50 : ema < 4 ? 33 : gap);   // juda sekin qurilmada kadr tezligini o'zi kamaytiradi
 }
 function start(){ if(run || reduce || parked) return; run = true; next = performance.now() + 800; nextShower = performance.now() + 9000; raf = requestAnimationFrame(frame); }
 function stop(){ run = false; cancelAnimationFrame(raf); }
