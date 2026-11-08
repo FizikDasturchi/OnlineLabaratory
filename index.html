@@ -4041,10 +4041,15 @@ function toggleTheme(){
       });
     }
   }
+  // manzil paneli yig'ilganda o'zgarmaydigan "katta ko'rinish" balandligi (lvh)
+  const lvhProbe = document.createElement('div');
+  lvhProbe.setAttribute('aria-hidden','true');
+  lvhProbe.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:100vh;height:100lvh;visibility:hidden;pointer-events:none';
+  document.body.appendChild(lvhProbe);
   function resize(force){
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = window.innerWidth, h = lvhProbe.offsetHeight || window.innerHeight;
     // telefonda manzil paneli yig'ilib-ochilganda qayta chizmaslik
-    if(!force && Math.abs(w - W) < 1 && Math.abs(h - H) < 150) return;
+    if(!force && Math.abs(w - W) < 1 && Math.abs(h - H) < 4) return;
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     W = w; H = h;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -4122,6 +4127,6 @@ document.addEventListener('pointermove', e => {
 --------------------------------------------------------------------- */
 applyStatic();
 </script>
-<script src="design.js?v=10"></script>
+<script src="design.js?v=11"></script>
 </body>
 </html>
