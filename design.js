@@ -121,7 +121,6 @@ html.lite .sec-card,html.lite .book-row{box-shadow:none!important;transition:non
 html.lite .sec-icon{box-shadow:inset 0 1px 0 rgba(255,255,255,.45)!important;transition:none!important}
 html.lite .sec-card::before,html.lite .sec-card::after,html.lite .book-row::after{display:none!important}
 html.lite .sec-card:hover,html.lite .book-row:hover{transform:none!important}
-html.lite[data-theme="dark"] .sec-card:not(.add-card):not(.drag-source),html.lite[data-theme="dark"] .book-row{background:#1b2759!important}
 
 /* ── Diagnostika (?debug=1): har bir qatlamni alohida o'chirib ko'rish uchun. Oddiy holatda hech narsa qilmaydi ── */
 html.d-nostars .fxc,html.d-nostars .fx-canvas{display:none!important}
@@ -145,6 +144,17 @@ html.is-scrolling .sec-card,html.is-scrolling .book-row{pointer-events:none;tran
   .sec-card:hover .sec-icon,.sec-card.add-card:hover .plus{transform:none!important}
   .sec-card:hover::before,.sec-card:hover::after,.book-row:hover::after{opacity:0!important}
 }
+
+/* ── v11: telefon brauzerida ham Telegram'dagidek shaffof kartochkalar + qotishsiz skroll ── */
+/* Fon qatlamlari manzil paneli yig'ilganda o'lchamini O'ZGARTIRMASIN: doim "katta ko'rinish" balandligi (lvh).
+   Avval inset:0 tufayli har skroll kadrida fon rasmi va gradientlar qayta chizilib, pirpirash bo'lardi. */
+.site-bg,.day-fx,.night-fx,.atom-bg,.fx-canvas{bottom:auto!important;height:100vh!important;height:100lvh!important}
+/* Telefon brauzerida: og'ir aralashtirish (blend) yo'q, aylanuvchi nurlar yo'q; bulutlar skroll paytida to'xtab turadi */
+html.lite .site-bg::before{mix-blend-mode:normal!important;opacity:.75}
+html.lite .rays{animation:none!important;will-change:auto!important}
+html.lite.fx-scroll .cloud{animation-play-state:paused!important}
+html.lite .hero-atom svg{animation:none!important}
+html.lite .modal{animation:none!important}
 
 `;
 var st = document.createElement('style'); st.id = 'design-pro'; st.textContent = css + css2; document.head.appendChild(st);
@@ -273,10 +283,12 @@ try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
 var canHover = !!(window.matchMedia && matchMedia('(hover:hover)').matches), rootEl = document.documentElement;
 addEventListener('scroll', function(){
   if(!scrolling){ sN = 0; sdt = 16; if(canHover) rootEl.classList.add('is-scrolling'); }
+  if(lite && !scrolling) rootEl.classList.add('fx-scroll');
   scrolling = true; window.__scrollingNow = true; clearTimeout(scrollTimer);
   scrollTimer = setTimeout(function(){
     scrolling = false; window.__scrollingNow = false; window.__fxFreeze = false;
     if(canHover) rootEl.classList.remove('is-scrolling');
+    rootEl.classList.remove('fx-scroll');
   }, 150);
 }, {passive:true, capture:true});
 
