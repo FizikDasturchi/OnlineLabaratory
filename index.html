@@ -2001,8 +2001,15 @@ async function switchTab(k){
   if(row) row.classList.remove('has-val');
   // Uzun ro'yxatni ko'rib pastga tushib qolgan bo'lsa, tab almashganda
   // yangi ro'yxat boshidan (tablar joyidan) ko'rinsin
+  // Tab qatori sticky tepa panel ostida qolib ketmasin: panel balandligidan pastroqqa joylaymiz.
+  // Tablar allaqachon ko'rinib turgan bo'lsa, sahifa umuman siljimaydi.
   const tabsEl = $('tabsRow');
-  if(tabsEl && tabsEl.scrollIntoView) tabsEl.scrollIntoView({block:'start'});
+  if(tabsEl){
+    const bar = document.querySelector('.topbar');
+    const off = (bar ? bar.getBoundingClientRect().height : 0) + 12;
+    const top = tabsEl.getBoundingClientRect().top;
+    if(top < off) window.scrollTo(0, Math.max(0, top + (window.pageYOffset || document.documentElement.scrollTop) - off));
+  }
 }
 
 function onBookSearch(val){
