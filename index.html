@@ -1073,7 +1073,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.10.26-4";
+const APP_BUILD = "2026.11.15-1";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -1738,9 +1738,134 @@ function ensureDefaultSections(){
   return defaultsPromise;
 }
 
+/* ---------------------------------------------------------------------
+   BO'LIM TAKRORLARINI BIRLASHTIRISH (har bir fan faqat BITTA bo'lim)
+   - Ikki bo'lim "bir xil" hisoblanadi, agar o'zbekcha / ruscha / inglizcha nomlaridan
+     biri (lotin yozuvida, apostrof va registrsiz) mos kelsa.
+   - Hamma foydalanuvchida: takrorlar ekranda avtomatik BITTAGA jamlanadi
+     (materiallar soni qo'shiladi, material ro'yxati ikkalasidan olinadi).
+   - Admin kirganda: bazadagi takrorlar haqiqatan birlashtiriladi — materiallar asosiy
+     bo'limga ko'chiriladi, takror bo'lim o'chiriladi (bo'sh bo'lsa shunchaki o'chadi).
+     Material ko'chirilmasa, bo'lim HECH QACHON o'chirilmaydi.
+--------------------------------------------------------------------- */
+let sectionAlias = {};          // {takrorId: asosiyId}
+let sectionGroupIds = {};       // {asosiyId: [asosiyId, takrorId, ...]}
+let mergingSections = false;
+
+function secKey(str){
+  return toLatinKey(String(str || '').toLowerCase()).replace(/[^a-z0-9]+/g, '');
+}
+function secKeySet(s){
+  const tr = SECTION_TR[s.name] || {};
+  const set = new Set();
+  [s.name, s.nameRu, s.nameEn, tr.ru, tr.en].forEach(n => { const k = secKey(n); if(k) set.add(k); });
+  return set;
+}
+function resolveSecId(id){ return sectionAlias[id] || id; }
+function secIdsOf(id){
+  const root = resolveSecId(id);
+  return sectionGroupIds[root] || [root];
+}
+
+// Bo'limlarni guruhlaydi: [[sec, sec, ...], ...] — faqat takrori borlari
+function findSectionDupGroups(list, counts){
+  const n = list.length, parent = list.map((_, i) => i);
+  const find = i => { while(parent[i] !== i){ parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+  const owner = new Map();
+  list.forEach((sec, i) => {
+    secKeySet(sec).forEach(k => {
+      if(owner.has(k)){ const a = find(owner.get(k)), b = find(i); if(a !== b) parent[b] = a; }
+      else owner.set(k, i);
+    });
+  });
+  const groups = {};
+  list.forEach((sec, i) => { (groups[find(i)] = groups[find(i)] || []).push(sec); });
+  return Object.values(groups).filter(g => g.length > 1).map(g => {
+    const ord = x => typeof x.order === 'number' ? x.order : 1e9;
+    g.sort((a, b) =>
+      ((counts && counts[b.id]) || 0) - ((counts && counts[a.id]) || 0) ||      // materiali ko'pi birinchi
+      (b.id.startsWith('default_') - a.id.startsWith('default_')) ||
+      ord(a) - ord(b));
+    return g;   // g[0] — asosiy (qoladigan) bo'lim
+  });
+}
+
 async function loadSections(){
   const snap = await db.collection('sections').orderBy('order','asc').get();
-  sections = snap.docs.map(d => ({id:d.id, ...d.data()}));
+  const all = snap.docs.map(d => ({id:d.id, ...d.data()}));
+  sectionAlias = {}; sectionGroupIds = {};
+  const groups = findSectionDupGroups(all, null);
+  if(!groups.length){ sections = all; return; }
+  // Ekranda: takrorlarni yashiramiz (asosiyni to'g'ri tanlash uchun materiallar sonini hisoblaymiz)
+  let counts = {};
+  try{
+    const bs = await db.collection('books').get();
+    bs.docs.forEach(d => { const sid = d.data().sectionId; counts[sid] = (counts[sid]||0) + 1; });
+  }catch(e){ counts = {}; }
+  const final = findSectionDupGroups(all, counts);
+  const hide = new Set();
+  final.forEach(g => {
+    const keep = g[0];
+    sectionGroupIds[keep.id] = g.map(x => x.id);
+    const minOrd = Math.min(...g.map(x => typeof x.order === 'number' ? x.order : 1e9));
+    if(minOrd < 1e9) keep.order = minOrd;
+    g.slice(1).forEach(d => { sectionAlias[d.id] = keep.id; hide.add(d.id);
+      ['nameRu','nameEn','notebookUrl'].forEach(f => { if(!keep[f] && d[f]) keep[f] = d[f]; }); });
+  });
+  sections = all.filter(x => !hide.has(x.id)).sort((a, b) =>
+    (typeof a.order === 'number' ? a.order : 1e9) - (typeof b.order === 'number' ? b.order : 1e9));
+  if(isAdmin && !mergingSections) mergeDuplicateSections(final);   // fonda
+}
+
+async function mergeDuplicateSections(groups){
+  if(mergingSections) return;
+  mergingSections = true;
+  let removed = 0, moved = 0;
+  try{
+    for(const g of groups){
+      const keep = g[0];
+      for(const dupe of g.slice(1)){
+        // 1) takror bo'limdagi materiallarni asosiy bo'limga ko'chiramiz
+        const bs = await db.collection('books').where('sectionId','==', dupe.id).get();
+        for(let i = 0; i < bs.docs.length; i += 400){
+          const batch = db.batch();
+          bs.docs.slice(i, i + 400).forEach(d => batch.update(db.collection('books').doc(d.id), {sectionId: keep.id}));
+          await batch.commit();
+        }
+        moved += bs.docs.length;
+        // 2) bildirishnomalar (xato bo'lsa — muhim emas)
+        try{
+          const ns = await db.collection('notifications').where('sectionId','==', dupe.id).get();
+          for(let i = 0; i < ns.docs.length; i += 400){
+            const batch = db.batch();
+            ns.docs.slice(i, i + 400).forEach(d => batch.update(db.collection('notifications').doc(d.id), {sectionId: keep.id}));
+            await batch.commit();
+          }
+        }catch(e){ console.warn('Bildirishnomalarni ko\'chirib bo\'lmadi:', e.message); }
+        // 3) asosiy bo'limga yetishmayotgan nomlar/havolani qo'shamiz va eng yuqori o'rinni saqlaymiz
+        const upd = {};
+        ['nameRu','nameEn','notebookUrl'].forEach(f => { if(!keep[f] && dupe[f]){ upd[f] = dupe[f]; keep[f] = dupe[f]; } });
+        if(typeof dupe.order === 'number' && (typeof keep.order !== 'number' || dupe.order < keep.order)){ upd.order = dupe.order; keep.order = dupe.order; }
+        if(Object.keys(upd).length) await db.collection('sections').doc(keep.id).update(upd);
+        // 4) materiallar to'liq ko'chirilgandan keyingina takror bo'lim o'chiriladi
+        await db.collection('sections').doc(dupe.id).delete();
+        removed++;
+      }
+    }
+    if(removed){
+      bookCache = null;
+      const snap = await db.collection('sections').orderBy('order','asc').get();
+      sections = snap.docs.map(d => ({id:d.id, ...d.data()}));
+      sectionAlias = {}; sectionGroupIds = {};
+      if(homeCounts){ try{ const r = await loadAllBooksAndCounts(); homeCounts = r.counts; allBooksIndex = r.docs; }catch(e){} }
+      toast(`Takroriy bo'limlar birlashtirildi: ${removed} ta` + (moved ? `, ${moved} ta material ko'chirildi` : ''), 'ok');
+      if(!currentSectionId && !HANDOFF_ID) drawHome(); else if(currentSectionId){ currentSectionId = resolveSecId(currentSectionId); route(); }
+    }
+  }catch(e){
+    console.warn('Bo\'limlarni birlashtirish to\'xtadi (hech narsa yo\'qolmadi):', e.message);
+  }finally{
+    mergingSections = false;
+  }
 }
 
 // Bosh sahifada bo'limlar soni VA butun sayt bo'yicha material qidiruvi uchun bitta so'rovda yuklanadi.
@@ -1749,7 +1874,7 @@ async function loadAllBooksAndCounts(){
     const snap = await db.collection('books').get();
     const docs = snap.docs.map(d => ({id:d.id, ...d.data()}));
     const counts = {};
-    docs.forEach(b => { counts[b.sectionId] = (counts[b.sectionId]||0) + 1; });
+    docs.forEach(b => { const sid = resolveSecId(b.sectionId); counts[sid] = (counts[sid]||0) + 1; });
     return {docs, counts};
   }catch(e){
     console.warn('loadAllBooksAndCounts xatolik:', e.message);
@@ -1869,7 +1994,7 @@ function updateHomeSearch(){
               </div>
               <div class="book-actions">
                 ${dlHref && dlHref!=='#' ? `<a class="btn btn-outline btn-sm" href="${escapeHtml(dlHref)}" target="_blank" rel="noopener">${escapeHtml(t('download'))}</a>` : ''}
-                <a class="btn btn-outline btn-sm" href="#section/${escapeHtml(b.sectionId||'')}">${escapeHtml(t('openSection'))}</a>
+                <a class="btn btn-outline btn-sm" href="#section/${escapeHtml(resolveSecId(b.sectionId||''))}">${escapeHtml(t('openSection'))}</a>
               </div>
             </div>`;
         }).join('') + '</div>';
@@ -1978,6 +2103,7 @@ async function renderSectionPage(){
     $('mainWrap').innerHTML = `<div class="empty">${escapeHtml(t('sectionLoadFail'))}<br><span style="font-size:11px">${escapeHtml(e.message)}</span><div><a href="#" onclick="location.hash=''">${escapeHtml(t('backHome'))}</a></div></div>`;
     return;
   }
+  currentSectionId = resolveSecId(currentSectionId);   // takror bo'lim havolasi asosiy bo'limga olib boradi
   if(!drawSectionShell()) return;
   renderTabs();
   await renderBookList();
@@ -2106,8 +2232,9 @@ async function renderBookList(useCache){
   listEl.innerHTML = `<div class="empty">${escapeHtml(t('loading'))}</div>`;
   const sid = currentSectionId, tab = currentTab;
   try{
+    const ids = secIdsOf(sid).slice(0, 10);   // takror bo'lim bo'lsa, ikkalasidagi materiallar ham ko'rinadi
     const snap = await db.collection('books')
-      .where('sectionId','==', sid)
+      .where('sectionId', ids.length > 1 ? 'in' : '==', ids.length > 1 ? ids : sid)
       .where('type','==', tab)
       .get();
 
@@ -2225,11 +2352,10 @@ async function submitNewSection(){
     const snap = await db.collection('sections').get();
     const fresh = snap.docs.map(d => ({id:d.id, ...d.data()}));
     const key = normName(name);
-    // O'zbekcha, ruscha va inglizcha nomlar bilan solishtiramiz ("Mexanika" = "Механика" = "Mechanics")
-    const clash = fresh.find(s => {
-      const tr = SECTION_TR[s.name] || {};
-      return [s.name, s.nameRu, s.nameEn, tr.ru, tr.en].some(n => n && normName(n) === key);
-    });
+    // O'zbekcha, ruscha va inglizcha nomlar bilan solishtiramiz ("Mexanika" = "Механика" = "Mechanics");
+    // yozuv (lotin/kirill), apostrof, registr va bo'shliqlar e'tiborga olinmaydi
+    const newKey = secKey(name);
+    const clash = fresh.find(s => secKeySet(s).has(newKey));
     if(clash){ toast(t('sectionExists',{name: secName(clash)}), 'err'); return; }
 
     const order = fresh.reduce((m, s) => Math.max(m, typeof s.order === 'number' ? s.order : 0), -1) + 1;
@@ -2471,7 +2597,8 @@ function findDuplicate(item, index){
 }
 
 function sectionLabel(id){
-  const sec = sections.find(x => x.id === id);
+  const rid = resolveSecId(id);
+  const sec = sections.find(x => x.id === rid);
   return sec ? secName(sec) : t('unknown');
 }
 
@@ -3143,7 +3270,7 @@ function renderNotifPanel(){
 }
 
 function notifItemHtml(n){
-  const sec = sections.find(s => s.id === n.sectionId);
+  const sec = sections.find(s => s.id === resolveSecId(n.sectionId));
   const secLbl = sec ? secName(sec) : (n.sectionName || '');
   const typeLbl = TYPE_KEYS[n.bookType] ? t(TYPE_KEYS[n.bookType]) : '';
   const icon = TYPE_ICONS[n.bookType] || '📚';
@@ -3214,9 +3341,10 @@ async function notifGo(id){
   }catch(e){ /* tekshirib bo'lmasa ham o'tib ko'ramiz */ }
   closeNotifPanel();
   const type = TYPE_KEYS[n.bookType] ? n.bookType : 'pdf';
-  pendingFocus = {sectionId: n.sectionId, type, bookId: n.bookId, ts: Date.now()};
-  const target = '#section/' + n.sectionId;
-  if(currentSectionId === n.sectionId && location.hash === target){
+  const nSid = resolveSecId(n.sectionId);
+  pendingFocus = {sectionId: nSid, type, bookId: n.bookId, ts: Date.now()};
+  const target = '#section/' + nSid;
+  if(currentSectionId === nSid && location.hash === target){
     await switchTab(type);      // shu bo'limda turgan bo'lsak, faqat kerakli bandni ochamiz
   } else {
     location.hash = target;     // route() currentTab ni pendingFocus.type ga o'rnatadi
@@ -3825,11 +3953,8 @@ async function saveEditSection(){
     // Boshqa bo'limlar bilan takrorlanmasligini eng yangi ro'yxat bo'yicha tekshiramiz
     const snap = await db.collection('sections').get();
     const others = snap.docs.filter(d => d.id !== id).map(d => ({id:d.id, ...d.data()}));
-    const keys = [uz, ru, en].filter(Boolean).map(normName);
-    const clash = others.find(o => {
-      const tr = SECTION_TR[o.name] || {};
-      return [o.name, o.nameRu, o.nameEn, tr.ru, tr.en].some(n => n && keys.includes(normName(n)));
-    });
+    const keys = [uz, ru, en].filter(Boolean).map(secKey);
+    const clash = others.find(o => { const ks = secKeySet(o); return keys.some(k => ks.has(k)); });
     if(clash){ toast(t('sectionExists',{name: secName(clash)}), 'err'); return; }
 
     const F = firebase.firestore.FieldValue;
