@@ -588,6 +588,8 @@ body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,'He
 }
 .book-cover.portrait{width:88px;height:122px}
 .book-cover.video{width:128px;height:72px}
+.book-cover.slide{width:160px;height:90px}
+.book-cover.slide img{object-fit:contain;object-position:center}
 .book-cover .bc-ic{font-size:32px;opacity:.9}
 .book-cover.pdf .bc-ic,.book-cover.link .bc-ic{color:#dc2626}
 .book-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;background:#fff;display:block}
@@ -601,6 +603,7 @@ body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,'He
 @media (max-width:640px){
   .book-cover.portrait{width:70px;height:98px}
   .book-cover.video{width:104px;height:58px}
+  .book-cover.slide{width:128px;height:72px}
 }
 
 /* ── Oynalar ── */
@@ -1099,7 +1102,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.11.24-2";
+const APP_BUILD = "2026.11.24-3";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -2246,7 +2249,7 @@ function hydrateYtCovers(){
 function coverHtml(b, type, href){
   const icon = TYPE_ICONS[type] || '📄';
   if(type === 'site') return `<div class="book-ic site">${icon}</div>`;
-  let src = '', extra = '', shape = 'portrait';
+  let src = '', extra = '', shape = (type === 'pptx') ? 'slide' : 'portrait';   // taqdimot — gorizontal (slayd), kitob/Word — tik
   if(type === 'link'){
     shape = 'video';
     const id = ytIdOf(b.url);
