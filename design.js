@@ -192,10 +192,17 @@ var IC = {
   dome:S('<path d="M4 20v-8a8 8 0 0116 0v8M2 20h20M12 4V2M9 20v-5a3 3 0 016 0v5"/>'),
   cap:S('<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.500V16c3 2.500 9 2.500 12 0v-4.500M22 9v6"/>'),
   clip:S('<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M8.500 10h7M8.500 14h7M8.500 17.500h4"/>'),
-  star:S('<path d="M12 2.500l2.800 6.200 6.700.7-5 4.600 1.400 6.600L12 17.200 6.100 20.600l1.400-6.600-5-4.600 6.700-.7z"/>')
+  star:S('<path d=\"M12 2.500l2.800 6.200 6.700.7-5 4.600 1.400 6.600L12 17.200 6.100 20.600l1.400-6.600-5-4.600 6.700-.7z\"/>'),
+  hourglass:S('<path d=\"M6 2h12M6 22h12\"/><path d=\"M7 2v4.500c0 2 2 3.500 5 5.500-3 2-5 3.500-5 5.500V22M17 2v4.500c0 2-2 3.500-5 5.500 3 2 5 3.500 5 5.500V22\"/>'),
+  book:S('<path d=\"M4 4.500A2.500 2.500 0 016.500 2H20v17H6.500A2.500 2.500 0 004 21.500z\"/><path d=\"M4 21.500A2.500 2.500 0 006.500 19H20v3H6.500\"/><path d=\"M9 7h7M9 11h5\"/>'),
+  globe:S('<circle cx=\"12\" cy=\"12\" r=\"9.500\"/><path d=\"M2.500 12h19M12 2.500c3 3 3 16 0 19M12 2.500c-3 3-3 16 0 19\"/>'),
+  leaf:S('<path d=\"M20 4C10 4 4 9 4 15c0 2 1 4 3 5 6 0 13-5 13-16z\"/><path d=\"M4 21c2-5 5-8 10-11\"/>'),
+  pen:S('<path d=\"M16 3l5 5L8 21H3v-5z\"/><path d=\"M14 5l5 5\"/>'),
+  code:S('<path d=\"M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16\"/>'),
+  scale:S('<path d=\"M12 3v18M7 21h10M5 7h14\"/><path d=\"M5 7l-3 7a3.500 3.500 0 006 0zM19 7l-3 7a3.500 3.500 0 006 0z\"/>')
 };
 var RULES = [
-  [/astro|astron|астро|космос/, IC.planet], [/kvant|quant|квант/, IC.quantum],
+  [/astro|astron|kosmo|cosmo|астро|космо/, IC.planet], [/kvant|quant|квант/, IC.quantum],
   [/lazer|laser|лазер/, IC.laser], [/nurning|light.*matter|свет/, IC.sun],
   [/optik|optic|оптик/, IC.prism], [/yadro|nuclear|ядер|atom|атом/, IC.atom],
   [/nano|нано/, IC.nano], [/polimer|polymer|полимер/, IC.polymer],
@@ -214,14 +221,19 @@ var RULES = [
   [/psixolog|psycholog|психолог/, T('Ψ')], [/falsafa|philosoph|философ/, T('φ')],
   [/dinshun|religio|религ/, IC.dome], [/pedagog|педагог/, IC.cap],
   [/metodik|methodolog|методик|teaching/, IC.clip],
-  [/umumiy fizika|general physics|общая физика/, IC.star]
+  [/umumiy fizika|general physics|общая физика/, IC.star],
+  [/tarix|history|истори/, IC.hourglass], [/geograf|geograph|geo|геогр/, IC.globe],
+  [/biolog|ekolog|botanik|zoolog|биолог|эколог/, IC.leaf], [/adabiyot|til |tili|lingvist|literat|lang|литер|язык/, IC.pen],
+  [/informatik|dastur|programm|информат|програм/, IC.code], [/huquq|iqtisod|law|econom|право|эконом/, IC.scale]
 ];
 function applyIcons(){
   document.querySelectorAll('.sec-card[data-id] .sec-icon:not([data-ic])').forEach(function(el){
     el.setAttribute('data-ic', '1');
     var h = el.closest('.sec-card').querySelector('h3');
     var n = (h ? h.textContent : '').toLowerCase().replace(/[\u2018\u2019\u02bb\u02bc`\u00b4']/g, '');
-    for(var i = 0; i < RULES.length; i++){ if(RULES[i][0].test(n)){ el.innerHTML = RULES[i][1]; break; } }
+    var hit = false;
+    for(var i = 0; i < RULES.length; i++){ if(RULES[i][0].test(n)){ el.innerHTML = RULES[i][1]; hit = true; break; } }
+    if(!hit) el.innerHTML = IC.book;   /* mos qoida topilmasa — harf emas, kitob belgisi */
   });
 }
 var mw = document.getElementById('mainWrap'), tm;
