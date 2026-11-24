@@ -577,6 +577,32 @@ body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,'He
 .book-ic{border-radius:12px}
 .empty{background:rgba(255,255,255,.88);border-color:rgba(29,122,74,.35);border-radius:18px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 
+
+/* ── Muqova (cover) — kitoblar va video havolalar ── */
+.book-cover-link{flex-shrink:0;display:block;line-height:0;text-decoration:none}
+.book-cover{
+  position:relative;flex-shrink:0;overflow:hidden;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);
+  box-shadow:0 4px 12px rgba(0,0,0,.28);line-height:1;
+}
+.book-cover.portrait{width:64px;height:88px}
+.book-cover.video{width:128px;height:72px}
+.book-cover .bc-ic{font-size:26px;opacity:.9}
+.book-cover.pdf .bc-ic,.book-cover.link .bc-ic{color:#dc2626}
+.book-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;background:#fff;display:block}
+.book-cover.video img{object-position:center}
+.book-cover.video::after{
+  content:"▶";position:absolute;right:6px;bottom:5px;width:20px;height:20px;border-radius:50%;
+  background:rgba(0,0,0,.62);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;
+  padding-left:1px;pointer-events:none;
+}
+.book-row:hover .book-cover{box-shadow:0 6px 16px rgba(0,0,0,.36)}
+@media (max-width:640px){
+  .book-cover.portrait{width:54px;height:74px}
+  .book-cover.video{width:104px;height:58px}
+}
+
 /* ── Oynalar ── */
 .modal-overlay{background:rgba(6,18,28,.62);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
 .modal{border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.4);animation:modalIn .26s cubic-bezier(.2,.9,.3,1.1)}
@@ -1073,7 +1099,7 @@ if(window.Telegram && window.Telegram.WebApp){
 const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz7UIDM2sPqE8IYJ9xT39arVGUFb17BG-witJo49iEVPRkP1NAK1g7LNtg56LeCdtbE/exec";
 
 // Har yangilanishda oshiriladi. Adminlarga bosh sahifada ko'rinadi (Telegramdagi nusxa eskirib qolganini aniqlash uchun).
-const APP_BUILD = "2026.11.15-1";
+const APP_BUILD = "2026.11.24-1";
 
 const ADMIN_EMAILS = ["muhammadsodiq0825@gmail.com","fizikdasturchi@gmail.com","nberdiqulova662@gmail.com"];
 
@@ -1985,7 +2011,7 @@ function updateHomeSearch(){
           const secNm = sectionLabel(b.sectionId);
           return `
             <div class="book-row">
-              <div class="book-ic ${escapeHtml(b.type||'')}">${icon}</div>
+              ${coverHtml(b, b.type||'', openHref)}
               <div class="book-body">
                 <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
                   <div class="t">${escapeHtml(b.title||'')}</div>
@@ -1998,6 +2024,7 @@ function updateHomeSearch(){
               </div>
             </div>`;
         }).join('') + '</div>';
+      hydrateYtCovers();
     } else if(!secMatches.length){
       resWrap.innerHTML = `<div class="empty">${escapeHtml(t('noSearchResults'))}</div>`;
     } else {
@@ -2161,6 +2188,80 @@ function bookViewUrl(b){
     : b.url;
 }
 
+/* ---------------------------------------------------------------------
+   MUQOVA: kitoblar uchun Drive'dagi 1-sahifa, video havolalar uchun YouTube rasmi
+   Muqova yuklanmasa (fayl yopiq, internet yo'q, YouTube emas) — avvalgi ikonka qoladi.
+--------------------------------------------------------------------- */
+function ytIdOf(url){
+  try{
+    const u = new URL(String(url||'').trim());
+    const h = u.hostname.replace(/^www\.|^m\./,'');
+    let id = '';
+    if(h === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
+    else if(h === 'youtube.com' || h === 'music.youtube.com' || h === 'youtube-nocookie.com'){
+      if(u.pathname === '/watch') id = u.searchParams.get('v') || '';
+      else { const m = u.pathname.match(/^\/(?:shorts|embed|live|v)\/([\w-]{11})/); if(m) id = m[1]; }
+    }
+    return /^[\w-]{11}$/.test(id) ? id : '';
+  }catch(e){ return ''; }
+}
+function isYtUrl(url){
+  try{ const h = new URL(String(url||'').trim()).hostname.replace(/^www\.|^m\./,''); return /(^|\.)youtube\.com$|^youtu\.be$/.test(h); }
+  catch(e){ return false; }
+}
+const _ytThumbCache = {};
+// Faqat playlist havolasi (v= yo'q) uchun: YouTube oEmbed orqali birinchi video rasmi
+function ytThumbFor(url){
+  if(_ytThumbCache[url]) return _ytThumbCache[url];
+  _ytThumbCache[url] = (async () => {
+    const key = 'ytthumb:' + url;
+    try{ const c = localStorage.getItem(key); if(c) return c; }catch(e){}
+    try{
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 7000);
+      const res = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent(url), {signal: ctrl.signal});
+      clearTimeout(timer);
+      if(!res.ok) return '';
+      const d = await res.json();
+      const src = (d && typeof d.thumbnail_url === 'string' && d.thumbnail_url.startsWith('https://')) ? d.thumbnail_url : '';
+      if(src){ try{ localStorage.setItem(key, src); }catch(e){} }
+      return src;
+    }catch(e){ return ''; }
+  })();
+  return _ytThumbCache[url];
+}
+function hydrateYtCovers(){
+  document.querySelectorAll('.book-cover[data-yt]').forEach(el => {
+    const u = el.getAttribute('data-yt');
+    el.removeAttribute('data-yt');
+    ytThumbFor(u).then(src => {
+      if(!src || !el.isConnected) return;
+      const im = new Image();
+      im.alt = ''; im.referrerPolicy = 'no-referrer';
+      im.onload = () => { if(el.isConnected) el.appendChild(im); };
+      im.src = src;
+    });
+  });
+}
+function coverHtml(b, type, href){
+  const icon = TYPE_ICONS[type] || '📄';
+  if(type === 'site') return `<div class="book-ic site">${icon}</div>`;
+  let src = '', extra = '', shape = 'portrait';
+  if(type === 'link'){
+    shape = 'video';
+    const id = ytIdOf(b.url);
+    if(id) src = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
+    else if(isYtUrl(b.url)) extra = ` data-yt="${escapeHtml(safeUrl(b.url))}"`;
+  } else if(b.driveFileId){
+    src = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(b.driveFileId) + '&sz=w400';
+  }
+  const img = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+  const box = `<div class="book-cover ${escapeHtml(type)} ${shape}"${extra}><span class="bc-ic">${icon}</span>${img}</div>`;
+  return (href && href !== '#')
+    ? `<a class="book-cover-link" href="${escapeHtml(href)}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">${box}</a>`
+    : box;
+}
+
 function drawBookList(){
   const listEl = $('bookList');
   if(!listEl) return;
@@ -2199,7 +2300,7 @@ function drawBookList(){
 
     return `
       <div class="book-row" data-bid="${escapeHtml(id)}">
-        <div class="book-ic ${currentTab}">${icon}</div>
+        ${coverHtml(b, currentTab, openHref)}
         <div class="book-body">
           <a class="book-meta" href="${escapeHtml(openHref)}" target="_blank" rel="noopener">
             <div class="t">${escapeHtml(b.title)}</div>
@@ -2218,6 +2319,7 @@ function drawBookList(){
       </div>
     `;
   }).join('');
+  hydrateYtCovers();
 }
 
 async function renderBookList(useCache){
